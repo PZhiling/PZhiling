@@ -60,6 +60,30 @@ in `metadata.json`.
    ```
    Then open http://localhost:3000
 
+## Use on an Android tablet (PWA)
+
+The app is a responsive PWA — it installs to the home screen and runs
+full-screen like a native app. The server must stay reachable from the tablet
+because AI calls are proxied through it.
+
+**Option A — same Wi-Fi network (quickest):**
+
+1. Run the app on your computer (`npm run dev` or `npm start`).
+2. The console prints a network URL, e.g. `On your network (wlan0): http://192.168.1.20:3000`.
+3. Open that URL in Chrome on the tablet.
+4. Menu (⋮) → **Add to Home screen** to pin it as an app icon.
+
+> Note: over plain `http://` on a LAN, Chrome adds a home-screen *shortcut*.
+> The full "install app" experience (standalone window, app icon from the
+> manifest) requires HTTPS.
+
+**Option B — deploy to the cloud (use from anywhere, full PWA install):**
+
+Deploy to any Node host with HTTPS (Cloud Run via AI Studio, Railway,
+Render, ...). Set `GEMINI_API_KEY` (and optionally `GOOGLE_TTS_API_KEY`)
+as server environment variables, then open the HTTPS URL on the tablet —
+Chrome will offer **Install app**.
+
 ## Build & production
 
 ```bash

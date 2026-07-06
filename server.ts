@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import express from 'express';
+import os from 'os';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import textToSpeech from '@google-cloud/text-to-speech';
@@ -144,6 +145,16 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    // Print LAN addresses so the app can be opened from a phone/tablet on
+    // the same network (e.g. an Android tablet browser).
+    const nets = os.networkInterfaces();
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name] ?? []) {
+        if (net.family === 'IPv4' && !net.internal) {
+          console.log(`  On your network (${name}): http://${net.address}:${PORT}`);
+        }
+      }
+    }
   });
 }
 
