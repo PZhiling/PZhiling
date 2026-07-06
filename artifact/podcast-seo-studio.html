@@ -163,6 +163,27 @@
   .trenditem .rs { font-size: .78rem; color: var(--muted); line-height: 1.5; }
   .trenditem .add { font-size: .73rem; color: var(--accent-ink); font-weight: 700; }
 
+  /* brand profile */
+  .brandgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  @media (max-width: 640px) { .brandgrid { grid-template-columns: 1fr; } }
+  .brandgrid label { display: block; font-size: .72rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+
+  /* content pillars */
+  .pillchip { display: inline-block; font-size: .68rem; font-weight: 800; letter-spacing: .04em; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .pl-INSIGHT { background: var(--crit-soft); color: var(--crit); }
+  .pl-PROOF { background: var(--good-soft); color: var(--good); }
+  .pl-FRAMEWORK { background: var(--accent-soft); color: var(--accent-ink); }
+  .pl-OFFER { background: rgba(139, 92, 246, 0.14); color: #8f6fd8; }
+  .pl-JOURNEY { background: var(--warn-soft); color: var(--warn); }
+
+  /* QC gate */
+  .qcpanel { display: flex; gap: 18px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; background: var(--bg); margin-bottom: 6px; flex-wrap: wrap; }
+  .qcscore { font-family: var(--mono); font-size: 2.3rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .qcscore small { font-size: .85rem; color: var(--muted); font-weight: 700; }
+  .qcrow { display: flex; gap: 10px; align-items: flex-start; padding: 10px 2px; border-top: 1px solid var(--line); font-size: .84rem; }
+  .qcrow:first-child { border-top: none; }
+  .qcrow .pts { margin-left: auto; font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; font-size: .78rem; padding-top: 2px; }
+
   /* ── Stat tiles ──────────────────────────────── */
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
   .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
@@ -272,6 +293,17 @@
             <option value="15-20">15–20 นาที (เจาะลึก)</option>
           </select>
         </div>
+        <div>
+          <label class="f" for="pillar">เสาคอนเทนต์ (Content Pillar)</label>
+          <select id="pillar">
+            <option value="AUTO">✨ อัตโนมัติ (ให้ AI เลือกเสาที่เหมาะ)</option>
+            <option value="INSIGHT">🟠 INSIGHT — มุมมองแทงใจ (เป้า 40%)</option>
+            <option value="PROOF">🟢 PROOF — เคสจริง/ตัวเลข (เป้า 15%)</option>
+            <option value="FRAMEWORK">🔵 FRAMEWORK — ระบบมีชื่อจำง่าย (เป้า 10%)</option>
+            <option value="OFFER">🟣 OFFER — ปูเข้าบริการ (เป้า 5%)</option>
+            <option value="JOURNEY">🟡 JOURNEY — เรื่องราว/บทเรียน (เป้า 30%)</option>
+          </select>
+        </div>
       </div>
 
       <details class="mini">
@@ -291,6 +323,19 @@
         <button class="btn" id="cleardraft">ล้างข้อมูล</button>
       </div>
     </div>
+
+    <details class="mini" id="brandbox">
+      <summary>🧬 Brand Profile (DNA แบรนด์) — <span id="brandstatus">ยังไม่ตั้งค่า</span></summary>
+      <p class="hint" style="margin-top:8px">กรอกครั้งเดียว ระบบจะฝังลงใน Prompt ทุกครั้งอัตโนมัติ — สคริปต์ที่ได้จะเป็น "เสียงของแบรนด์คุณ" ไม่ใช่ Podcast กลางๆ (บันทึกในเครื่องอัตโนมัติ)</p>
+      <div class="brandgrid">
+        <div><label for="b_name">ชื่อแบรนด์ / ครีเอเตอร์</label><input type="text" id="b_name" placeholder="เช่น รอนนี่ BBA ตัวตึง" /></div>
+        <div><label for="b_tagline">แท็กไลน์ (ประโยคเดียวว่าคุณคือใคร)</label><input type="text" id="b_tagline" placeholder="เช่น เปลี่ยนความสามารถให้กลายเป็นแบรนด์ที่คนยอมจ่าย" /></div>
+        <div><label for="b_aud">กลุ่มเป้าหมาย + ปัญหาของเขา</label><input type="text" id="b_aud" placeholder="เช่น คนเก่ง 25–34 ทำงานหนักแต่คนไม่จำ ขายด้วยราคา" /></div>
+        <div><label for="b_proof">Proof (ตัวเลข/เครดิตที่พิสูจน์ได้)</label><input type="text" id="b_proof" placeholder="เช่น ผู้ติดตามรวม 400K+ · ให้คำปรึกษาแล้ว 100+ คน" /></div>
+        <div><label for="b_offer">Offer (สินค้า/บริการ)</label><input type="text" id="b_offer" placeholder="เช่น ปรึกษาการเงิน + เวิร์กช็อปวางแผนเกษียณ" /></div>
+        <div><label for="b_url">เว็บไซต์/ลิงก์หลัก (Backlink ใน Description)</label><input type="url" id="b_url" placeholder="https://..." /></div>
+      </div>
+    </details>
 
     <div class="card">
       <div class="trendhead">
@@ -355,14 +400,22 @@
         <button role="tab" aria-selected="false" data-view="p1">Phase 1 · วิเคราะห์</button>
         <button role="tab" aria-selected="false" data-view="p2">Phase 2 · Storyboard</button>
         <button role="tab" aria-selected="false" data-view="p3">Phase 3 · สคริปต์</button>
-        <button role="tab" aria-selected="false" data-view="qa">✓ ตรวจคุณภาพ</button>
+        <button role="tab" aria-selected="false" data-view="qa">✓ QC Gate</button>
       </div>
 
       <div class="card md" id="mdview"></div>
 
       <div class="card" id="qaview" hidden>
-        <div class="eyebrow">Quality Check</div>
-        <h2>ความครอบคลุมของภาพประกอบ (Visual Coverage)</h2>
+        <div class="eyebrow">QC Gate</div>
+        <h2>คะแนนคุณภาพก่อนผลิต</h2>
+        <p class="hint">ระบบตรวจสคริปต์อัตโนมัติ 6 ด้านก่อนคุณลงมืออัดเสียง/เจนภาพ — ผ่านเกณฑ์ที่ 8.5 ขึ้นไป</p>
+        <div class="qcpanel">
+          <div class="qcscore" id="qcscore">–</div>
+          <div class="hint" id="qcverdict" style="margin:0; max-width:420px"></div>
+        </div>
+        <div id="qcrows"></div>
+
+        <h2 style="margin-top:24px">ความครอบคลุมของภาพประกอบ (Visual Coverage)</h2>
         <p class="hint">แต่ละช่องคือช่วงเวลาระหว่าง Timestamp ในสคริปต์ — ช่วงที่ยาวเกินไปเสี่ยง "ภาพค้าง" (Visual Freeze) ทำให้คนกดออก</p>
         <div class="meter" id="meter"></div>
         <div class="legend">
@@ -381,6 +434,7 @@
       <div class="eyebrow">History</div>
       <h2>ประวัติการวิเคราะห์</h2>
       <p class="hint">เก็บในเครื่องของคุณ (localStorage) สูงสุด 20 รายการ — แตะเพื่อเปิดดูอีกครั้ง</p>
+      <div id="pillarmix" style="margin-bottom:12px"></div>
       <div id="histlist"></div>
       <div class="btnrow"><button class="btn small danger" id="clearhist">ล้างประวัติทั้งหมด</button></div>
     </div>
@@ -545,7 +599,7 @@ const gotoPane = (name) => $(`nav.tabs button[data-pane="${name}"]`).click();
 const input = $("#input");
 input.value = store.get("draft", "");
 input.addEventListener("input", () => store.set("draft", input.value));
-["fmt", "vis", "len"].forEach((id) => {
+["fmt", "vis", "len", "pillar"].forEach((id) => {
   const el = $("#" + id);
   const saved = store.get("set_" + id, null);
   if (saved) el.value = saved;
@@ -633,6 +687,30 @@ function renderTrends() {
 renderTrends();
 $("#trendmore").addEventListener("click", () => { trendOffset++; store.set("trend_off", trendOffset); renderTrends(); });
 
+/* ── brand profile (Brand DNA, injected into every prompt) ── */
+const BRAND_FIELDS = ["b_name", "b_tagline", "b_aud", "b_proof", "b_offer", "b_url"];
+const brandData = store.get("brand", {});
+function brandStatus() {
+  const n = BRAND_FIELDS.filter((id) => (brandData[id] || "").trim()).length;
+  $("#brandstatus").textContent = n ? `กรอกแล้ว ${n}/6 ช่อง ✓` : "ยังไม่ตั้งค่า";
+}
+BRAND_FIELDS.forEach((id) => {
+  const el = $("#" + id);
+  el.value = brandData[id] || "";
+  el.addEventListener("input", () => { brandData[id] = el.value; store.set("brand", brandData); brandStatus(); });
+});
+brandStatus();
+
+/* ── content pillars ── */
+const PILLAR_TARGETS = { INSIGHT: 40, PROOF: 15, FRAMEWORK: 10, OFFER: 5, JOURNEY: 30 };
+const PILLAR_BRIEF = {
+  INSIGHT: "INSIGHT — เปิดด้วยมุมมองที่แทงใจ pain point ของกลุ่มเป้าหมาย ใช้ hook เชิง VS/Contrast หรือหักล้างความเชื่อผิดๆ ที่คนส่วนใหญ่ยึดถือ แล้วค่อยเฉลยมุมที่ถูกพร้อมเหตุผลเบื้องลึก",
+  PROOF: "PROOF — เล่าผ่านเคสจริง ตัวเลขจริง หรือผลลัพธ์ที่พิสูจน์ได้ของแบรนด์ ให้ผู้ฟังเชื่อแล้วตัดสินใจตาม ใช้ hook เชิง Case Study / Result Claim",
+  FRAMEWORK: "FRAMEWORK — นำเสนอระบบ/ขั้นตอนที่ตั้งชื่อจำง่ายได้ (Named Framework) แบ่งเป็นข้อชัดเจนทำตามได้ทันที ใช้ hook เชิง Named Concept / Number-List",
+  OFFER: "OFFER — ให้คุณค่าเต็มที่ก่อนตลอดตอน แล้วปูเข้าบริการ/สินค้าช่วงท้ายพร้อม CTA ชัดเจนแบบ soft-sell ห้าม hard sell กลางเนื้อหา ใช้ hook เชิง Sacrifice/Paradox",
+  JOURNEY: "JOURNEY — เล่าเรื่องราว/บทเรียนจากประสบการณ์ตรง มีอุปสรรค จุดเปลี่ยน และสิ่งที่ได้เรียนรู้ สร้างความผูกพันกับผู้ฟัง",
+};
+
 /* ── prompt builder ── */
 const SYS = $("#sysprompt").textContent.trim();
 function buildPrompt() {
@@ -650,6 +728,24 @@ function buildPrompt() {
   } else {
     p += `\n\nข้อกำหนดสไตล์ภาพ (B-Roll): วิดีโอสต็อกสมจริง (Cinematic Stock) — ระบุคำอธิบายฟุตเทจ เหตุผลเชิงจิตวิทยา และประโยชน์ Retention ต่อคิว`;
   }
+  const hasBrand = BRAND_FIELDS.some((id) => (brandData[id] || "").trim());
+  if (hasBrand) {
+    p += "\n\nข้อมูลแบรนด์ (Brand DNA) — สำคัญมาก: เนื้อหาทุก Phase ต้องสะท้อนแบรนด์นี้ ไม่ใช่ Podcast ทั่วไป:";
+    if (brandData.b_name?.trim()) p += `\n- แบรนด์/ครีเอเตอร์: ${brandData.b_name.trim()}`;
+    if (brandData.b_tagline?.trim()) p += `\n- แท็กไลน์: ${brandData.b_tagline.trim()}`;
+    if (brandData.b_aud?.trim()) p += `\n- กลุ่มเป้าหมายและปัญหาของเขา: ${brandData.b_aud.trim()} (เลือกหัวข้อและมุมเล่าที่แทงใจกลุ่มนี้ที่สุด)`;
+    if (brandData.b_proof?.trim()) p += `\n- Proof ของแบรนด์: ${brandData.b_proof.trim()} (สอดแทรกในสคริปต์อย่างเป็นธรรมชาติเพื่อสร้างความน่าเชื่อถือ ห้ามยัดแบบโฆษณา)`;
+    if (brandData.b_offer?.trim()) p += `\n- Offer: ${brandData.b_offer.trim()} (ปูทางแบบ soft-sell ช่วงท้ายเท่านั้น)`;
+    if (brandData.b_url?.trim()) p += `\n- เว็บไซต์สำหรับ Backlink และ CTA ใน Description: ${brandData.b_url.trim()}`;
+  }
+
+  const pillar = $("#pillar").value;
+  if (pillar !== "AUTO") {
+    p += `\n\nเสาคอนเทนต์ (Content Pillar) ของตอนนี้: ${PILLAR_BRIEF[pillar]}`;
+  } else {
+    p += "\n\nเสาคอนเทนต์: ให้คุณเลือกเสาที่เหมาะที่สุดกับหัวข้อจาก INSIGHT (มุมมองแทงใจ) / PROOF (เคสจริง) / FRAMEWORK (ระบบมีชื่อ) / OFFER (ปูเข้าบริการ) / JOURNEY (เรื่องราว) แล้วระบุชื่อเสาที่เลือกไว้บรรทัดแรกของผลลัพธ์";
+  }
+
   if (comps.length) {
     p += "\n\nวิเคราะห์คู่แข่งต่อไปนี้ประกอบใน Phase 1 ด้วย:";
     comps.forEach((c) => { p += `\n- ${c.name} (${c.url})${c.notes ? ` — ประเด็น: ${c.notes}` : ""}`; });
@@ -810,6 +906,102 @@ function storyboardTs(p2text) {
   return found;
 }
 
+/* ── QC Gate: 6 computable checks, scored out of 10 ── */
+const AI_PHRASES = [
+  "in today's fast-paced world", "in today's world", "have you ever wondered",
+  "first and foremost", "moreover", "furthermore", "in conclusion",
+  "as we wrap up", "additionally", "another crucial aspect", "it's important to note",
+  "at the end of the day", "without further ado", "let's dive in", "dive deeper into",
+  "unlock the secrets", "game-changer", "in this video, we will", "buckle up", "picture this",
+];
+const GREETING = /^\s*(hi|hello|hey|welcome|what'?s up|good (morning|afternoon|evening)|greetings)\b/i;
+
+function computeQC(c) {
+  const script = c.phases.p3 || c.md;
+  const low = script.toLowerCase();
+  const checks = [];
+
+  // 1) human-sounding language (2 pts)
+  const found = AI_PHRASES.filter((ph) => low.includes(ph));
+  checks.push({
+    name: "ภาษาเหมือนมนุษย์ (ไม่มี Pattern AI)", max: 2,
+    score: Math.max(0, 2 - found.length * 0.5),
+    detail: found.length
+      ? `พบวลีเสี่ยง ${found.length} จุด: ${found.slice(0, 5).map((f) => '"' + f + '"').join(", ")}${found.length > 5 ? " …" : ""}`
+      : "ไม่พบวลี Pattern AI ในสคริปต์",
+    fix: found.length
+      ? `จากสคริปต์ที่คุณสร้างให้ก่อนหน้านี้ พบวลี Pattern AI ที่เสี่ยงต่อข้อหา Inauthentic Content ของ YouTube: ${found.join(", ")}\n\nกรุณาเขียนประโยคที่มีวลีเหล่านี้ใหม่เป็นภาษาพูดธรรมชาติแบบมนุษย์ คงเนื้อหาและ Timestamp เดิมทั้งหมด แสดงเฉพาะย่อหน้าที่แก้ไข`
+      : null,
+  });
+
+  // 2) cold open hook within the first minute (2 pts)
+  let cold = 0;
+  const coldNotes = [];
+  const zi = script.indexOf("[0:00]");
+  const open = (zi >= 0 ? script.slice(zi + 6, zi + 700) : script.slice(0, 700)).trim();
+  if (zi >= 0) cold += 0.5; else coldNotes.push("ไม่พบ Timestamp [0:00]");
+  if (!GREETING.test(open)) cold += 0.5; else coldNotes.push("เปิดคลิปด้วยคำทักทาย — ควรเปิดด้วย hook ทันที");
+  if (/\d/.test(open.slice(0, 280)) || /\?/.test(open.slice(0, 280)) || /(never|nobody|wrong|mistake|secret|stop|worst|lie|myth|percent)/i.test(open.slice(0, 280))) cold += 1;
+  else coldNotes.push("60 วิแรกยังไม่เห็นสัญญาณ hook (สถิติ / คำถาม / ขัดตรรกะ)");
+  checks.push({
+    name: "Cold Open มี Hook ใน 60 วิแรก", max: 2, score: cold,
+    detail: coldNotes.length ? coldNotes.join(" · ") : "เปิดด้วย hook ทันที ไม่ทักทายทื่อๆ",
+    fix: coldNotes.length
+      ? `ช่วงเปิดคลิป (Cold Open) ของสคริปต์ยังอ่อน: ${coldNotes.join(", ")}\n\nกรุณาเขียนช่วง [0:00]–[1:00] ใหม่ ให้เปิดด้วยสถิติช็อก เรื่องขัดตรรกะ หรือเคสดราม่าเฉพาะจุดทันที ห้ามเปิดด้วยคำทักทาย แสดงเฉพาะส่วนที่แก้ไข`
+      : null,
+  });
+
+  // 3) timestamp pacing (2 pts)
+  let pace = 0;
+  if (c.segs.length) {
+    const w = c.segs.reduce((s, g) => s + (g.sev === "good" ? 1 : g.sev === "warn" ? 0.5 : 0), 0);
+    pace = (w / c.segs.length) * 2;
+  }
+  checks.push({
+    name: "จังหวะ Timestamp ถี่พอ (กันภาพค้าง)", max: 2, score: pace,
+    detail: c.segs.length
+      ? `${c.segs.filter((s) => s.sev === "good").length}/${c.segs.length} ช่วงอยู่ในเกณฑ์ ≤18 วิ (ดูรายละเอียดที่มิเตอร์ด้านล่าง)`
+      : "ไม่พบ Timestamp ในสคริปต์",
+  });
+
+  // 4) storyboard coverage (1.5 pts)
+  checks.push({
+    name: "คิวภาพ Storyboard ครบทุก Timestamp", max: 1.5,
+    score: c.sb === null ? 0 : ((c.coverage ?? 0) / 100) * 1.5,
+    detail: c.sb === null ? "ไม่พบตาราง Storyboard ใน Phase 2" : `คิวภาพครอบคลุม ${c.coverage}% ของ Timestamp ในสคริปต์`,
+  });
+
+  // 5) description timestamps match the script (1.5 pts)
+  const dm = script.match(/(?:^|\n)\s*(?:#+\s*|\*\*\s*)?(?:youtube\s*)?description\b[\s\S]*$/i);
+  let descScore = 0, descDetail = "ไม่พบส่วน Description ในผลลัพธ์", descText = "";
+  if (dm) {
+    descText = dm[0];
+    const dts = parseTs(descText);
+    if (!dts.length) { descScore = 0.5; descDetail = "มี Description แต่ไม่มี Timestamps"; }
+    else {
+      const sset = new Set(c.ts.map((t) => t.sec));
+      const ok = dts.filter((t) => sset.has(t.sec)).length;
+      descScore = (ok / dts.length) * 1.5;
+      descDetail = `Timestamps ใน Description ตรงกับสคริปต์ ${ok}/${dts.length} ตัว`;
+    }
+  }
+  checks.push({ name: "Description มี Timestamps ตรงสคริปต์", max: 1.5, score: descScore, detail: descDetail });
+
+  // 6) backlink + hashtags (1 pt)
+  const target = descText || script;
+  let cta = 0;
+  const ctaNotes = [];
+  if (/https?:\/\//i.test(target)) cta += 0.7; else ctaNotes.push("ไม่มีลิงก์ Backlink กลับเว็บไซต์");
+  if (/#[^\s#]/.test(target)) cta += 0.3; else ctaNotes.push("ไม่มี Hashtags");
+  checks.push({
+    name: "Backlink + Hashtags ใน Description", max: 1, score: cta,
+    detail: ctaNotes.length ? ctaNotes.join(" · ") : "มีลิงก์กลับเว็บและ Hashtags ครบ",
+  });
+
+  const total = Math.round(checks.reduce((s, k) => s + k.score, 0) * 10) / 10;
+  return { total, checks };
+}
+
 let current = null; // { md, phases, analysis }
 function analyzeResult(md, save) {
   const phases = extractPhases(md);
@@ -827,6 +1019,7 @@ function analyzeResult(md, save) {
   const missing = sb ? ts.filter((t) => !sb.has(t.sec)) : [];
   const coverage = sb && ts.length ? Math.round(((ts.length - missing.length) / ts.length) * 100) : null;
   current = { md, phases, words, estSec, ts, total, segs, sb, missing, coverage };
+  current.qc = computeQC(current);
   renderWorkspace();
   if (save !== false) pushHistory(md);
 }
@@ -836,7 +1029,9 @@ function renderWorkspace() {
   $("#workspace").hidden = false;
   const mins = c.estSec ? (c.estSec / 60).toFixed(1) : "–";
   const freezes = c.segs.filter((s) => s.sev === "crit").length;
+  const qcls = c.qc.total >= 8.5 ? "good" : c.qc.total >= 7 ? "warn" : "crit";
   $("#tiles").innerHTML = `
+    <div class="tile ${qcls}"><div class="v">${c.qc.total.toFixed(1)}</div><div class="l">คะแนน QC /10</div></div>
     <div class="tile"><div class="v">${c.words.toLocaleString()}</div><div class="l">คำ (สคริปต์ EN)</div></div>
     <div class="tile"><div class="v">${mins}</div><div class="l">นาทีโดยประมาณ @150 คำ/นาที</div></div>
     <div class="tile"><div class="v">${c.ts.length}</div><div class="l">Timestamp ในสคริปต์</div></div>
@@ -862,6 +1057,28 @@ $$("#subtabs button").forEach((b) => b.addEventListener("click", () => showView(
 
 function renderQA() {
   const c = current;
+
+  // QC Gate score + checklist
+  const qc = c.qc;
+  const qcls = qc.total >= 8.5 ? "good" : qc.total >= 7 ? "warn" : "crit";
+  $("#qcscore").innerHTML = `<span style="color:var(--${qcls})">${qc.total.toFixed(1)}</span> <small>/10 QC</small>`;
+  $("#qcverdict").textContent =
+    qc.total >= 8.5 ? "ผ่านเกณฑ์ — พร้อมเข้าสู่ขั้นผลิต (อัดเสียง / เจนภาพ) 🎬"
+    : qc.total >= 7 ? "เกือบผ่าน — แก้จุดเตือนด้านล่างก่อนผลิตจะดีมาก"
+    : "ยังไม่ควรผลิต — ใช้ปุ่มคัดลอก Prompt แก้ไข แล้วส่งให้ AI ในแชทเดิม";
+  $("#qcrows").innerHTML = qc.checks.map((k, i) => {
+    const r = k.score / k.max;
+    const sev = r >= 0.85 ? "good" : r >= 0.5 ? "warn" : "crit";
+    return `<div class="qcrow">
+      <span class="chip ${sev}">${sev === "good" ? "✓ ผ่าน" : sev === "warn" ? "! เตือน" : "✕ แก้"}</span>
+      <span><strong>${k.name}</strong><br /><span style="color:var(--muted)">${esc(k.detail)}</span>
+        ${k.fix && r < 0.85 ? `<br /><button class="btn small" style="margin-top:6px" data-qcfix="${i}">📋 คัดลอก Prompt แก้ไข</button>` : ""}</span>
+      <span class="pts">${k.score.toFixed(1)}/${k.max}</span>
+    </div>`;
+  }).join("");
+  $$("#qcrows [data-qcfix]").forEach((b) => b.addEventListener("click", () =>
+    copyText(qc.checks[Number(b.dataset.qcfix)].fix, "คัดลอก Prompt แก้ไขแล้ว — ไปวางต่อในแชทเดิม")));
+
   const meter = $("#meter");
   if (!c.ts.length) {
     meter.innerHTML = "";
@@ -934,15 +1151,39 @@ $("#dlcsv").addEventListener("click", () => {
 /* ── history ── */
 function pushHistory(md) {
   const h = store.get("history", []);
-  h.unshift({ t: Date.now(), input: input.value.trim().slice(0, 200), md });
+  h.unshift({
+    t: Date.now(), input: input.value.trim().slice(0, 200), md,
+    pillar: $("#pillar").value, qc: current?.qc?.total ?? null,
+  });
   store.set("history", h.slice(0, 20));
   renderHistory();
 }
 function renderHistory() {
   const h = store.get("history", []);
+
+  // monthly pillar mix vs targets
+  const now = new Date();
+  const month = h.filter((it) => it.pillar && it.pillar !== "AUTO" &&
+    new Date(it.t).getMonth() === now.getMonth() && new Date(it.t).getFullYear() === now.getFullYear());
+  if (month.length) {
+    const counts = {};
+    month.forEach((it) => { counts[it.pillar] = (counts[it.pillar] || 0) + 1; });
+    $("#pillarmix").innerHTML =
+      `<div class="hint" style="margin-bottom:6px">สัดส่วนเสาคอนเทนต์เดือนนี้ (${month.length} ตอน) เทียบเป้า:</div>` +
+      Object.keys(PILLAR_TARGETS).map((k) => {
+        const n = counts[k] || 0, pct = Math.round((n / month.length) * 100);
+        return `<span class="pillchip pl-${k}" style="display:inline-block; margin:0 6px 6px 0">${k} ${n} ตอน · ${pct}% <span style="opacity:.7">(เป้า ${PILLAR_TARGETS[k]}%)</span></span>`;
+      }).join("");
+  } else {
+    $("#pillarmix").innerHTML = "";
+  }
+
   $("#histlist").innerHTML = h.length ? h.map((it, i) => `
     <div class="histitem" data-i="${i}">
-      <div class="d">${new Date(it.t).toLocaleString("th-TH", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
+      <div class="d">${new Date(it.t).toLocaleString("th-TH", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+        ${it.pillar && it.pillar !== "AUTO" ? ` <span class="pillchip pl-${it.pillar}">${it.pillar}</span>` : ""}
+        ${it.qc != null ? ` <span class="chip ${it.qc >= 8.5 ? "good" : it.qc >= 7 ? "warn" : "crit"}">${it.qc.toFixed(1)} QC</span>` : ""}
+      </div>
       <div class="p">${esc(it.input || it.md.slice(0, 160))}</div>
     </div>`).join("") : `<div class="empty">ยังไม่มีประวัติ — วิเคราะห์ผลลัพธ์ครั้งแรกได้ที่แท็บ 2</div>`;
   $$("#histlist .histitem").forEach((el) => el.addEventListener("click", () => {
