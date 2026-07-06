@@ -2,7 +2,6 @@ import dotenv from 'dotenv';
 import express from 'express';
 import os from 'os';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import textToSpeech from '@google-cloud/text-to-speech';
 import { GoogleGenAI } from '@google/genai';
 
@@ -18,7 +17,9 @@ const GEMINI_MODEL = 'gemini-2.5-flash';
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  // PORT is configurable so the app runs on hosts that assign one
+  // (e.g. Cloud Run) and on devices where 3000 may be taken (e.g. Termux).
+  const PORT = Number(process.env.PORT) || 3000;
 
   // Add JSON body parser for POST requests (limit increased for large scripts)
   app.use(express.json({ limit: '10mb' }));
@@ -126,8 +127,11 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
+  // Vite middleware for development. Imported lazily so the production
+  // server can run with runtime-only dependencies installed (no vite) —
+  // required for lightweight hosts such as Termux on Android.
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',

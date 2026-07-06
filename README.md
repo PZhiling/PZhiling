@@ -60,7 +60,13 @@ in `metadata.json`.
    ```
    Then open http://localhost:3000
 
-## Use on an Android tablet (PWA)
+## Use on an Android tablet
+
+**No computer at all?** See **[TABLET-SETUP.md](TABLET-SETUP.md)** (ภาษาไทย) —
+covers running the app entirely on the tablet via Termux (prebuilt `dist/`,
+pure-JS runtime deps only) and the zero-install AI Studio / Cloud Run route.
+
+## PWA / same-network access
 
 The app is a responsive PWA — it installs to the home screen and runs
 full-screen like a native app. The server must stay reachable from the tablet
