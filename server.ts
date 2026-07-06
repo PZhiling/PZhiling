@@ -1,0 +1,99 @@
+import express from 'express';
+import path from 'path';
+import { createServer as createViteServer } from 'vite';
+import textToSpeech from '@google-cloud/text-to-speech';
+
+async function startServer() {
+  const app = express();
+  const PORT = 3000;
+
+  // Add JSON body parser for POST requests (limit increased for large scripts)
+  app.use(express.json({ limit: '10mb' }));
+
+  // API constraints text limits...
+  // Google TTS can synthesize up to 5000 characters per request.
+  
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
+  // TTS Endpoint
+  app.post('/api/tts', async (req, res) => {
+    try {
+      const { text, voiceName, languageCode } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ error: 'Missing text parameter' });
+      }
+
+      const apiKey = process.env.GOOGLE_TTS_API_KEY;
+      if (!apiKey) {
+        return res.status(401).json({ error: 'GOOGLE_TTS_API_KEY environment variable is missing on the server.' });
+      }
+
+      // Initialize the client using the API key
+      const client = new textToSpeech.TextToSpeechClient({ apiKey });
+
+      // Build request
+      const request = {
+        input: { text: text.substring(0, 4900) }, // Truncate just in case to avoid limit
+        voice: {
+          languageCode: languageCode || 'en-US',
+          name: voiceName || 'en-US-Journey-D', // Default to Journey premium
+        },
+        audioConfig: {
+          audioEncoding: 'MP3' as const,
+        },
+      };
+
+      // Perform the TTS request
+      const [response] = await client.synthesizeSpeech(request);
+      
+      const audioContent = response.audioContent;
+      if (!audioContent) {
+        throw new Error('No audio content returned from Google TTS');
+      }
+
+      // Calculate metadata
+      const wordCount = text.trim().split(/\s+/).length;
+      // Assume average speaking rate of 150 words per minute (2.5 words per second)
+      const estimatedDurationSeconds = wordCount / 2.5;
+      
+      // Convert audioContent to Base64 (audioContent is Uint8Array or Base64 string depending on the API mapping)
+      const base64Audio = Buffer.from(audioContent).toString('base64');
+
+      res.json({
+        audioBase64: base64Audio,
+        wordCount,
+        estimatedDurationSeconds
+      });
+
+    } catch (error: any) {
+      console.error('TTS Error:', error);
+      res.status(500).json({ error: error?.message || 'Failed to generate speech' });
+    }
+  });
+
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== 'production') {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    // Serve static files in production
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    // SPA fallback
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+startServer();

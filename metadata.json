@@ -1,0 +1,6 @@
+{
+  "name": "YT Faceless Podcast SEO Master",
+  "description": "AI tool to analyze SEO gaps and generate YouTube Faceless Podcast content to drive traffic.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
