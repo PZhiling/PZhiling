@@ -1,0 +1,879 @@
+<title>Podcast SEO Studio</title>
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --panel: #ffffff;
+    --panel2: #efede8;
+    --line: #dedbd4;
+    --ink: #23241f;
+    --muted: #6f6d66;
+    --faint: #9a978f;
+    --accent: #0d7fb5;
+    --accent-ink: #0a6a98;
+    --accent-soft: rgba(13, 127, 181, 0.10);
+    --rec: #b26a10;
+    --good: #2e8555;
+    --warn: #9a6a00;
+    --crit: #bf4636;
+    --good-soft: rgba(46, 133, 85, 0.12);
+    --warn-soft: rgba(154, 106, 0, 0.12);
+    --crit-soft: rgba(191, 70, 54, 0.12);
+    --code-bg: #eceae4;
+    --shadow: 0 1px 3px rgba(30, 28, 22, 0.08);
+    --mono: ui-monospace, "SF Mono", "Roboto Mono", "Cascadia Mono", Menlo, monospace;
+    --sans: "Noto Sans Thai", "Sarabun", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181a;
+      --panel: #1d1f24;
+      --panel2: #23262c;
+      --line: #2e3138;
+      --ink: #e9e7e2;
+      --muted: #a09d96;
+      --faint: #6f6d66;
+      --accent: #2f95c2;
+      --accent-ink: #7cc4e2;
+      --accent-soft: rgba(47, 149, 194, 0.14);
+      --rec: #e8a03c;
+      --good: #3f9c66;
+      --warn: #b8881a;
+      --crit: #d96553;
+      --good-soft: rgba(63, 156, 102, 0.16);
+      --warn-soft: rgba(184, 136, 26, 0.16);
+      --crit-soft: rgba(217, 101, 83, 0.16);
+      --code-bg: #14161a;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f6f5f2; --panel: #ffffff; --panel2: #efede8; --line: #dedbd4;
+    --ink: #23241f; --muted: #6f6d66; --faint: #9a978f;
+    --accent: #0d7fb5; --accent-ink: #0a6a98; --accent-soft: rgba(13,127,181,0.10);
+    --rec: #b26a10; --good: #2e8555; --warn: #9a6a00; --crit: #bf4636;
+    --good-soft: rgba(46,133,85,0.12); --warn-soft: rgba(154,106,0,0.12); --crit-soft: rgba(191,70,54,0.12);
+    --code-bg: #eceae4; --shadow: 0 1px 3px rgba(30,28,22,0.08);
+  }
+  :root[data-theme="dark"] {
+    --bg: #17181a; --panel: #1d1f24; --panel2: #23262c; --line: #2e3138;
+    --ink: #e9e7e2; --muted: #a09d96; --faint: #6f6d66;
+    --accent: #2f95c2; --accent-ink: #7cc4e2; --accent-soft: rgba(47,149,194,0.14);
+    --rec: #e8a03c; --good: #3f9c66; --warn: #b8881a; --crit: #d96553;
+    --good-soft: rgba(63,156,102,0.16); --warn-soft: rgba(184,136,26,0.16); --crit-soft: rgba(217,101,83,0.16);
+    --code-bg: #14161a; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.65;
+    -webkit-text-size-adjust: 100%;
+  }
+  button { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 16px 64px; }
+
+  /* ── Console header ─────────────────────────── */
+  header.console {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 18px 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 20px;
+  }
+  .recdot { width: 12px; height: 12px; border-radius: 50%; background: var(--rec); flex: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--rec) 25%, transparent); }
+  @media (prefers-reduced-motion: no-preference) {
+    .recdot { animation: pulse 2.4s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
+  }
+  .brand { font-weight: 800; font-size: 1.15rem; letter-spacing: .01em; }
+  .brand small { display: block; font-weight: 500; font-size: .72rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+  .timecode {
+    margin-left: auto; font-family: var(--mono); font-size: .95rem; color: var(--rec);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 12px; font-variant-numeric: tabular-nums; letter-spacing: .06em;
+  }
+
+  /* ── Top tabs ────────────────────────────────── */
+  nav.tabs { display: flex; gap: 6px; margin-bottom: 20px; overflow-x: auto; }
+  nav.tabs button {
+    flex: none; border: 1px solid var(--line); background: var(--panel); color: var(--muted);
+    padding: 10px 18px; min-height: 44px; border-radius: 10px; font-size: .92rem; font-weight: 700;
+    cursor: pointer;
+  }
+  nav.tabs button[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  /* ── Cards & form ────────────────────────────── */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .card h2 { margin: 0 0 4px; font-size: 1rem; }
+  .eyebrow { font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-ink); margin-bottom: 8px; }
+  .hint { font-size: .82rem; color: var(--muted); margin: 4px 0 12px; }
+
+  textarea, select, input[type="text"], input[type="url"] {
+    width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; font-family: inherit; font-size: .92rem;
+  }
+  textarea { min-height: 120px; resize: vertical; }
+  label.f { display: block; font-size: .8rem; font-weight: 700; color: var(--muted); margin: 14px 0 6px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--panel2); color: var(--ink); font-size: .9rem; font-weight: 700; cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.small { min-height: 36px; padding: 6px 12px; font-size: .8rem; }
+  .btn.danger { color: var(--crit); }
+  .btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+  .promptbox {
+    font-family: var(--mono); font-size: .78rem; line-height: 1.55; white-space: pre-wrap;
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px; max-height: 320px; overflow: auto; margin-top: 12px;
+  }
+  .copies { font-size: .78rem; color: var(--muted); margin-top: 8px; }
+
+  details.mini { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-top: 10px; background: var(--panel); }
+  details.mini summary { cursor: pointer; font-weight: 700; font-size: .86rem; }
+
+  /* competitors */
+  .complist { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .compitem { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
+  .compitem .nm { font-weight: 700; font-size: .87rem; }
+  .compitem .ur { font-family: var(--mono); font-size: .72rem; color: var(--accent-ink); word-break: break-all; }
+  .compitem .nt { font-size: .78rem; color: var(--muted); }
+  .compitem .grow { flex: 1; min-width: 0; }
+
+  /* ── Stat tiles ──────────────────────────────── */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .tile .v { font-family: var(--mono); font-size: 1.45rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tile .l { font-size: .72rem; color: var(--muted); font-weight: 700; letter-spacing: .04em; }
+  .tile.good .v { color: var(--good); } .tile.warn .v { color: var(--warn); } .tile.crit .v { color: var(--crit); }
+
+  /* ── Result sub-tabs + markdown ─────────────── */
+  .subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 14px; }
+  .subtabs button { border: 1px solid var(--line); background: var(--panel); color: var(--muted); min-height: 38px; padding: 6px 14px; border-radius: 999px; font-size: .82rem; font-weight: 700; cursor: pointer; }
+  .subtabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .md { font-size: .93rem; }
+  .md h1, .md h2 { font-size: 1.05rem; border-bottom: 1px solid var(--line); padding-bottom: 6px; margin: 22px 0 10px; }
+  .md h3 { font-size: .97rem; margin: 18px 0 8px; }
+  .md h4 { font-size: .9rem; margin: 14px 0 6px; color: var(--muted); }
+  .md p { margin: 8px 0; }
+  .md li { margin: 3px 0; }
+  .md code { font-family: var(--mono); font-size: .82em; background: var(--accent-soft); color: var(--accent-ink); padding: 1px 6px; border-radius: 5px; }
+  .md pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; overflow-x: auto; }
+  .md pre code { background: none; color: var(--ink); padding: 0; }
+  .md blockquote { border-left: 3px solid var(--accent); margin: 10px 0; padding: 2px 14px; color: var(--muted); }
+  .md .ts { font-family: var(--mono); font-size: .78em; background: var(--panel2); color: var(--rec); border: 1px solid var(--line); padding: 1px 7px; border-radius: 6px; font-weight: 700; white-space: nowrap; }
+  .tablewrap { overflow-x: auto; margin: 12px 0; border: 1px solid var(--line); border-radius: 10px; }
+  .md table { border-collapse: collapse; width: 100%; font-size: .84rem; }
+  .md th { text-align: left; background: var(--panel2); padding: 9px 12px; font-size: .76rem; letter-spacing: .03em; cursor: pointer; user-select: none; white-space: nowrap; }
+  .md th .arr { color: var(--accent-ink); font-size: .7rem; }
+  .md td { padding: 8px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+  .md td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .chip { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .chip.good { background: var(--good-soft); color: var(--good); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.crit { background: var(--crit-soft); color: var(--crit); }
+  .scorebar { position: relative; min-width: 90px; }
+  .scorebar .bar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent-soft); border-radius: 4px; }
+  .scorebar .t { position: relative; font-family: var(--mono); font-variant-numeric: tabular-nums; padding-left: 6px; }
+
+  /* ── QA / coverage meter ─────────────────────── */
+  .meter { display: flex; height: 26px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  .meter .seg { min-width: 3px; }
+  .meter .seg.good { background: var(--good); opacity: .75; }
+  .meter .seg.warn { background: var(--warn); }
+  .meter .seg.crit { background: var(--crit); }
+  .meter .seg + .seg { border-left: 2px solid var(--bg); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: .76rem; color: var(--muted); margin-top: 8px; }
+  .legend .k { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .issue { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-top: 10px; background: var(--bg); font-size: .85rem; }
+  .issue .sev { flex: none; margin-top: 2px; }
+  .empty { text-align: center; color: var(--muted); padding: 44px 16px; border: 1px dashed var(--line); border-radius: 12px; font-size: .88rem; }
+
+  /* history */
+  .histitem { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; background: var(--panel); cursor: pointer; }
+  .histitem:hover { border-color: var(--accent); }
+  .histitem .d { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+  .histitem .p { font-size: .84rem; margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 20px; border-radius: 999px; font-size: .85rem; font-weight: 700; opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 99; }
+  .toast.show { opacity: 1; }
+  footer { margin-top: 30px; font-size: .74rem; color: var(--faint); text-align: center; }
+</style>
+
+<div class="wrap">
+  <header class="console">
+    <span class="recdot" aria-hidden="true"></span>
+    <div class="brand">Podcast SEO Studio
+      <small>YT Faceless Podcast · SEO Master — Artifact Edition</small>
+    </div>
+    <div class="timecode" id="tc" aria-label="เวลาในเซสชัน">00:00:00</div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-pane="compose">1 · สร้าง Prompt</button>
+    <button role="tab" aria-selected="false" data-pane="result">2 · ผลลัพธ์ &amp; วิเคราะห์</button>
+    <button role="tab" aria-selected="false" data-pane="history">ประวัติ</button>
+  </nav>
+
+  <!-- ═══ Pane 1: Compose ═══ -->
+  <section class="pane active" id="pane-compose">
+    <div class="card">
+      <div class="eyebrow">Input</div>
+      <h2>ข้อมูลตั้งต้น</h2>
+      <p class="hint">ใส่ URL เว็บไซต์, นิช (Niche), คีย์เวิร์ด หรือข้อมูลจาก Ahrefs / Google Search Console — ระบบจะประกอบเป็น Prompt สำเร็จรูปให้นำไปวางในแอป AI ที่คุณมี (Gemini, AI Studio หรือคุยกับ Claude)</p>
+      <textarea id="input" placeholder="เช่น: เว็บไซต์ขายอุปกรณ์แคมป์ปิ้ง (campinggear.com) อยากทำ Podcast ดึง traffic เข้าเว็บ กลุ่มเป้าหมายมือใหม่หัดแคมป์"></textarea>
+
+      <div class="grid2">
+        <div>
+          <label class="f" for="fmt">รูปแบบการเล่าเรื่อง (Storytelling Format)</label>
+          <select id="fmt">
+            <option value="Standard Conversational">💬 พูดคุยธรรมชาติ (Standard)</option>
+            <option value="Video Overview">📊 สรุปภาพรวม (Video Overview)</option>
+            <option value="Deep Dive">🔍 เจาะลึกวิเคราะห์ (Deep Dive)</option>
+            <option value="Storytelling">📖 เล่าเรื่อง/ตัวละคร (Storytelling)</option>
+          </select>
+        </div>
+        <div>
+          <label class="f" for="vis">สไตล์ภาพประกอบ (Visual / B-Roll)</label>
+          <select id="vis">
+            <option value="NotebookLM Analytical Indigo">📓 NotebookLM มินิมอล + Prompt เจนรูป</option>
+            <option value="Standard Stock">🎬 วิดีโอสต็อกสมจริง (Stock)</option>
+          </select>
+        </div>
+        <div>
+          <label class="f" for="len">ความยาววิดีโอเป้าหมาย</label>
+          <select id="len">
+            <option value="8-15">8–15 นาที (มาตรฐาน)</option>
+            <option value="5-8">5–8 นาที (กระชับ)</option>
+            <option value="15-20">15–20 นาที (เจาะลึก)</option>
+          </select>
+        </div>
+      </div>
+
+      <details class="mini">
+        <summary>คู่แข่งที่ต้องเฝ้าระวัง (Watchlist) — <span id="compcount">0</span> รายการ</summary>
+        <div class="grid2" style="margin-top:10px">
+          <input type="text" id="cname" placeholder="ชื่อช่อง / วิดีโอ" />
+          <input type="url" id="curl" placeholder="https://youtube.com/..." />
+        </div>
+        <input type="text" id="cnotes" placeholder="โน้ต / Content Gap ที่เห็น (ไม่บังคับ)" style="margin-top:8px" />
+        <div class="btnrow"><button class="btn small" id="addcomp">+ เพิ่มเข้ารายการ</button></div>
+        <div class="complist" id="complist"></div>
+        <p class="hint" style="margin-top:8px">รายการที่เพิ่มจะถูกใส่ในหัวข้อ "วิเคราะห์คู่แข่ง" ของ Prompt อัตโนมัติ</p>
+      </details>
+
+      <div class="btnrow">
+        <button class="btn primary" id="genprompt">⚙️ สร้าง Prompt</button>
+        <button class="btn" id="cleardraft">ล้างข้อมูล</button>
+      </div>
+    </div>
+
+    <div class="card" id="promptcard" hidden>
+      <div class="eyebrow">Master Prompt</div>
+      <h2>คัดลอกไปวางในแอป AI ของคุณ</h2>
+      <p class="hint">วางใน <strong>แอป Gemini</strong> (ฟรี), <strong>aistudio.google.com</strong> หรือส่งให้ <strong>Claude</strong> — เสร็จแล้วคัดลอกคำตอบทั้งหมดกลับมาวางที่แท็บ "2 · ผลลัพธ์"</p>
+      <div class="btnrow" style="margin-top:0">
+        <button class="btn primary" id="copyprompt">📋 คัดลอก Prompt ทั้งหมด</button>
+      </div>
+      <div class="promptbox" id="promptout"></div>
+      <div class="copies" id="promptmeta"></div>
+    </div>
+
+    <details class="mini">
+      <summary>🔎 Prompt เสริม: ค้นหาคีย์เวิร์ด Long-tail</summary>
+      <p class="hint">ให้ AI เสนอ 5 คีย์เวิร์ดหางยาวจากข้อมูลตั้งต้นของคุณ แล้วเลือกใส่กลับเข้าไปในช่องข้อมูลด้านบน</p>
+      <div class="btnrow"><button class="btn small" data-copyaux="kw">📋 คัดลอก</button></div>
+    </details>
+    <details class="mini">
+      <summary>🔥 Prompt เสริม: หาเทรนด์นิชประจำสัปดาห์</summary>
+      <p class="hint">ให้ AI เสนอ 3 นิช Faceless ที่กำลังมาแรง (สายแก้ปัญหาชีวิต / จิตวิทยา)</p>
+      <div class="btnrow"><button class="btn small" data-copyaux="trend">📋 คัดลอก</button></div>
+    </details>
+  </section>
+
+  <!-- ═══ Pane 2: Result ═══ -->
+  <section class="pane" id="pane-result">
+    <div class="card">
+      <div class="eyebrow">Paste</div>
+      <h2>วางผลลัพธ์จาก AI</h2>
+      <p class="hint">วางคำตอบ (Markdown) ทั้งหมดที่ได้จาก Gemini / Claude ลงในช่องนี้ แล้วกดวิเคราะห์</p>
+      <textarea id="pastebox" placeholder="## Phase 1: ..."></textarea>
+      <div class="btnrow">
+        <button class="btn primary" id="analyze">🎛️ วิเคราะห์ผลลัพธ์</button>
+        <button class="btn" id="loaddemo">ดูตัวอย่าง (Demo)</button>
+      </div>
+    </div>
+
+    <div id="workspace" hidden>
+      <div class="tiles" id="tiles"></div>
+
+      <div class="btnrow" style="margin-top:0">
+        <button class="btn small" id="copyall">📋 คัดลอกทั้งหมด</button>
+        <button class="btn small" id="dlmd">⬇ ทั้งหมด (.md)</button>
+        <button class="btn small" id="dltxt">⬇ สคริปต์ (.txt)</button>
+        <button class="btn small" id="dlcsv">⬇ Storyboard (.csv)</button>
+      </div>
+
+      <div class="subtabs" role="tablist" id="subtabs">
+        <button role="tab" aria-selected="true" data-view="all">ทั้งหมด</button>
+        <button role="tab" aria-selected="false" data-view="p1">Phase 1 · วิเคราะห์</button>
+        <button role="tab" aria-selected="false" data-view="p2">Phase 2 · Storyboard</button>
+        <button role="tab" aria-selected="false" data-view="p3">Phase 3 · สคริปต์</button>
+        <button role="tab" aria-selected="false" data-view="qa">✓ ตรวจคุณภาพ</button>
+      </div>
+
+      <div class="card md" id="mdview"></div>
+
+      <div class="card" id="qaview" hidden>
+        <div class="eyebrow">Quality Check</div>
+        <h2>ความครอบคลุมของภาพประกอบ (Visual Coverage)</h2>
+        <p class="hint">แต่ละช่องคือช่วงเวลาระหว่าง Timestamp ในสคริปต์ — ช่วงที่ยาวเกินไปเสี่ยง "ภาพค้าง" (Visual Freeze) ทำให้คนกดออก</p>
+        <div class="meter" id="meter"></div>
+        <div class="legend">
+          <span><span class="k" style="background:var(--good)"></span>ปกติ ≤ 18 วิ</span>
+          <span><span class="k" style="background:var(--warn)"></span>เริ่มนาน 19–25 วิ</span>
+          <span><span class="k" style="background:var(--crit)"></span>ภาพค้าง &gt; 25 วิ</span>
+        </div>
+        <div id="issues"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Pane 3: History ═══ -->
+  <section class="pane" id="pane-history">
+    <div class="card">
+      <div class="eyebrow">History</div>
+      <h2>ประวัติการวิเคราะห์</h2>
+      <p class="hint">เก็บในเครื่องของคุณ (localStorage) สูงสุด 20 รายการ — แตะเพื่อเปิดดูอีกครั้ง</p>
+      <div id="histlist"></div>
+      <div class="btnrow"><button class="btn small danger" id="clearhist">ล้างประวัติทั้งหมด</button></div>
+    </div>
+  </section>
+
+  <footer>Podcast SEO Studio · ทำงานในเครื่อง 100% ไม่ส่งข้อมูลออกภายนอก · ใช้คู่กับแอป AI ที่คุณมี</footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<!-- ═══ System prompt (kept as plain text to avoid JS escaping) ═══ -->
+<script type="text/plain" id="sysprompt">
+คุณคือ "YT Faceless Podcast SEO Master" AI ผู้เชี่ยวชาญสูงสุดในการวิเคราะห์ SEO Gap และสร้างเนื้อหา YouTube Faceless Podcast เพื่อช่วยเพิ่ม traffic และ ranking ให้เว็บไซต์หลักแบบเต็มวงจร
+
+กฎภาษาที่สำคัญที่สุด (ต้องทำทุกครั้ง):
+- ตอบผู้ใช้ทุกอย่างเป็นภาษาไทย (การวิเคราะห์ ตาราง คำอธิบาย คำแนะนำ)
+- แต่เนื้อหาที่สร้างสำหรับ YouTube (Title, Full Script, Description) ต้องเป็นภาษาอังกฤษทั้งหมด เขียนอย่างเป็นธรรมชาติ SEO ดี เหมาะสำหรับ Faceless Podcast
+
+ทำตามขั้นตอนนี้อย่างเคร่งครัด และใช้ Heading "## Phase 1", "## Phase 2", "## Phase 3" กำกับแต่ละส่วนเสมอ:
+
+## Phase 1: วิเคราะห์นิชและ SEO Gap
+- วิเคราะห์หา "นิช" หรือหัวข้อที่มีโอกาสสูงสุดสำหรับ YouTube Faceless Podcast จากข้อมูลที่ให้
+- แสดงตารางเปรียบเทียบคีย์เวิร์ด (ภาษาไทย) คอลัมน์มาตรฐาน: | Keyword | Search Volume | Keyword Difficulty | SEO Opportunity Score | Competitor Top Video |
+  (Difficulty ใช้ค่า Low / Medium / High, Score เป็นตัวเลข 0-100, ใช้ตัวเลขสมมติที่สมจริงหากไม่มีข้อมูลจริง)
+- วิเคราะห์คู่แข่ง (Competitor Analysis): วิดีโอ/Podcast ที่ทำผลงานดีในแต่ละนิช จุดแข็ง/จุดอ่อน และช่องว่าง (Gap) ที่ควรเจาะ
+
+## Phase 2: เลือกหัวข้อ คุณค่า และ Visual Storyboard
+- เลือก 1-3 หัวข้อที่ศักยภาพสูงสุด อธิบายเหตุผลและประโยชน์ SEO (ภาษาไทย)
+- วิเคราะห์ว่าหัวข้อนี้ "แก้ปัญหา" อะไรให้ผู้ฟัง และผู้ฟังได้ "ประโยชน์" อะไร สรุปเป็นข้อๆ
+- สร้างตาราง Visual Storyboard โดยประเมินความยาวคลิปจากสคริปต์ (พูด 150 คำ/นาที) เปลี่ยนภาพทุก 10-15 วินาที คอลัมน์:
+  | Timestamp | Visual Suggestion / แนะนำภาพประกอบ | Reasoning & Viewer Benefit / เหตุผลและประโยชน์ | Google Flow Prompt |
+  (Timestamp ต้องอยู่ในรูปแบบ [M:SS] และตรงกับ Timestamp ในสคริปต์ Phase 3 ทุกตัว)
+
+## Phase 3: สร้างเนื้อหา (ภาษาอังกฤษทั้งหมด)
+- YouTube Video Title ที่ SEO Friendly
+- Full Script สำหรับ Faceless Podcast แบบพูดธรรมชาติ:
+  1. ห้ามใช้ Pattern ยอดฮิตของ AI เช่น "In today's fast-paced world...", "Have you ever wondered...", "First and foremost", "Moreover", "In conclusion"
+  2. เปิดด้วย Hook ดราม่า/ขัดตรรกะ/สถิติช็อกตั้งแต่ [0:00]
+  3. เล่าผ่านเคสตัวอย่างหรือตัวละครสมมติ พร้อมเบื้องลึกที่คนนอกวงการไม่รู้
+  4. แทรกจังหวะพูดแบบมนุษย์ เช่น "But here's the kicker...", "Wait, let's look at the numbers."
+  5. ชวนคุยให้คนคอมเมนต์แบบเจาะจง ไม่ใช่แค่ "Like and subscribe"
+- สำคัญมาก: ซอยสคริปต์เป็นย่อหน้าสั้นๆ และใส่ Timestamp [M:SS] หน้าทุกย่อหน้า (ทุกๆ 10-20 วินาที เช่น [0:00], [0:15], [0:35] ...) คำนวณเวลาจากความเร็วพูด 150 คำ/นาที
+- ชื่อ Tools, Keywords, แพลตฟอร์ม ให้ครอบด้วย backticks เสมอ
+- ปิดท้ายด้วย YouTube Description ที่ Timestamps ตรงกับสคริปต์ทุกตัว พร้อม Backlink ไปเว็บไซต์ Hashtags และ CTA
+</script>
+
+<script type="text/plain" id="auxkw">
+จากข้อมูลตั้งต้นต่อไปนี้ ให้เสนอคีย์เวิร์ด Long-tail ภาษาอังกฤษ 5 คำที่ Search Volume สูงและเหมาะทำ YouTube Faceless Podcast เพื่อดึง traffic ตอบเป็นตารางภาษาไทย: | Keyword | Volume โดยประมาณ | Difficulty (Low/Medium/High) | Trend (rising/flat/falling) | พร้อมเหตุผลสั้นๆ ต่อคำ
+
+ข้อมูลตั้งต้น:
+</script>
+
+<script type="text/plain" id="auxtrend">
+คุณคือนักวิเคราะห์เทรนด์ YouTube ให้เสนอ 3 นิช Faceless ที่กำลังมาแรงและทำเงินได้ในสัปดาห์นี้ จำกัดเฉพาะหมวด: (1) สายแก้ปัญหาชีวิต / ฮาวทูเชิงลึก (2) สายจิตวิทยา + วิธีแก้ปัญหา
+ตอบเป็นตารางภาษาไทย: | นิช | เหตุผลที่กำลังมา | ระดับ (Hot/Rising) |
+</script>
+
+<script type="text/plain" id="demoresult">
+## Phase 1: วิเคราะห์นิชและ SEO Gap
+
+จากข้อมูลเว็บไซต์อุปกรณ์แคมป์ปิ้ง พบช่องว่างที่น่าสนใจในกลุ่มมือใหม่ที่ค้นหา "วิธีเริ่มต้น" แต่คู่แข่งส่วนใหญ่ทำคอนเทนต์รีวิวสินค้าเท่านั้น
+
+| Keyword | Search Volume | Keyword Difficulty | SEO Opportunity Score | Competitor Top Video |
+|---|---|---|---|---|
+| camping for beginners checklist | 12.4K/mo | Low | 88 | "Camping 101" — 890K views |
+| how to choose a tent 2026 | 8.1K/mo | Medium | 74 | "Tent Buying Guide" — 420K views |
+| solo camping safety tips | 6.7K/mo | Low | 81 | "Solo Camp Mistakes" — 1.2M views |
+| budget camping gear under $100 | 9.3K/mo | Medium | 69 | "Cheap Gear Haul" — 310K views |
+| winter camping mistakes | 4.2K/mo | High | 52 | "Winter Fails" — 2.1M views |
+
+**การวิเคราะห์คู่แข่ง:** ช่องใหญ่เน้นรีวิวเป็นหลัก จุดอ่อนคือไม่มีเนื้อหาแบบ "เล่าประสบการณ์ + เช็กลิสต์ทำตามได้" ซึ่งเป็น Gap ที่ Faceless Podcast เจาะได้ทันที
+
+## Phase 2: เลือกหัวข้อ คุณค่า และ Visual Storyboard
+
+**หัวข้อที่เลือก:** `camping for beginners checklist` — Volume สูง แข่งต่ำ และตรงกับสินค้าในเว็บ
+
+**แก้ปัญหาให้ผู้ฟัง:**
+- ไม่รู้จะเริ่มซื้ออะไรก่อน งบบานปลาย
+- กลัวไปแคมป์ครั้งแรกแล้วเจอปัญหาหน้างาน
+
+**ประโยชน์ที่ได้:**
+- เช็กลิสต์ 10 ข้อทำตามได้ทันที
+- ประหยัดงบจากการซื้อผิด
+
+| Timestamp | Visual Suggestion / แนะนำภาพประกอบ | Reasoning & Viewer Benefit / เหตุผลและประโยชน์ | Google Flow Prompt |
+|---|---|---|---|
+| [0:00] | โน้ตการ์ดลอยแสดงคำว่า "80% quit" บนพื้นสเลตเข้ม | ดึงสายตาด้วยสถิติช็อกตั้งแต่วินาทีแรก | "Minimalist workspace, NotebookLM aesthetic, glowing index card with bold statistic, slate blue palette, cinematic, 8k" |
+| [0:15] | กราฟโหนดเชื่อมโยงอุปกรณ์แคมป์ 10 ชิ้น | แปลงลิสต์เสียงพูดเป็นภาพจำง่าย | "Glowing network nodes connecting camping gear icons, translucent cards, dark slate background, amber accents, 8k" |
+| [0:35] | การ์ดเปรียบเทียบราคาเต็นท์ 3 ระดับ | สร้างความน่าเชื่อถือด้วยตัวเลขจริง | "Three floating price comparison cards, neat charts, cyan highlights, minimalist tech workspace, 8k" |
+| [1:00] | ภาพเงาคนกางเต็นท์ผิดวิธีแบบ abstract | เล่าเคสตัวอย่างให้เห็นภาพ ไม่น่ากลัว | "Abstract silhouette setting up tent, calm night scene, soft ambient glow, metaphorical, cinematic lighting, 8k" |
+
+## Phase 3: Content Creation
+
+**Title:** The $2,000 Camping Mistake Every Beginner Makes (10-Item Checklist)
+
+**Full Script:**
+
+[0:00] Eighty percent of first-time campers never go on a second trip. Not because they hated nature — because they packed wrong. Last spring, a guy named Marcus spent two thousand dollars at an outdoor store and still ended up cold, wet, and miserable by midnight.
+
+[0:15] Here's the thing nobody at the gear shop tells you: you only need ten items your first time out. Ten. Let's break down exactly what they are, starting with the one everyone gets wrong — the tent.
+
+[0:35] Most beginners buy tents rated for exactly the number of people sleeping in them. Big mistake. A "two-person" tent fits two people the way an economy seat fits a linebacker. Size up, always. A quality three-person tent for two campers runs about ninety dollars.
+
+[1:00] But here's the kicker — Marcus didn't fail because of his tent. He failed because of what's called the sleep system. Wait, let's look at the numbers. Ground temperature drops fifteen degrees below air temperature after 2 AM...
+
+[1:55] So what happened to Marcus? He went back out — with a seventy-dollar setup this time — and camped eleven weekends straight. Drop a comment: what's the one piece of gear you regret buying? I read every single one.
+
+**Description:**
+
+Think you need $2,000 to start camping? You need 10 items and about $300. Full beginner checklist in this episode.
+
+⏱ Timestamps:
+[0:00] The 80% statistic
+[0:15] The 10-item rule
+[0:35] Tent sizing mistake
+[1:00] Sleep system deep dive
+[1:55] Marcus's comeback
+
+📥 Full checklist + gear guide: https://campinggear.com/beginner-checklist
+#camping #campingforbeginners #outdoorgear
+</script>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("pss_" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("pss_" + k, JSON.stringify(v)); } catch {} },
+};
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const toast = (msg) => { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800); };
+async function copyText(text, okMsg) {
+  try { await navigator.clipboard.writeText(text); toast(okMsg || "คัดลอกแล้ว ✓"); }
+  catch {
+    const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); ta.remove(); toast(okMsg || "คัดลอกแล้ว ✓");
+  }
+}
+function download(name, text, mime) {
+  const blob = new Blob([text], { type: mime || "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+}
+
+/* ── session timecode ── */
+const t0 = Date.now();
+setInterval(() => {
+  const s = Math.floor((Date.now() - t0) / 1000);
+  const p = (n) => String(n).padStart(2, "0");
+  $("#tc").textContent = `${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
+}, 1000);
+
+/* ── top tabs ── */
+$$("nav.tabs button").forEach((b) => b.addEventListener("click", () => {
+  $$("nav.tabs button").forEach((x) => x.setAttribute("aria-selected", x === b));
+  $$(".pane").forEach((p) => p.classList.toggle("active", p.id === "pane-" + b.dataset.pane));
+}));
+const gotoPane = (name) => $(`nav.tabs button[data-pane="${name}"]`).click();
+
+/* ── draft + settings persistence ── */
+const input = $("#input");
+input.value = store.get("draft", "");
+input.addEventListener("input", () => store.set("draft", input.value));
+["fmt", "vis", "len"].forEach((id) => {
+  const el = $("#" + id);
+  const saved = store.get("set_" + id, null);
+  if (saved) el.value = saved;
+  el.addEventListener("change", () => store.set("set_" + id, el.value));
+});
+$("#cleardraft").addEventListener("click", () => { input.value = ""; store.set("draft", ""); toast("ล้างข้อมูลแล้ว"); });
+
+/* ── competitors ── */
+let comps = store.get("comps", []);
+function renderComps() {
+  $("#compcount").textContent = comps.length;
+  $("#complist").innerHTML = comps.map((c, i) => `
+    <div class="compitem">
+      <div class="grow">
+        <div class="nm">${esc(c.name)}</div>
+        <div class="ur">${esc(c.url)}</div>
+        ${c.notes ? `<div class="nt">📌 ${esc(c.notes)}</div>` : ""}
+      </div>
+      <button class="btn small danger" data-del="${i}">ลบ</button>
+    </div>`).join("");
+  $$("#complist [data-del]").forEach((b) => b.addEventListener("click", () => {
+    comps.splice(Number(b.dataset.del), 1); store.set("comps", comps); renderComps();
+  }));
+}
+renderComps();
+$("#addcomp").addEventListener("click", () => {
+  const name = $("#cname").value.trim(), url = $("#curl").value.trim(), notes = $("#cnotes").value.trim();
+  if (!name || !url) return toast("ใส่ชื่อและ URL ก่อน");
+  try { new URL(url); } catch { return toast("URL ไม่ถูกต้อง"); }
+  comps.unshift({ name, url, notes }); store.set("comps", comps); renderComps();
+  $("#cname").value = $("#curl").value = $("#cnotes").value = "";
+});
+
+/* ── prompt builder ── */
+const SYS = $("#sysprompt").textContent.trim();
+function buildPrompt() {
+  const fmt = $("#fmt").value, vis = $("#vis").value, len = $("#len").value;
+  let p = SYS.replace("ยาวประมาณ 8-15 นาที", `ยาวประมาณ ${len} นาที`);
+  p += `\n\nข้อกำหนดความยาว: สคริปต์ต้องยาวประมาณ ${len} นาที (คำนวณที่ 150 คำ/นาที)`;
+  if (fmt !== "Standard Conversational") {
+    p += `\n\nข้อกำหนดพิเศษ รูปแบบการเล่าเรื่อง: ${fmt}`;
+    if (fmt === "Video Overview") p += "\n- เกริ่นปัญหาและภาพรวมทั้งหมดตั้งแต่ช่วงแรก เน้น Key Takeaways ย่อยง่าย จบด้วยบทสรุปนำไปใช้ได้ทันที";
+    else if (fmt === "Deep Dive") p += "\n- เจาะลึกเชิงเทคนิค/กลยุทธ์แบบ Expert เน้น How-to เจาะจงพร้อมตรรกะที่คนส่วนใหญ่ไม่รู้";
+    else if (fmt === "Storytelling") p += "\n- เล่าผ่านโครงสร้างนิทาน/เคสตัวอย่าง/ตัวละคร มีอุปสรรค จุดเปลี่ยน และบทเรียน";
+  }
+  if (vis === "NotebookLM Analytical Indigo") {
+    p += `\n\nข้อกำหนดสไตล์ภาพ (B-Roll): NotebookLM Analytical Indigo — ตาราง Storyboard ต้องมีคอลัมน์ "Google Flow Prompt" เป็นภาษาอังกฤษ สไตล์: dark slate background, glowing knowledge graphs, translucent floating index cards, amber/cyan accents, minimalist NotebookLM aesthetic, 8k`;
+  } else {
+    p += `\n\nข้อกำหนดสไตล์ภาพ (B-Roll): วิดีโอสต็อกสมจริง (Cinematic Stock) — ระบุคำอธิบายฟุตเทจ เหตุผลเชิงจิตวิทยา และประโยชน์ Retention ต่อคิว`;
+  }
+  if (comps.length) {
+    p += "\n\nวิเคราะห์คู่แข่งต่อไปนี้ประกอบใน Phase 1 ด้วย:";
+    comps.forEach((c) => { p += `\n- ${c.name} (${c.url})${c.notes ? ` — ประเด็น: ${c.notes}` : ""}`; });
+  }
+  p += "\n\n---\n\nข้อมูลตั้งต้นจากผู้ใช้ (เริ่มทำ Phase 1-3 ทันที):\n" + input.value.trim();
+  return p;
+}
+let currentPrompt = "";
+$("#genprompt").addEventListener("click", () => {
+  if (!input.value.trim()) return toast("กรุณาใส่ข้อมูลตั้งต้นก่อน");
+  currentPrompt = buildPrompt();
+  $("#promptcard").hidden = false;
+  $("#promptout").textContent = currentPrompt;
+  $("#promptmeta").textContent = `${currentPrompt.length.toLocaleString()} ตัวอักษร · อัปเดต ${new Date().toLocaleTimeString("th-TH")}`;
+  $("#promptcard").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("#copyprompt").addEventListener("click", () => copyText(currentPrompt, "คัดลอก Prompt แล้ว — ไปวางในแอป AI ได้เลย"));
+$$("[data-copyaux]").forEach((b) => b.addEventListener("click", () => {
+  const base = $("#aux" + b.dataset.copyaux).textContent.trim();
+  copyText(b.dataset.copyaux === "kw" ? base + "\n" + input.value.trim() : base);
+}));
+
+/* ── markdown mini-renderer ── */
+function inlineMd(s) {
+  s = esc(s);
+  s = s.replace(/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/g, '<span class="ts">$1</span>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  s = s.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return s;
+}
+function mdToHtml(md) {
+  const lines = md.replace(/\r/g, "").split("\n");
+  let html = "", i = 0, list = null;
+  const closeList = () => { if (list) { html += `</${list}>`; list = null; } };
+  while (i < lines.length) {
+    const L = lines[i];
+    if (/^```/.test(L)) {
+      closeList();
+      let code = ""; i++;
+      while (i < lines.length && !/^```/.test(lines[i])) { code += lines[i] + "\n"; i++; }
+      i++; html += `<pre><code>${esc(code)}</code></pre>`; continue;
+    }
+    if (/^\s*\|/.test(L) && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|/.test(lines[i + 1])) {
+      closeList();
+      const rows = [];
+      while (i < lines.length && /^\s*\|/.test(lines[i])) {
+        const cells = lines[i].trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+        if (!cells.every((c) => /^:?-+:?$/.test(c))) rows.push(cells);
+        i++;
+      }
+      if (rows.length) {
+        html += '<div class="tablewrap"><table><thead><tr>' +
+          rows[0].map((h) => `<th>${inlineMd(h)} <span class="arr"></span></th>`).join("") +
+          "</tr></thead><tbody>" +
+          rows.slice(1).map((r) => "<tr>" + rows[0].map((_, ci) => `<td>${inlineMd(r[ci] ?? "")}</td>`).join("") + "</tr>").join("") +
+          "</tbody></table></div>";
+      }
+      continue;
+    }
+    const h = L.match(/^(#{1,4})\s+(.*)/);
+    if (h) { closeList(); html += `<h${h[1].length}>${inlineMd(h[2])}</h${h[1].length}>`; i++; continue; }
+    if (/^\s*(-{3,}|\*{3,})\s*$/.test(L)) { closeList(); html += "<hr/>"; i++; continue; }
+    if (/^\s*>\s?/.test(L)) { closeList(); html += `<blockquote>${inlineMd(L.replace(/^\s*>\s?/, ""))}</blockquote>`; i++; continue; }
+    const ul = L.match(/^\s*[-*]\s+(.*)/), ol = L.match(/^\s*\d+[.)]\s+(.*)/);
+    if (ul || ol) {
+      const want = ul ? "ul" : "ol";
+      if (list !== want) { closeList(); html += `<${want}>`; list = want; }
+      html += `<li>${inlineMd((ul || ol)[1])}</li>`; i++; continue;
+    }
+    if (L.trim() === "") { closeList(); i++; continue; }
+    closeList(); html += `<p>${inlineMd(L)}</p>`; i++;
+  }
+  closeList();
+  return html;
+}
+
+/* ── table enhancement: sort + heatmap ── */
+function cellNum(text) {
+  const m = String(text).replace(/,/g, "").match(/-?\d+(?:\.\d+)?/);
+  if (!m) return null;
+  let n = parseFloat(m[0]);
+  if (/k\b/i.test(text)) n *= 1000;
+  if (/m\b/i.test(text) && !/mo\b/i.test(text)) n *= 1e6;
+  return n;
+}
+function enhanceTables(root) {
+  root.querySelectorAll("table").forEach((tbl) => {
+    const ths = [...tbl.querySelectorAll("th")];
+    const rows = [...tbl.querySelectorAll("tbody tr")];
+    ths.forEach((th, ci) => {
+      const head = th.textContent.toLowerCase();
+      // heatmap: difficulty chips
+      if (/difficulty|ความยาก/.test(head)) {
+        rows.forEach((r) => {
+          const td = r.children[ci]; if (!td) return;
+          const t = td.textContent.trim();
+          const cls = /^(low|ต่ำ|easy|ง่าย)/i.test(t) ? "good" : /^(medium|กลาง|ปานกลาง|moderate)/i.test(t) ? "warn" : /^(high|สูง|ยาก)/i.test(t) ? "crit" : null;
+          if (cls) td.innerHTML = `<span class="chip ${cls}">${esc(t)}</span>`;
+        });
+      }
+      // heatmap: score bars (sequential, labeled)
+      if (/score|โอกาส|opportunity/.test(head)) {
+        const vals = rows.map((r) => cellNum(r.children[ci]?.textContent || ""));
+        const max = Math.max(...vals.filter((v) => v !== null), 1);
+        rows.forEach((r, ri) => {
+          const td = r.children[ci]; if (!td || vals[ri] === null) return;
+          td.innerHTML = `<div class="scorebar"><div class="bar" style="width:${Math.round((vals[ri] / max) * 100)}%"></div><span class="t">${esc(td.textContent.trim())}</span></div>`;
+        });
+      }
+      if (/volume|จำนวนค้นหา/.test(head)) rows.forEach((r) => r.children[ci]?.classList.add("num"));
+      // sortable
+      th.addEventListener("click", () => {
+        const dir = th._dir = th._dir === 1 ? -1 : 1;
+        ths.forEach((x) => { if (x !== th) { x._dir = 0; const a = x.querySelector(".arr"); if (a) a.textContent = ""; } });
+        const arr = th.querySelector(".arr"); if (arr) arr.textContent = dir === 1 ? "▲" : "▼";
+        const tb = tbl.querySelector("tbody");
+        [...tb.children]
+          .sort((a, b) => {
+            const av = a.children[ci]?.textContent.trim() ?? "", bv = b.children[ci]?.textContent.trim() ?? "";
+            const an = cellNum(av), bn = cellNum(bv);
+            if (an !== null && bn !== null) return (an - bn) * dir;
+            return av.localeCompare(bv, "th") * dir;
+          })
+          .forEach((r) => tb.appendChild(r));
+      });
+    });
+  });
+}
+
+/* ── phases + analysis ── */
+const PH = (n, next) => new RegExp(
+  `(?:^|\\n)(?:#+\\s*|\\*\\*\\s*)?(?:Phase\\s*${n}|ส่วนที่\\s*${n}|Step\\s*${n})[\\s\\S]*?` +
+  (next ? `(?=(?:^|\\n)(?:#+\\s*|\\*\\*\\s*)?(?:Phase\\s*${next}|ส่วนที่\\s*${next}|Step\\s*${next})|$)` : "$"), "i");
+function extractPhases(text) {
+  return {
+    p1: text.match(PH(1, 2))?.[0] ?? null,
+    p2: text.match(PH(2, 3))?.[0] ?? null,
+    p3: text.match(PH(3, null))?.[0] ?? null,
+  };
+}
+const tsRe = /\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]/g;
+function parseTs(text) {
+  const out = new Map();
+  for (const m of text.matchAll(tsRe)) {
+    const sec = m[3] !== undefined ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : (+m[1]) * 60 + (+m[2]);
+    if (!out.has(sec)) out.set(sec, m[0]);
+  }
+  return [...out.entries()].map(([sec, label]) => ({ sec, label })).sort((a, b) => a.sec - b.sec);
+}
+function storyboardTs(p2text) {
+  if (!p2text) return null;
+  const rows = p2text.split("\n").filter((l) => /^\s*\|/.test(l));
+  if (!rows.length) return null;
+  const found = new Set();
+  rows.forEach((l) => { for (const m of l.matchAll(tsRe)) found.add((+m[1]) * 60 + (+m[2])); });
+  return found;
+}
+
+let current = null; // { md, phases, analysis }
+function analyzeResult(md, save) {
+  const phases = extractPhases(md);
+  const scriptSrc = phases.p3 || md;
+  const words = (scriptSrc.replace(tsRe, "").match(/[A-Za-z][A-Za-z'’-]*/g) || []).length;
+  const estSec = Math.round((words / 150) * 60);
+  const ts = parseTs(scriptSrc);
+  const total = Math.max(estSec, ts.length ? ts[ts.length - 1].sec + 15 : 0);
+  const segs = ts.map((t, i) => {
+    const end = i + 1 < ts.length ? ts[i + 1].sec : total;
+    const gap = end - t.sec;
+    return { from: t, len: gap, sev: gap > 25 ? "crit" : gap > 18 ? "warn" : "good" };
+  });
+  const sb = storyboardTs(phases.p2);
+  const missing = sb ? ts.filter((t) => !sb.has(t.sec)) : [];
+  const coverage = sb && ts.length ? Math.round(((ts.length - missing.length) / ts.length) * 100) : null;
+  current = { md, phases, words, estSec, ts, total, segs, sb, missing, coverage };
+  renderWorkspace();
+  if (save !== false) pushHistory(md);
+}
+
+function renderWorkspace() {
+  const c = current;
+  $("#workspace").hidden = false;
+  const mins = c.estSec ? (c.estSec / 60).toFixed(1) : "–";
+  const freezes = c.segs.filter((s) => s.sev === "crit").length;
+  $("#tiles").innerHTML = `
+    <div class="tile"><div class="v">${c.words.toLocaleString()}</div><div class="l">คำ (สคริปต์ EN)</div></div>
+    <div class="tile"><div class="v">${mins}</div><div class="l">นาทีโดยประมาณ @150 คำ/นาที</div></div>
+    <div class="tile"><div class="v">${c.ts.length}</div><div class="l">Timestamp ในสคริปต์</div></div>
+    <div class="tile ${freezes ? "crit" : "good"}"><div class="v">${freezes}</div><div class="l">จุดเสี่ยงภาพค้าง</div></div>
+    ${c.coverage !== null ? `<div class="tile ${c.coverage === 100 ? "good" : c.coverage >= 70 ? "warn" : "crit"}"><div class="v">${c.coverage}%</div><div class="l">คิวภาพครอบคลุมสคริปต์</div></div>` : ""}
+  `;
+  showView("all");
+  renderQA();
+}
+
+function showView(v) {
+  $$("#subtabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.view === v));
+  const qa = v === "qa";
+  $("#qaview").hidden = !qa;
+  $("#mdview").hidden = qa;
+  if (qa) return;
+  const c = current;
+  const src = v === "all" ? c.md : (c.phases["p" + v[1]] ?? "ไม่พบส่วนนี้ในผลลัพธ์ — ตรวจว่า AI ใส่หัวข้อ \"Phase " + v[1] + "\" หรือไม่");
+  $("#mdview").innerHTML = mdToHtml(src);
+  enhanceTables($("#mdview"));
+}
+$$("#subtabs button").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
+
+function renderQA() {
+  const c = current;
+  const meter = $("#meter");
+  if (!c.ts.length) {
+    meter.innerHTML = "";
+    $("#issues").innerHTML = `<div class="empty">ไม่พบ Timestamp รูปแบบ [M:SS] ในสคริปต์ — ขอให้ AI ใส่ Timestamp ทุกย่อหน้า (Prompt หลักกำหนดไว้แล้ว)</div>`;
+    return;
+  }
+  meter.innerHTML = c.segs.map((s) =>
+    `<div class="seg ${s.sev}" style="flex:${s.len}" title="${s.from.label} · ${s.len} วินาที"></div>`).join("");
+
+  let issues = "";
+  const freezes = c.segs.filter((s) => s.sev !== "good");
+  freezes.forEach((s) => {
+    issues += `<div class="issue"><span class="sev chip ${s.sev}">${s.sev === "crit" ? "ภาพค้าง" : "เริ่มนาน"}</span>
+      <span>ช่วง <strong>${s.from.label}</strong> ยาว <strong>${s.len} วินาที</strong> ก่อนถึงคิวถัดไป — ควรซอย Timestamp เพิ่ม</span></div>`;
+  });
+  if (c.sb === null) {
+    issues += `<div class="issue"><span class="sev chip warn">ไม่มีตาราง</span><span>ไม่พบตาราง Storyboard ใน Phase 2 — ตรวจว่า AI สร้างตารางที่มีคอลัมน์ Timestamp หรือไม่</span></div>`;
+  } else if (c.missing.length) {
+    issues += `<div class="issue"><span class="sev chip crit">ขาดคิวภาพ</span>
+      <span>Timestamp ในสคริปต์ที่ <strong>ยังไม่มีแถวภาพประกอบ</strong> ใน Storyboard: ${c.missing.map((t) => `<span class="ts">${t.label.slice(1, -1)}</span>`).join(" ")}</span></div>`;
+  }
+  if (!issues) issues = `<div class="issue"><span class="sev chip good">ผ่าน</span><span>จังหวะภาพครบถ้วน ไม่พบช่วงภาพค้างหรือคิวภาพที่ขาด 🎉</span></div>`;
+
+  // auto-fix prompts (artifact-native version of the original AI Assist)
+  let fixes = "";
+  if (c.missing.length) {
+    const fixMissing = `จากผลลัพธ์ที่คุณสร้างให้ก่อนหน้านี้ พบว่า Timestamp เหล่านี้ในสคริปต์ยังไม่มีแถวในตาราง Visual Storyboard: ${c.missing.map((t) => t.label).join(", ")}\n\nกรุณาสร้างแถวตาราง markdown เพิ่มสำหรับคิวเวลาเหล่านี้ ใช้สไตล์ภาพเดิม คอลัมน์: | Timestamp | Visual Suggestion | Reasoning & Viewer Benefit | Google Flow Prompt |`;
+    fixes += `<div class="btnrow"><button class="btn small" data-fix="${esc(fixMissing)}">📋 คัดลอก Prompt แก้ "ขาดคิวภาพ" (ไปวางต่อในแชทเดิม)</button></div>`;
+  }
+  if (freezes.some((s) => s.sev === "crit")) {
+    const list = c.segs.filter((s) => s.sev === "crit").map((s) => `${s.from.label} (ยาว ${s.len} วิ)`).join(", ");
+    const fixFreeze = `จากสคริปต์ที่คุณสร้างให้ก่อนหน้านี้ พบช่วง "ภาพค้าง" (Visual Freeze) นานเกิน 25 วินาที ที่: ${list}\n\nกรุณา (1) แทรก Timestamp ใหม่รูปแบบ [M:SS] ซอยช่วงเหล่านี้ให้ถี่ขึ้น (ไม่เกิน 15-20 วิต่อภาพ) โดยเขียนเฉพาะย่อหน้าที่แก้ และ (2) สร้างแถวตาราง Storyboard สำหรับ Timestamp ใหม่ทุกตัว`;
+    fixes += `<div class="btnrow"><button class="btn small" data-fix="${esc(fixFreeze)}">📋 คัดลอก Prompt แก้ "ภาพค้าง" (ไปวางต่อในแชทเดิม)</button></div>`;
+  }
+  $("#issues").innerHTML = issues + fixes;
+  $$("#issues [data-fix]").forEach((b) => b.addEventListener("click", () => copyText(b.dataset.fix, "คัดลอก Prompt แก้ไขแล้ว")));
+}
+
+/* ── analyze / demo / exports ── */
+$("#analyze").addEventListener("click", () => {
+  const md = $("#pastebox").value.trim();
+  if (!md) return toast("วางผลลัพธ์จาก AI ก่อน");
+  analyzeResult(md);
+  toast("วิเคราะห์เสร็จแล้ว ✓");
+});
+$("#loaddemo").addEventListener("click", () => {
+  const demo = $("#demoresult").textContent.trim();
+  $("#pastebox").value = demo;
+  analyzeResult(demo, false);
+  toast("โหลดตัวอย่างแล้ว — ลองกดแท็บ ✓ ตรวจคุณภาพ");
+});
+$("#copyall").addEventListener("click", () => current && copyText(current.md));
+$("#dlmd").addEventListener("click", () => current && download("seo_analysis_full.md", current.md, "text/markdown;charset=utf-8"));
+$("#dltxt").addEventListener("click", () => current && download("podcast_script.txt", current.phases.p3 || current.md));
+$("#dlcsv").addEventListener("click", () => {
+  if (!current) return;
+  const src = current.phases.p2 || current.md;
+  const rows = [];
+  src.split("\n").forEach((l) => {
+    if (!/^\s*\|/.test(l)) return;
+    const cells = l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+    if (!cells.every((c) => /^:?-+:?$/.test(c))) rows.push(cells);
+  });
+  const withTs = rows.filter((r, i) => i === 0 ? /timestamp/i.test(r.join(" ")) : true);
+  if (withTs.length < 2) return toast("ไม่พบตาราง Storyboard ที่มีคอลัมน์ Timestamp");
+  const csv = withTs.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
+  download("youtube_broll_visual_guide.csv", "﻿" + csv, "text/csv;charset=utf-8");
+});
+
+/* ── history ── */
+function pushHistory(md) {
+  const h = store.get("history", []);
+  h.unshift({ t: Date.now(), input: input.value.trim().slice(0, 200), md });
+  store.set("history", h.slice(0, 20));
+  renderHistory();
+}
+function renderHistory() {
+  const h = store.get("history", []);
+  $("#histlist").innerHTML = h.length ? h.map((it, i) => `
+    <div class="histitem" data-i="${i}">
+      <div class="d">${new Date(it.t).toLocaleString("th-TH", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
+      <div class="p">${esc(it.input || it.md.slice(0, 160))}</div>
+    </div>`).join("") : `<div class="empty">ยังไม่มีประวัติ — วิเคราะห์ผลลัพธ์ครั้งแรกได้ที่แท็บ 2</div>`;
+  $$("#histlist .histitem").forEach((el) => el.addEventListener("click", () => {
+    const it = store.get("history", [])[Number(el.dataset.i)];
+    if (!it) return;
+    $("#pastebox").value = it.md;
+    analyzeResult(it.md, false);
+    gotoPane("result");
+  }));
+}
+renderHistory();
+$("#clearhist").addEventListener("click", () => { store.set("history", []); renderHistory(); toast("ล้างประวัติแล้ว"); });
+</script>
