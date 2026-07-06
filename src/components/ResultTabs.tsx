@@ -2108,7 +2108,7 @@ function ScriptHighlighter({
                 <p
                   className={cn(
                     "text-[10.5px] font-sans mt-0.5 leading-relaxed",
-                    theme === "light" ? "text-slate-650" : "text-slate-400",
+                    theme === "light" ? "text-slate-600" : "text-slate-400",
                   )}
                 >
                   วิเคราะห์จังหวะความเร็วพูดต่อนิพจน์สไลด์
@@ -2413,7 +2413,7 @@ function ScriptHighlighter({
                                     ? theme === "light"
                                       ? "bg-sky-550 text-white border-sky-605"
                                       : "bg-sky-500/20 text-sky-400 border-sky-500/30"
-                                    : "bg-indigo-600 text-white border-indigo-705"
+                                    : "bg-indigo-600 text-white border-indigo-700"
                               : theme === "light"
                                 ? "bg-slate-100 hover:bg-slate-200 border-slate-250 text-slate-700 hover:text-slate-900"
                                 : "bg-slate-950/50 border-slate-800 text-slate-400 hover:text-slate-200",
@@ -2459,7 +2459,7 @@ function ScriptHighlighter({
                     <p
                       className={cn(
                         "text-[10.5px] mt-1 max-w-md",
-                        theme === "light" ? "text-slate-650" : "text-slate-400",
+                        theme === "light" ? "text-slate-600" : "text-slate-400",
                       )}
                     >
                       จังหวะเวลาพอเหมาะสำหรับการเปลี่ยนรูปภาพ และ Prompt
@@ -2504,7 +2504,7 @@ function ScriptHighlighter({
                                   ? "bg-amber-100 text-amber-800"
                                   : "bg-amber-500/10 text-amber-400"
                                 : theme === "light"
-                                  ? "bg-sky-100 text-sky-850"
+                                  ? "bg-sky-100 text-sky-800"
                                   : "bg-sky-500/10 text-sky-400",
                           )}
                         >
@@ -2527,7 +2527,7 @@ function ScriptHighlighter({
                             className={cn(
                               "text-[11px] leading-relaxed font-sans",
                               theme === "light"
-                                ? "text-slate-650"
+                                ? "text-slate-600"
                                 : "text-slate-350",
                             )}
                           >
@@ -2779,7 +2779,7 @@ function ScriptHighlighter({
 
         <div className="space-y-4 pt-2">
           {/* Script section header & toolbar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-850 pb-3 mx-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 mx-1">
             <div className="flex items-center gap-2">
               <span className="p-1.5 bg-blue-500/15 text-blue-400 rounded-lg shrink-0">
                 <FileText className="w-4 h-4" />
@@ -2959,7 +2959,7 @@ function ScriptHighlighter({
               {/* Close Button */}
               <button
                 onClick={() => setLightboxData(null)}
-                className="absolute top-4 right-4 z-50 p-2 bg-slate-950/80 hover:bg-slate-850 text-slate-300 rounded-full transition-all border border-slate-800"
+                className="absolute top-4 right-4 z-50 p-2 bg-slate-950/80 hover:bg-slate-800 text-slate-300 rounded-full transition-all border border-slate-800"
               >
                 <ChevronUp className="w-5 h-5 rotate-90" />
               </button>
@@ -2978,7 +2978,7 @@ function ScriptHighlighter({
               </div>
 
               {/* Right Side: Detailed Storyboard content panel */}
-              <div className="w-full md:w-[350px] border-t md:border-t-0 md:border-l border-slate-850 p-6 flex flex-col justify-between overflow-y-auto max-h-[40vh] md:max-h-full">
+              <div className="w-full md:w-[350px] border-t md:border-t-0 md:border-l border-slate-800 p-6 flex flex-col justify-between overflow-y-auto max-h-[40vh] md:max-h-full">
                 <div className="space-y-5">
                   <div>
                     <span className="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
@@ -3019,7 +3019,7 @@ function ScriptHighlighter({
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-slate-850 mt-6 flex gap-2">
+                <div className="pt-4 border-t border-slate-800 mt-6 flex gap-2">
                   <button
                     onClick={() => setLightboxData(null)}
                     className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors"

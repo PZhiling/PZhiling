@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { GoogleGenAI } from "@google/genai";
 import {
   Loader2,
   Sparkles,
@@ -56,9 +55,38 @@ interface TrendingNiche {
   growth: "Hot" | "Rising";
 }
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
+// Content generation runs through our own server (`/api/gemini`) so the
+// Gemini API key stays server-side and is never exposed in the client bundle.
+// The shape mirrors the SDK's `generateContent` so call sites read the same
+// (`response.text`), and the existing quota/permission error handling keeps
+// working via the forwarded `status` field.
+async function generateContent(params: {
+  contents: unknown;
+  config?: Record<string, unknown>;
+}): Promise<{ text: string }> {
+  let res: Response;
+  try {
+    res = await fetch("/api/gemini", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+  } catch (networkErr) {
+    throw new Error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
+  }
+
+  const data = await res.json().catch(() => ({}) as any);
+
+  if (!res.ok) {
+    const err: any = new Error(
+      data?.error || `Gemini request failed (${res.status})`,
+    );
+    err.status = data?.status ?? res.status;
+    throw err;
+  }
+
+  return { text: typeof data?.text === "string" ? data.text : "" };
+}
 
 const SYSTEM_INSTRUCTION = `คุณคือ "YT Faceless Podcast SEO Master" AI ผู้เชี่ยวชาญสูงสุดในการวิเคราะห์ SEO Gap และสร้างเนื้อหา YouTube Faceless Podcast เพื่อช่วยเพิ่ม traffic และ ranking ให้เว็บไซต์หลักแบบเต็มวงจร
 
@@ -334,8 +362,7 @@ Format:
   {"niche": "niche name", "reason": "short explanation of why it's trending", "growth": "Hot" | "Rising"}
 ]`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+      const response = await generateContent({
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -408,8 +435,7 @@ Format:
   {"keyword": "keyword name", "volume": "estimated search volume (e.g., 8.5K/mo)", "difficulty": "Low" | "Medium" | "High", "trend": "rising" | "falling" | "flat"}
 ]`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+      const response = await generateContent({
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -526,8 +552,7 @@ Format:
 - **สำคัญมากเกี่ยวกับการร่างสตอรี่บอร์ด (Storyboard):** ให้คุณประเมินระยะเวลาของคลิปจากความยาวสคริปต์ (ความเร็วพากย์เฉลี่ย 150 คำต่อนาที) และจัดสรรจำนวนฉากภาพประกอบ (B-Rolls/Images) ให้สอดคล้องกัน โดยเปลี่ยนภาพทุกๆ 10-15 วินาทีของระยะเวลาเสียงพากย์ เพื่อให้วิดีโอถูกกระตุ้นสายตาและไม่หยุดนิ่งเกินไปตลอดการบรรยาย`;
       }
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+      const response = await generateContent({
         contents: input,
         config: {
           systemInstruction: promptInstruction,
@@ -637,8 +662,7 @@ Format:
 |---|---|---|---|`;
       }
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+      const response = await generateContent({
         contents: [content, prompt],
         config: {
           temperature: 0.7,
@@ -1022,7 +1046,7 @@ Format:
                   </motion.div>
                   <span>กำลังบันทึกร่าง...</span>
                   {lastSynced && (
-                    <span className="text-[10px] text-slate-400 font-mono border-l border-slate-705 pl-1.5 ml-1">
+                    <span className="text-[10px] text-slate-400 font-mono border-l border-slate-700 pl-1.5 ml-1">
                       {lastSynced}
                     </span>
                   )}
@@ -1034,7 +1058,7 @@ Format:
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-305">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300">
                   <motion.div
                     initial={{ scale: 0.8 }}
                     animate={{ scale: [1, 1.2, 1.05, 1] }}
@@ -1207,7 +1231,7 @@ Format:
                       <span className="font-bold block text-blue-900 mb-0.5">
                         📝 กู้คืนแบบร่างสำเร็จ!
                       </span>
-                      <span className="text-[11px] text-blue-750 font-medium">
+                      <span className="text-[11px] text-blue-700 font-medium">
                         ระบบได้ฟื้นฟูข้อมูลร่างล่าสุดจากการพิมพ์ครั้งก่อนหน้าของคุณโดยอัตโนมัติ
                       </span>
                     </div>
@@ -1494,7 +1518,7 @@ Format:
             <section className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col shrink-0">
               <div className="text-[0.85rem] font-bold uppercase tracking-[0.05em] text-slate-500 mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="bg-red-650 text-white px-2 py-0.5 rounded text-[0.7rem] bg-rose-650">
+                  <span className="bg-rose-600 text-white px-2 py-0.5 rounded text-[0.7rem]">
                     WATCHLIST
                   </span>
                   คู่แข่งที่ต้องเฝ้าระวัง
@@ -1520,7 +1544,7 @@ Format:
                   onSubmit={handleAddCompetitor}
                   className="mb-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3"
                 >
-                  <div className="text-[0.8rem] font-bold text-slate-750">
+                  <div className="text-[0.8rem] font-bold text-slate-700">
                     เพิ่มช่อง/วิดีโอคู่แข่งลงในระบบ
                   </div>
 

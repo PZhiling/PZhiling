@@ -496,7 +496,7 @@ Episode ${idx + 1}: ${kw.keyword}
                           } else if (vol === 'Low' && diff === 'Low') {
                             cellStyle = 'bg-slate-800/20 hover:bg-slate-800/35 border-slate-700/20 text-slate-400';
                           } else if (vol === 'Low' && diff === 'Medium') {
-                            cellStyle = 'bg-slate-900/50 hover:bg-slate-900/70 border-slate-850 text-slate-500';
+                            cellStyle = 'bg-slate-900/50 hover:bg-slate-900/70 border-slate-800 text-slate-500';
                           } else {
                             cellStyle = 'bg-red-950/10 hover:bg-red-950/20 border-red-500/10 text-red-400';
                           }
@@ -509,7 +509,7 @@ Episode ${idx + 1}: ${kw.keyword}
                               className={cn(
                                 "flex flex-col items-center justify-center p-3 rounded-xl border transition-all cursor-pointer h-20 text-center font-semibold text-xs relative",
                                 cellStyle,
-                                isSelected ? "ring-2 ring-sky-450 border-sky-400 bg-opacity-80 scale-[1.03] z-10 shadow-lg shadow-sky-500/10" : "scale-100"
+                                isSelected ? "ring-2 ring-sky-400 border-sky-400 bg-opacity-80 scale-[1.03] z-10 shadow-lg shadow-sky-500/10" : "scale-100"
                               )}
                             >
                               <span className="text-lg font-bold">{count}</span>
@@ -683,7 +683,7 @@ Episode ${idx + 1}: ${kw.keyword}
                             <button
                               type="button"
                               onClick={() => handleExportCluster(cluster)}
-                              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-violet-900/30 hover:bg-violet-850/50 text-violet-300 hover:text-violet-200 rounded-lg text-xs font-semibold shrink-0 transition-all border border-violet-850/30 cursor-pointer shadow-sm shadow-black/20"
+                              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-violet-900/30 hover:bg-violet-800/50 text-violet-300 hover:text-violet-200 rounded-lg text-xs font-semibold shrink-0 transition-all border border-violet-800/30 cursor-pointer shadow-sm shadow-black/20"
                             >
                               <Download className="w-3.5 h-3.5" />
                               ดาวน์โหลดบทสรุปซีรีส์
@@ -761,7 +761,7 @@ Episode ${idx + 1}: ${kw.keyword}
                 "flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all border shadow-sm cursor-pointer select-none",
                 showHighPotentialOnly 
                   ? "bg-emerald-950/45 text-emerald-300 border-emerald-500/40 hover:bg-emerald-950/60" 
-                  : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-slate-200"
+                  : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-slate-200"
               )}
             >
               <span className={cn(

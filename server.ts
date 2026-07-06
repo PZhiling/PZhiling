@@ -1,7 +1,19 @@
+import dotenv from 'dotenv';
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import textToSpeech from '@google-cloud/text-to-speech';
+import { GoogleGenAI } from '@google/genai';
+
+// Load local environment variables for development. `.env.local` takes
+// precedence over `.env`; on AI Studio these are already injected into
+// process.env so these calls simply no-op when the files are absent.
+dotenv.config({ path: '.env.local' });
+dotenv.config();
+
+// The model used for every Gemini request. Kept server-side so the client
+// never needs to know (or bundle) API credentials.
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 async function startServer() {
   const app = express();
@@ -12,9 +24,48 @@ async function startServer() {
 
   // API constraints text limits...
   // Google TTS can synthesize up to 5000 characters per request.
-  
+
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok' });
+  });
+
+  // Gemini proxy. All content generation runs here so GEMINI_API_KEY stays
+  // on the server and is never shipped in the client bundle. The client sends
+  // the same { contents, config } it used to pass to the SDK directly.
+  app.post('/api/gemini', async (req, res) => {
+    try {
+      const { contents, config } = req.body ?? {};
+
+      if (contents === undefined || contents === null) {
+        return res.status(400).json({ error: 'Missing contents parameter' });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(401).json({
+          error: 'GEMINI_API_KEY environment variable is missing on the server.',
+          status: 'PERMISSION_DENIED',
+        });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents,
+        config,
+      });
+
+      res.json({ text: response.text ?? '' });
+    } catch (error: any) {
+      console.error('Gemini Error:', error);
+      // Forward the original status/message so the client can keep showing
+      // its quota / permission specific messaging.
+      const status = error?.status ?? error?.error?.code ?? error?.code;
+      res.status(500).json({
+        error: error?.message || 'Failed to generate content',
+        status,
+      });
+    }
   });
 
   // TTS Endpoint
