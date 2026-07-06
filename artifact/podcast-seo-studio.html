@@ -150,6 +150,19 @@
   .compitem .nt { font-size: .78rem; color: var(--muted); }
   .compitem .grow { flex: 1; min-width: 0; }
 
+  /* weekly trends */
+  .trendhead { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .weekbadge { margin-left: auto; font-family: var(--mono); font-size: .72rem; color: var(--rec); background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; white-space: nowrap; }
+  .trendgrid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
+  @media (min-width: 640px) { .trendgrid { grid-template-columns: 1fr 1fr; } }
+  .trenditem { text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 11px 13px; cursor: pointer; display: flex; flex-direction: column; gap: 5px; font-family: inherit; color: var(--ink); }
+  .trenditem:hover { border-color: var(--accent); }
+  .trenditem .top { display: flex; align-items: center; gap: 8px; }
+  .trenditem .nm { font-weight: 700; font-size: .86rem; }
+  .trenditem .top .chip { margin-left: auto; }
+  .trenditem .rs { font-size: .78rem; color: var(--muted); line-height: 1.5; }
+  .trenditem .add { font-size: .73rem; color: var(--accent-ink); font-weight: 700; }
+
   /* ── Stat tiles ──────────────────────────────── */
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
   .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
@@ -279,6 +292,23 @@
       </div>
     </div>
 
+    <div class="card">
+      <div class="trendhead">
+        <div>
+          <div class="eyebrow" style="margin-bottom:2px">Weekly Trends</div>
+          <h2>เทรนด์นิชประจำสัปดาห์</h2>
+        </div>
+        <span class="weekbadge" id="weekbadge">—</span>
+      </div>
+      <p class="hint">คลังไอเดียนิช Faceless (สายแก้ปัญหาชีวิต + จิตวิทยา) หมุนเปลี่ยนอัตโนมัติทุกสัปดาห์ — แตะเพื่อใส่เข้าช่องข้อมูลตั้งต้นด้านบน</p>
+      <div class="trendgrid" id="trendgrid"></div>
+      <div class="btnrow">
+        <button class="btn small" id="trendmore">🔀 ดูชุดอื่น</button>
+        <button class="btn small" data-copyaux="trend">✨ ขอ AI เจนเทรนด์สดๆ</button>
+      </div>
+      <p class="hint" style="margin-top:8px">อยากได้เทรนด์ล่าสุดแบบเรียลไทม์ กด "ขอ AI เจนสดๆ" แล้วนำ Prompt ไปวางในแอป Gemini (Artifact เชื่อมเน็ตออกนอกไม่ได้)</p>
+    </div>
+
     <div class="card" id="promptcard" hidden>
       <div class="eyebrow">Master Prompt</div>
       <h2>คัดลอกไปวางในแอป AI ของคุณ</h2>
@@ -294,11 +324,6 @@
       <summary>🔎 Prompt เสริม: ค้นหาคีย์เวิร์ด Long-tail</summary>
       <p class="hint">ให้ AI เสนอ 5 คีย์เวิร์ดหางยาวจากข้อมูลตั้งต้นของคุณ แล้วเลือกใส่กลับเข้าไปในช่องข้อมูลด้านบน</p>
       <div class="btnrow"><button class="btn small" data-copyaux="kw">📋 คัดลอก</button></div>
-    </details>
-    <details class="mini">
-      <summary>🔥 Prompt เสริม: หาเทรนด์นิชประจำสัปดาห์</summary>
-      <p class="hint">ให้ AI เสนอ 3 นิช Faceless ที่กำลังมาแรง (สายแก้ปัญหาชีวิต / จิตวิทยา)</p>
-      <div class="btnrow"><button class="btn small" data-copyaux="trend">📋 คัดลอก</button></div>
     </details>
   </section>
 
@@ -553,6 +578,60 @@ $("#addcomp").addEventListener("click", () => {
   comps.unshift({ name, url, notes }); store.set("comps", comps); renderComps();
   $("#cname").value = $("#curl").value = $("#cnotes").value = "";
 });
+
+/* ── weekly trends (offline idea bank, rotates by ISO week) ── */
+const TRENDS = [
+  { niche: "เทคนิคเลิกผัดวันประกันพรุ่ง (Overcoming Procrastination)", reason: "คนค้นหาวิธีเอาชนะการผัดวันช่วงต้นปี/ต้นเดือนสูงมาก How-to เชิงลึกยังขาด", growth: "Hot" },
+  { niche: "จิตวิทยาการจัดการความเครียดจากงาน (Work Stress Management)", reason: "ปัญหา Burnout ในที่ทำงานทำให้คนหาวิธีจัดการที่ทำตามได้จริง", growth: "Hot" },
+  { niche: "การเริ่มต้นลงทุนสำหรับมือใหม่ (Investing for Beginners)", reason: "ความสนใจการเงินส่วนบุคคลโตต่อเนื่อง คู่แข่งส่วนใหญ่พูดยากเกินไป", growth: "Hot" },
+  { niche: "วิธีรับมือคนหลงตัวเอง (Dealing with Narcissists)", reason: "คอนเทนต์จิตวิทยาความสัมพันธ์มียอดวิวสูงและแชร์ง่าย", growth: "Hot" },
+  { niche: "การจัดการเวลาแบบ Deep Work (Focus & Deep Work)", reason: "กระแสเพิ่มโปรดักทิวิตี้และตัดสิ่งรบกวนกำลังมาแรง", growth: "Hot" },
+  { niche: "เข้าใจและจัดการความวิตกกังวล (Managing Anxiety)", reason: "หัวข้อสุขภาพใจได้รับความสนใจต่อเนื่องทุกสัปดาห์", growth: "Hot" },
+  { niche: "วิธีสร้างนิสัยใหม่ให้ติด (Habit Building)", reason: "คนอยากเปลี่ยนพฤติกรรมและหาระบบที่ยั่งยืน", growth: "Hot" },
+  { niche: "จิตวิทยาการโน้มน้าวใจคน (Persuasion Psychology)", reason: "เนื้อหาสาย 'เบื้องหลังพฤติกรรม' ดึงความอยากรู้ได้ดี", growth: "Hot" },
+  { niche: "รับมือ Burnout และฟื้นพลังใจ (Beating Burnout)", reason: "คนทำงานหมดไฟค้นหาวิธีฟื้นตัวแบบเป็นขั้นตอน", growth: "Hot" },
+  { niche: "การจัดการเงินสำหรับมนุษย์เงินเดือน (Personal Finance)", reason: "ค่าครองชีพสูงทำให้คนหาวิธีบริหารเงินที่ใช้ได้จริง", growth: "Rising" },
+  { niche: "วิธีตื่นเช้าและสร้าง Morning Routine", reason: "คอนเทนต์วินัย/รูทีนเช้าเป็นที่นิยมในกลุ่มพัฒนาตัวเอง", growth: "Rising" },
+  { niche: "ฮาวทูเจรจาต่อรองเงินเดือน (Salary Negotiation)", reason: "หัวข้ออาชีพที่ให้คุณค่าสูงและคู่แข่งเฉพาะทางยังน้อย", growth: "Rising" },
+  { niche: "วิธีอ่านหนังสือให้จำได้จริง (Active Recall & Learning)", reason: "กลุ่มนักเรียน/สายพัฒนาตัวเองค้นหาเทคนิคการเรียนรู้", growth: "Rising" },
+  { niche: "เทคนิคลดค่าใช้จ่ายในชีวิตประจำวัน (Frugal Living)", reason: "เทรนด์ประหยัดและใช้ชีวิตเรียบง่ายกำลังกลับมา", growth: "Rising" },
+  { niche: "จิตวิทยาการสื่อสารในความสัมพันธ์ (Relationship Communication)", reason: "ปัญหาการสื่อสารในครอบครัว/ที่ทำงานทำให้คนหาวิธีแก้", growth: "Rising" },
+  { niche: "จิตวิทยาการสร้างความมั่นใจในตัวเอง (Self-Confidence)", reason: "หัวข้อพัฒนาตัวเองที่กลุ่มเป้าหมายกว้างและเข้าถึงง่าย", growth: "Rising" },
+  { niche: "วิธีตั้งขอบเขต (Boundaries) กับคนรอบตัว", reason: "แนวคิดสุขภาพใจที่กำลังเป็นที่พูดถึงในโซเชียล", growth: "Rising" },
+  { niche: "ฮาวทูจัดบ้านแบบ Minimalist (Decluttering)", reason: "ไลฟ์สไตล์มินิมอลยังมีฐานคนดูเหนียวแน่น", growth: "Rising" },
+  { niche: "เข้าใจภาษารักและรูปแบบความผูกพัน (Attachment Styles)", reason: "จิตวิทยาความสัมพันธ์เชิงลึกได้รับความนิยมสูง", growth: "Rising" },
+  { niche: "การวางแผนการเงินหลังเกษียณ (Retirement Planning)", reason: "กลุ่มวัยทำงานเริ่มวางแผนอนาคตมากขึ้น", growth: "Rising" },
+  { niche: "จิตวิทยาการให้อภัยและปล่อยวาง (Letting Go)", reason: "คอนเทนต์เยียวยาใจที่ผู้ฟังชอบเปิดฟังซ้ำ", growth: "Rising" },
+];
+function isoWeek(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7) + 3);
+  const firstThu = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  firstThu.setUTCDate(firstThu.getUTCDate() - ((firstThu.getUTCDay() + 6) % 7) + 3);
+  return 1 + Math.round((t - firstThu) / (7 * 864e5));
+}
+let trendOffset = store.get("trend_off", 0);
+function renderTrends() {
+  const now = new Date(), wk = isoWeek(now);
+  $("#weekbadge").textContent = `สัปดาห์ที่ ${wk} · ${now.toLocaleDateString("th-TH", { day: "2-digit", month: "short" })}`;
+  const base = ((wk + trendOffset) * 3) % TRENDS.length;
+  const pick = [0, 1, 2].map((i) => TRENDS[(base + i) % TRENDS.length]);
+  $("#trendgrid").innerHTML = pick.map((t) => `
+    <button class="trenditem" data-niche="${esc(t.niche)}">
+      <div class="top"><span class="nm">${esc(t.niche)}</span>
+        <span class="chip ${t.growth === "Hot" ? "crit" : "warn"}">${t.growth === "Hot" ? "🔥 Hot" : "↗ Rising"}</span></div>
+      <div class="rs">${esc(t.reason)}</div>
+      <span class="add">＋ ใส่เข้าข้อมูลตั้งต้น</span>
+    </button>`).join("");
+  $$("#trendgrid .trenditem").forEach((b) => b.addEventListener("click", () => {
+    const sep = input.value.trim() ? "\n" : "";
+    input.value = input.value.trim() + `${sep}- สนใจทำเรื่อง: \`${b.dataset.niche}\``;
+    store.set("draft", input.value);
+    toast("เพิ่มนิชเข้าข้อมูลตั้งต้นแล้ว ✓");
+  }));
+}
+renderTrends();
+$("#trendmore").addEventListener("click", () => { trendOffset++; store.set("trend_off", trendOffset); renderTrends(); });
 
 /* ── prompt builder ── */
 const SYS = $("#sysprompt").textContent.trim();
