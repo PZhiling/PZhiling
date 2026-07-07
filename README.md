@@ -97,6 +97,17 @@ npm run build   # vite build + bundle server to dist/server.cjs
 npm start       # NODE_ENV=production node dist/server.cjs
 ```
 
+## Deploy to Cloud Run
+
+The repo ships a multi-stage `Dockerfile` (runtime image contains only the
+pure-JS production deps + `dist/`). In Cloud Run, choose *Continuously
+deploy from a repository*, point it at this repo/branch, pick **Dockerfile**
+as the build type, and set `GEMINI_API_KEY` (and optionally
+`GOOGLE_TTS_API_KEY`) as service environment variables. The server reads
+`PORT` from the environment as Cloud Run requires. Buildpacks also work —
+`package.json` has a `gcp-build` script. Step-by-step tablet instructions:
+[TABLET-SETUP.md](TABLET-SETUP.md).
+
 ## Scripts
 
 | Script          | Description                                 |

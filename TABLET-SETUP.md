@@ -16,7 +16,37 @@
    (ขึ้น Cloud Run) แล้วเปิดลิงก์ https ที่ได้ → Chrome จะขึ้นปุ่ม
    **"ติดตั้งแอป" (Install app)** ให้เอง
 
-> โค้ดเวอร์ชันปรับปรุงนี้รองรับ Cloud Run แล้ว (อ่านพอร์ตจากตัวแปร `PORT`)
+> ⚠️ ข้อจำกัด: AI Studio ดึงโค้ดจาก GitHub กลับเข้าไปไม่ได้ (push ออกได้
+> อย่างเดียว) — ทาง A จึง deploy โค้ด "เวอร์ชันเดิมใน AI Studio" ไม่ใช่
+> เวอร์ชันปรับปรุงใน repo นี้ ถ้าต้องการเวอร์ชันปรับปรุง ใช้ **ทาง C**
+
+## ทาง C: Deploy เวอร์ชันปรับปรุงขึ้น Cloud Run จาก GitHub (แนะนำ)
+
+repo นี้มี `Dockerfile` พร้อม deploy แล้ว ทำจากเบราว์เซอร์บน Tablet ได้ทั้งหมด:
+
+1. เปิด **https://console.cloud.google.com** → สร้างโปรเจกต์ใหม่
+   (ต้องเปิด Billing — Cloud Run มี free tier รายเดือนค่อนข้างเยอะ
+   แอปส่วนตัวแบบนี้ปกติอยู่ในโซนฟรี และ scale-to-zero ตอนไม่มีคนใช้)
+2. เมนู ☰ → **Cloud Run** → **Create service** →
+   เลือก **"Continuously deploy from a repository"** → **Set up with Cloud Build**
+3. เชื่อมบัญชี GitHub → เลือก repo **`PZhiling/PZhiling`**
+   → branch **`claude/file-reading-zip-creation-dmdarb`**
+   → Build type: **Dockerfile** (ระบบเจอไฟล์ให้อัตโนมัติ)
+4. ตั้งค่า service:
+   - Region: **asia-southeast1 (Singapore)** — ใกล้ไทยสุด
+   - Authentication: **Allow unauthenticated invocations** (ให้เปิดจากเบราว์เซอร์ได้)
+5. หัวข้อ **Variables & Secrets** เพิ่ม environment variables:
+   - `GEMINI_API_KEY` = คีย์จาก https://aistudio.google.com/apikey
+   - `GOOGLE_TTS_API_KEY` = (ถ้าใช้ฟีเจอร์เสียง — ไม่ใส่ก็ได้)
+6. กด **Create** → รอ build ~3-5 นาที → ได้ URL `https://…run.app`
+7. เปิด URL บน Tablet → Chrome จะขึ้นปุ่ม **"ติดตั้งแอป"** (PWA เต็มรูปแบบ
+   เพราะเป็น HTTPS) → ได้ไอคอนแอปบนหน้าจอเหมือนแอปจริง
+
+หลังจากนี้ทุกครั้งที่โค้ดใน branch อัปเดต Cloud Build จะ build + deploy
+ให้อัตโนมัติ ไม่ต้องทำอะไรเพิ่ม
+
+> ทางเลือกไม่ใช้ Dockerfile: buildpacks ของ Google ก็รองรับ repo นี้แล้ว
+> (มี script `gcp-build` ใน package.json) — แต่ Dockerfile จะเร็วและชัวร์กว่า
 
 ---
 
