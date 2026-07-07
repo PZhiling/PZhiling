@@ -1,0 +1,17 @@
+{
+  "name": "Podcast SEO Studio",
+  "short_name": "SEO Studio",
+  "description": "สตูดิโอสร้างคอนเทนต์ YouTube Faceless Podcast: Prompt + Brand DNA + QC Gate + Storyboard + TTS",
+  "lang": "th",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#17181a",
+  "theme_color": "#17181a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

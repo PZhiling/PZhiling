@@ -1,7 +1,31 @@
 # วิธีใช้งานบน Android Tablet (ไม่ต้องมีคอมพิวเตอร์)
 
-แอปนี้ต้องมีเซิร์ฟเวอร์ Node.js รันอยู่ (เพื่อเก็บ API key ไว้ฝั่งเซิร์ฟเวอร์)
-บน Tablet ทำได้ 2 ทาง — เลือกทางเดียวพอ
+## ⭐ ทางแนะนำสำหรับใช้คนเดียว: GitHub Pages + ใส่ API key เอง
+
+โฟลเดอร์ `docs/` คือแอป **Podcast SEO Studio** ฉบับไฟล์เดียว (สร้าง Prompt,
+Brand DNA, เสาคอนเทนต์, QC Gate, Storyboard, เทรนด์สด, TTS) — โฮสต์ฟรีบน
+GitHub Pages แล้วเรียก Gemini/TTS ตรงจากเบราว์เซอร์ด้วย key ของคุณเอง
+(key เก็บใน localStorage ของเครื่อง ไม่ฝังในโค้ด):
+
+1. เปิด repo บน **github.com** → **Settings** → **Pages**
+2. Source: **Deploy from a branch** → Branch:
+   `claude/file-reading-zip-creation-dmdarb` + โฟลเดอร์ **/docs** → **Save**
+3. รอ ~1 นาที ได้ URL: **https://pzhiling.github.io/PZhiling/**
+4. เปิด URL → กล่อง **🔑 API Keys** → ใส่ `GEMINI_API_KEY`
+   (ขอฟรีที่ aistudio.google.com/apikey) และ `GOOGLE_TTS_API_KEY` ถ้าใช้เสียง
+5. Chrome เมนู ⋮ → **ติดตั้งแอป** → ได้ไอคอนบนหน้าจอ
+
+ปุ่มที่ปลดล็อกเมื่อใส่ key: **🚀 Generate ในแอปเลย**, **🛰 เทรนด์สดจากเว็บ**
+(Google Search grounding), **🔊 พากย์เสียง (TTS)** — ไม่ใส่ key ก็ใช้โหมด
+copy-paste ได้เหมือนเดิม
+
+> อัปเดตแอป: แก้ `artifact/podcast-seo-studio.html` แล้วรัน
+> `./scripts/build-pages.sh` → commit → Pages อัปเดตเอง
+
+---
+
+ส่วนแอปฉบับเต็ม (React + เซิร์ฟเวอร์ — key อยู่ฝั่งเซิร์ฟเวอร์ ปลอดภัยกว่า
+ถ้าจะแจกให้คนอื่นใช้) ทำได้ตามทางด้านล่าง
 
 ---
 
