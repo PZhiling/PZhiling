@@ -184,6 +184,17 @@
   .qcrow:first-child { border-top: none; }
   .qcrow .pts { margin-left: auto; font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; font-size: .78rem; padding-top: 2px; }
 
+  /* packaging / b-roll / shorts studios */
+  .titleopt { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-top: 10px; background: var(--bg); }
+  .titleopt .tt { font-weight: 800; font-size: .95rem; }
+  .titleopt .ag { font-size: .78rem; color: var(--muted); margin-top: 3px; }
+  .imggrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin-top: 12px; }
+  .imgcard { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--bg); display: flex; flex-direction: column; gap: 8px; }
+  .imgcard img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); }
+  .imgcard .pr { font-family: var(--mono); font-size: .68rem; color: var(--muted); line-height: 1.5; max-height: 64px; overflow: hidden; }
+  .imgcard .ph { width: 100%; aspect-ratio: 16/9; border-radius: 8px; border: 1px dashed var(--line); display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: .78rem; }
+  .statuschip { cursor: pointer; border: none; font-family: inherit; }
+
   /* ── Stat tiles ──────────────────────────────── */
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
   .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
@@ -421,6 +432,9 @@
         <button role="tab" aria-selected="false" data-view="p2">Phase 2 · Storyboard</button>
         <button role="tab" aria-selected="false" data-view="p3">Phase 3 · สคริปต์</button>
         <button role="tab" aria-selected="false" data-view="qa">✓ QC Gate</button>
+        <button role="tab" aria-selected="false" data-view="pack">🎯 Packaging</button>
+        <button role="tab" aria-selected="false" data-view="broll">🖼 B-Roll</button>
+        <button role="tab" aria-selected="false" data-view="shorts">✂️ Shorts</button>
       </div>
 
       <div class="card md" id="mdview"></div>
@@ -444,6 +458,27 @@
           <span><span class="k" style="background:var(--crit)"></span>ภาพค้าง &gt; 25 วิ</span>
         </div>
         <div id="issues"></div>
+      </div>
+
+      <div class="card" id="packview" hidden>
+        <div class="eyebrow">Packaging Studio</div>
+        <h2>Title A/B/C + Thumbnail + Tags</h2>
+        <p class="hint">ปก + ชื่อคลิปคือตัวตัดสิน CTR ก่อนใครได้ยินเสียงคุณ — สร้าง 3 ชื่อคนละมุม, คอนเซปต์ปก 2 แบบ (เจนภาพได้เลย), และ Tags 15 อัน</p>
+        <div id="packbody"></div>
+      </div>
+
+      <div class="card" id="brollview" hidden>
+        <div class="eyebrow">B-Roll Studio</div>
+        <h2>เจนภาพประกอบจาก Storyboard</h2>
+        <p class="hint">ดึง Prompt จากตาราง Storyboard (Phase 2) มาเจนภาพ 16:9 ในแอปด้วย key เดิมของคุณ — เจนทีละภาพเพื่อประหยัดโควตา แล้วกดดาวน์โหลดไปตัดต่อได้เลย</p>
+        <div id="brollbody"></div>
+      </div>
+
+      <div class="card" id="shortsview" hidden>
+        <div class="eyebrow">Shorts Studio</div>
+        <h2>ตัดตอนเต็มเป็น Shorts 3 คลิป</h2>
+        <p class="hint">Shorts คือท่อส่งคนเข้าตอนเต็ม — สร้างสคริปต์สั้น ~45-60 วิ 3 คลิปจากจุดพีคของตอน พร้อม Hook, CTA และ Hashtags</p>
+        <div id="shortsbody"></div>
       </div>
     </div>
   </section>
@@ -1152,10 +1187,16 @@ function renderWorkspace() {
 
 function showView(v) {
   $$("#subtabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.view === v));
-  const qa = v === "qa";
-  $("#qaview").hidden = !qa;
-  $("#mdview").hidden = qa;
-  if (qa) return;
+  $("#qaview").hidden = v !== "qa";
+  $("#packview").hidden = v !== "pack";
+  $("#brollview").hidden = v !== "broll";
+  $("#shortsview").hidden = v !== "shorts";
+  const isMd = ["all", "p1", "p2", "p3"].includes(v);
+  $("#mdview").hidden = !isMd;
+  if (v === "pack") renderPack();
+  if (v === "broll") renderBroll();
+  if (v === "shorts") renderShorts();
+  if (!isMd) return;
   const c = current;
   const src = v === "all" ? c.md : (c.phases["p" + v[1]] ?? "ไม่พบส่วนนี้ในผลลัพธ์ — ตรวจว่า AI ใส่หัวข้อ \"Phase " + v[1] + "\" หรือไม่");
   $("#mdview").innerHTML = mdToHtml(src);
@@ -1335,12 +1376,194 @@ $("#ttsbtn").addEventListener("click", async () => {
   finally { b.disabled = false; b.textContent = old; }
 });
 
+/* ── image generation (Gemini image model, same key) ── */
+async function generateImage(prompt) {
+  if (!hasGemini()) throw new Error("NO_KEY");
+  const res = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + encodeURIComponent(keys.gemini.trim()),
+    {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ["IMAGE", "TEXT"], imageConfig: { aspectRatio: "16:9" } },
+      }),
+    },
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const e = new Error(data?.error?.message || "HTTP " + res.status);
+    e.status = data?.error?.code || res.status;
+    throw e;
+  }
+  const part = (data?.candidates?.[0]?.content?.parts || []).find((p) => p.inlineData);
+  if (!part) throw new Error("ไม่ได้ภาพกลับมา — อาจติดโควตาภาพ หรือ prompt ถูกบล็อก ลองปรับ prompt");
+  return "data:" + (part.inlineData.mimeType || "image/png") + ";base64," + part.inlineData.data;
+}
+
+/* ── Packaging Studio: Title A/B/C + Thumbnail + Tags ── */
+const PACK_INSTRUCTION = `จากผลลัพธ์การวิเคราะห์และสคริปต์ด้านบน ให้สร้าง Packaging สำหรับวิดีโอ YouTube ตอบกลับเป็น JSON ล้วนๆ ห้ามมีข้อความอื่นนอกกรอบ JSON:
+{"titles":[{"title":"ชื่อคลิปภาษาอังกฤษ SEO ดี ดึงคลิกแรง","angle":"มุมที่ใช้ อธิบายสั้นๆ ภาษาไทย"}],"thumbnails":[{"concept":"คอนเซปต์ภาพปก อธิบายภาษาไทย","overlay":"ข้อความวางบนปก ไม่เกิน 4 คำ ภาษาอังกฤษ","prompt":"AI image generation prompt in English, describe scene/mood/style, NO text or letters in the image, high contrast, 16:9 thumbnail composition"}],"tags":["youtube tag ภาษาอังกฤษ"]}
+กติกา: titles ต้องมี 3 แบบคนละมุม (Curiosity gap / Number-List / Contrast-ขัดความเชื่อ), thumbnails 2 แบบ, tags 15 อัน เรียงจากตรงเนื้อหามากสุด`;
+function renderPack() {
+  const body = $("#packbody");
+  const p = current.pack;
+  if (!p) {
+    body.innerHTML = hasGemini()
+      ? `<div class="btnrow" style="margin-top:0"><button class="btn primary" id="packgen">🎯 สร้าง Packaging ด้วย AI</button></div>`
+      : `<div class="btnrow" style="margin-top:0"><button class="btn" id="packcopy">📋 คัดลอก Prompt (โหมดไม่มี key)</button></div><p class="hint">วางในแอป AI แล้วนำ JSON ที่ได้มาศึกษา — หรือใส่ key ในแท็บ 1 เพื่อกดปุ่มเดียวจบ</p>`;
+    $("#packgen")?.addEventListener("click", genPack);
+    $("#packcopy")?.addEventListener("click", () => copyText(current.md + "\n\n---\n\n" + PACK_INSTRUCTION, "คัดลอกแล้ว — ไปวางในแอป AI"));
+    return;
+  }
+  body.innerHTML = `
+    <h3 style="margin:14px 0 4px">ตัวเลือกชื่อคลิป (แตะเพื่อคัดลอก)</h3>
+    ${(p.titles || []).map((t, i) => `
+      <button class="titleopt statuschip" data-copytitle="${esc(t.title)}" style="display:block;width:100%;text-align:left">
+        <div class="tt">${"ABC"[i] || "•"} · ${esc(t.title)}</div>
+        <div class="ag">${esc(t.angle || "")}</div>
+      </button>`).join("")}
+    <h3 style="margin:18px 0 4px">คอนเซปต์ Thumbnail</h3>
+    <div class="imggrid">
+      ${(p.thumbnails || []).map((t, i) => `
+        <div class="imgcard">
+          <div id="thumbimg-${i}">${current.thumbImgs?.[i] ? `<img src="${current.thumbImgs[i]}" alt="thumbnail" />` : `<div class="ph">ยังไม่ได้เจนภาพ</div>`}</div>
+          <div style="font-size:.82rem"><strong>${esc(t.concept || "")}</strong></div>
+          <div style="font-size:.78rem">ข้อความบนปก: <span class="ts">${esc(t.overlay || "")}</span></div>
+          <div class="pr">${esc(t.prompt || "")}</div>
+          <div class="btnrow" style="margin-top:0">
+            ${hasGemini() ? `<button class="btn small" data-genthumb="${i}">🖼 เจนภาพปก</button>` : ""}
+            <button class="btn small" data-copyprompt="${esc(t.prompt || "")}">📋 Prompt</button>
+            ${current.thumbImgs?.[i] ? `<a class="btn small" href="${current.thumbImgs[i]}" download="thumbnail-${i + 1}.png">⬇ PNG</a>` : ""}
+          </div>
+        </div>`).join("")}
+    </div>
+    <h3 style="margin:18px 0 4px">Tags (${(p.tags || []).length})</h3>
+    <div class="pr" style="font-family:var(--mono);font-size:.78rem;color:var(--muted)">${esc((p.tags || []).join(", "))}</div>
+    <div class="btnrow"><button class="btn small" id="copytags">📋 คัดลอก Tags</button><button class="btn small" id="packregen">🔄 สร้างใหม่</button></div>`;
+  $$("#packbody [data-copytitle]").forEach((b) => b.addEventListener("click", () => copyText(b.dataset.copytitle, "คัดลอกชื่อคลิปแล้ว ✓")));
+  $$("#packbody [data-copyprompt]").forEach((b) => b.addEventListener("click", () => copyText(b.dataset.copyprompt, "คัดลอก Prompt แล้ว ✓")));
+  $("#copytags")?.addEventListener("click", () => copyText((p.tags || []).join(", "), "คัดลอก Tags แล้ว ✓"));
+  $("#packregen")?.addEventListener("click", () => { current.pack = null; genPack(); });
+  $$("#packbody [data-genthumb]").forEach((b) => b.addEventListener("click", async () => {
+    const i = Number(b.dataset.genthumb);
+    b.disabled = true; b.textContent = "⏳ กำลังเจน...";
+    try {
+      const url = await generateImage((p.thumbnails[i].prompt || "") + ", eye-catching YouTube thumbnail, high contrast, cinematic lighting, no text");
+      current.thumbImgs = current.thumbImgs || {};
+      current.thumbImgs[i] = url;
+      renderPack();
+    } catch (err) { alert(aiErrorThai(err)); b.disabled = false; b.textContent = "🖼 เจนภาพปก"; }
+  }));
+}
+async function genPack() {
+  const body = $("#packbody");
+  body.innerHTML = `<p class="hint">⏳ AI กำลังคิด Packaging...</p>`;
+  try {
+    const text = await callGemini(current.md.slice(0, 14000) + "\n\n---\n\n" + PACK_INSTRUCTION, { temp: 0.8 });
+    const m = text.match(/\{[\s\S]*\}/);
+    current.pack = JSON.parse(m ? m[0] : text);
+    renderPack();
+    toast("Packaging พร้อมแล้ว ✓");
+  } catch (err) { alert(aiErrorThai(err)); current.pack = null; renderPack(); }
+}
+
+/* ── B-Roll Studio: generate images from storyboard prompts ── */
+function storyboardRows() {
+  const src = current.phases.p2 || current.md;
+  const rows = [];
+  let header = null;
+  for (const line of src.split("\n")) {
+    if (!/^\s*\|/.test(line)) { if (header && rows.length) break; header = null; continue; }
+    const cells = line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+    if (cells.every((c) => /^:?-+:?$/.test(c))) continue;
+    if (!header) { if (/timestamp/i.test(cells.join(" "))) header = cells; continue; }
+    rows.push(cells);
+  }
+  if (!header || !rows.length) return null;
+  const pi = header.findIndex((h) => /prompt/i.test(h));
+  const vi = header.findIndex((h) => /visual/i.test(h));
+  return rows.map((c) => ({
+    ts: c[0] || "",
+    visual: c[vi >= 0 ? vi : 1] || "",
+    prompt: (c[pi >= 0 ? pi : c.length - 1] || "").replace(/^"|"$/g, ""),
+  }));
+}
+function renderBroll() {
+  const body = $("#brollbody");
+  const rows = storyboardRows();
+  if (!rows) {
+    body.innerHTML = `<div class="empty">ไม่พบตาราง Storyboard (ที่มีคอลัมน์ Timestamp) ใน Phase 2</div>`;
+    return;
+  }
+  current.brollImgs = current.brollImgs || {};
+  body.innerHTML = `<div class="imggrid">
+    ${rows.map((r, i) => `
+      <div class="imgcard">
+        <div>${current.brollImgs[i] ? `<img src="${current.brollImgs[i]}" alt="b-roll" />` : `<div class="ph">ยังไม่ได้เจนภาพ</div>`}</div>
+        <div style="font-size:.8rem"><span class="ts">${esc(r.ts.replace(/[\[\]]/g, ""))}</span> ${esc(r.visual.slice(0, 90))}</div>
+        <div class="pr">${esc(r.prompt.slice(0, 200))}</div>
+        <div class="btnrow" style="margin-top:0">
+          ${hasGemini() ? `<button class="btn small" data-genbroll="${i}">🖼 เจนภาพ</button>` : ""}
+          <button class="btn small" data-copyprompt="${esc(r.prompt)}">📋 Prompt</button>
+          ${current.brollImgs[i] ? `<a class="btn small" href="${current.brollImgs[i]}" download="broll-${String(i + 1).padStart(2, "0")}.png">⬇ PNG</a>` : ""}
+        </div>
+      </div>`).join("")}
+  </div>
+  ${hasGemini() ? "" : `<p class="hint" style="margin-top:10px">ใส่ GEMINI_API_KEY ในแท็บ 1 เพื่อเจนภาพในแอป — ตอนนี้คัดลอก Prompt ไปใช้ใน Google Flow / เครื่องมืออื่นได้</p>`}`;
+  $$("#brollbody [data-copyprompt]").forEach((b) => b.addEventListener("click", () => copyText(b.dataset.copyprompt, "คัดลอก Prompt แล้ว ✓")));
+  $$("#brollbody [data-genbroll]").forEach((b) => b.addEventListener("click", async () => {
+    const i = Number(b.dataset.genbroll);
+    b.disabled = true; b.textContent = "⏳ กำลังเจน...";
+    try {
+      current.brollImgs[i] = await generateImage(rows[i].prompt || rows[i].visual);
+      renderBroll();
+    } catch (err) { alert(aiErrorThai(err)); b.disabled = false; b.textContent = "🖼 เจนภาพ"; }
+  }));
+}
+
+/* ── Shorts Studio: repurpose the episode into 3 shorts ── */
+const SHORTS_INSTRUCTION = `จากตอนเต็มด้านบน สร้างสคริปต์ YouTube Shorts 3 คลิป (ภาษาอังกฤษ พูดจริง ~45-60 วินาที ≈ 130-150 คำต่อคลิป) เพื่อดึงคนไปดูตอนเต็ม เลือกจากจุดพีค/ประเด็นแรงคนละจุด
+กติกาแต่ละคลิป: เปิดด้วย Hook แรงใน 2 วิแรก (ห้ามทักทาย), ภาษาพูดธรรมชาติแบบมนุษย์ตามกฎห้ามวลี AI เดิม, จบด้วย CTA ชวนไปดูตอนเต็ม
+รูปแบบผลลัพธ์ (Markdown):
+## Short 1: [ชื่อคลิปภาษาอังกฤษ]
+**Hook:** ...
+**Script:** ...
+**Hashtags:** #...`;
+function renderShorts() {
+  const body = $("#shortsbody");
+  if (!current.shorts) {
+    body.innerHTML = hasGemini()
+      ? `<div class="btnrow" style="margin-top:0"><button class="btn primary" id="shortsgen">✂️ สร้าง Shorts 3 คลิปด้วย AI</button></div>`
+      : `<div class="btnrow" style="margin-top:0"><button class="btn" id="shortscopy">📋 คัดลอก Prompt (โหมดไม่มี key)</button></div>`;
+    $("#shortsgen")?.addEventListener("click", genShorts);
+    $("#shortscopy")?.addEventListener("click", () => copyText(current.md + "\n\n---\n\n" + SHORTS_INSTRUCTION, "คัดลอกแล้ว — ไปวางในแอป AI"));
+    return;
+  }
+  body.innerHTML = `<div class="md">${mdToHtml(current.shorts)}</div>
+    <div class="btnrow"><button class="btn small" id="shortsdl">⬇ ดาวน์โหลด (.md)</button><button class="btn small" id="shortsregen">🔄 สร้างชุดใหม่</button></div>`;
+  $("#shortsdl")?.addEventListener("click", () => download("shorts_scripts.md", current.shorts, "text/markdown;charset=utf-8"));
+  $("#shortsregen")?.addEventListener("click", () => { current.shorts = null; genShorts(); });
+}
+async function genShorts() {
+  const body = $("#shortsbody");
+  body.innerHTML = `<p class="hint">⏳ AI กำลังตัด Shorts...</p>`;
+  try {
+    const text = await callGemini(current.md.slice(0, 14000) + "\n\n---\n\n" + SHORTS_INSTRUCTION, { temp: 0.8 });
+    if (!text.trim()) throw new Error("ผลลัพธ์ว่างเปล่า ลองใหม่");
+    current.shorts = text;
+    renderShorts();
+    toast("สคริปต์ Shorts พร้อมแล้ว ✓");
+  } catch (err) { alert(aiErrorThai(err)); current.shorts = null; renderShorts(); }
+}
+
 /* ── history ── */
+const HIST_STATUS = ["💡 ไอเดีย", "📝 สคริปต์แล้ว", "🎙 อัดเสียงแล้ว", "🎬 ตัดต่อแล้ว", "🚀 โพสต์แล้ว"];
 function pushHistory(md) {
   const h = store.get("history", []);
   h.unshift({
     t: Date.now(), input: input.value.trim().slice(0, 200), md,
     pillar: $("#pillar").value, qc: current?.qc?.total ?? null,
+    st: 0, views: null,
   });
   store.set("history", h.slice(0, 20));
   renderHistory();
@@ -1352,27 +1575,65 @@ function renderHistory() {
   const now = new Date();
   const month = h.filter((it) => it.pillar && it.pillar !== "AUTO" &&
     new Date(it.t).getMonth() === now.getMonth() && new Date(it.t).getFullYear() === now.getFullYear());
+  let mixHtml = "";
   if (month.length) {
     const counts = {};
     month.forEach((it) => { counts[it.pillar] = (counts[it.pillar] || 0) + 1; });
-    $("#pillarmix").innerHTML =
+    mixHtml =
       `<div class="hint" style="margin-bottom:6px">สัดส่วนเสาคอนเทนต์เดือนนี้ (${month.length} ตอน) เทียบเป้า:</div>` +
       Object.keys(PILLAR_TARGETS).map((k) => {
         const n = counts[k] || 0, pct = Math.round((n / month.length) * 100);
         return `<span class="pillchip pl-${k}" style="display:inline-block; margin:0 6px 6px 0">${k} ${n} ตอน · ${pct}% <span style="opacity:.7">(เป้า ${PILLAR_TARGETS[k]}%)</span></span>`;
       }).join("");
-  } else {
-    $("#pillarmix").innerHTML = "";
   }
+  // production pipeline summary
+  const posted = h.filter((it) => it.st === 4);
+  const withViews = posted.filter((it) => it.views != null);
+  if (posted.length) {
+    const avg = withViews.length ? Math.round(withViews.reduce((s, it) => s + it.views, 0) / withViews.length) : null;
+    mixHtml += `<div class="hint" style="margin-top:4px">🚀 โพสต์แล้ว ${posted.length} ตอน${avg != null ? ` · ยอดวิวเฉลี่ย ${avg.toLocaleString()} (บันทึกไว้ ${withViews.length} ตอน)` : ""}</div>`;
+  }
+  $("#pillarmix").innerHTML = mixHtml;
 
-  $("#histlist").innerHTML = h.length ? h.map((it, i) => `
+  $("#histlist").innerHTML = h.length ? h.map((it, i) => {
+    const st = it.st || 0;
+    const stCls = st === 4 ? "good" : st >= 2 ? "warn" : "";
+    const stStyle = stCls ? "" : ' style="background:var(--panel2);color:var(--muted)"';
+    const aboveBase = it.views != null && withViews.length > 1 && withViews.reduce((s, x) => s + x.views, 0) / withViews.length > 0
+      ? (it.views / (withViews.reduce((s, x) => s + x.views, 0) / withViews.length)) : null;
+    return `
     <div class="histitem" data-i="${i}">
       <div class="d">${new Date(it.t).toLocaleString("th-TH", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
         ${it.pillar && it.pillar !== "AUTO" ? ` <span class="pillchip pl-${it.pillar}">${it.pillar}</span>` : ""}
         ${it.qc != null ? ` <span class="chip ${it.qc >= 8.5 ? "good" : it.qc >= 7 ? "warn" : "crit"}">${it.qc.toFixed(1)} QC</span>` : ""}
+        <button class="chip statuschip ${stCls}" data-st="${i}"${stStyle} title="แตะเพื่อเลื่อนสถานะ">${HIST_STATUS[st]}</button>
+        ${st === 4 ? `<button class="chip statuschip ${it.views != null ? "good" : ""}" data-views="${i}"${it.views != null ? "" : ' style="background:var(--panel2);color:var(--muted)"'}>👁 ${it.views != null ? it.views.toLocaleString() + (aboveBase && aboveBase >= 1.5 ? " ⚡" + aboveBase.toFixed(1) + "×" : "") : "ใส่ยอดวิว"}</button>` : ""}
       </div>
       <div class="p">${esc(it.input || it.md.slice(0, 160))}</div>
-    </div>`).join("") : `<div class="empty">ยังไม่มีประวัติ — วิเคราะห์ผลลัพธ์ครั้งแรกได้ที่แท็บ 2</div>`;
+    </div>`;
+  }).join("") : `<div class="empty">ยังไม่มีประวัติ — วิเคราะห์ผลลัพธ์ครั้งแรกได้ที่แท็บ 2</div>`;
+
+  $$("#histlist [data-st]").forEach((b) => b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const list = store.get("history", []);
+    const it = list[Number(b.dataset.st)];
+    if (!it) return;
+    it.st = ((it.st || 0) + 1) % HIST_STATUS.length;
+    store.set("history", list);
+    renderHistory();
+  }));
+  $$("#histlist [data-views]").forEach((b) => b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const v = prompt("ยอดวิวปัจจุบันของตอนนี้ (ตัวเลข):");
+    if (v === null) return;
+    const n = Number(String(v).replace(/[^\d]/g, ""));
+    const list = store.get("history", []);
+    const it = list[Number(b.dataset.views)];
+    if (!it) return;
+    it.views = isNaN(n) || v.trim() === "" ? null : n;
+    store.set("history", list);
+    renderHistory();
+  }));
   $$("#histlist .histitem").forEach((el) => el.addEventListener("click", () => {
     const it = store.get("history", [])[Number(el.dataset.i)];
     if (!it) return;
