@@ -48,6 +48,35 @@ repo นี้มี `Dockerfile` พร้อม deploy แล้ว ทำจ�
 > ทางเลือกไม่ใช้ Dockerfile: buildpacks ของ Google ก็รองรับ repo นี้แล้ว
 > (มี script `gcp-build` ใน package.json) — แต่ Dockerfile จะเร็วและชัวร์กว่า
 
+## ทาง D: ทำเป็นไฟล์แอป Android (.apk) ด้วย PWABuilder
+
+ต้องทำ **ทาง C ให้เสร็จก่อน** (ต้องมี URL `https://…run.app`) เพราะไฟล์ APK
+คือ "เปลือก" ที่ห่อเว็บแอปตัวจริง (เทคนิค Trusted Web Activity) — เหตุผลที่
+ทำ APK แบบ offline ล้วนไม่ได้: API key ต้องอยู่ฝั่งเซิร์ฟเวอร์เสมอ ฝังใน
+ไฟล์ APK จะถูกแกะได้
+
+ทำจากเบราว์เซอร์บน Tablet ทั้งหมด:
+
+1. เปิด **https://www.pwabuilder.com** → วาง URL Cloud Run ของคุณ → **Start**
+2. รอวิเคราะห์เสร็จ → กด **Package for Stores** → เลือก **Android**
+3. ตั้งค่า: App name, Package ID (เช่น `com.ronnie.seomaster`) →
+   **Download package** ได้ไฟล์ `.apk` (สำหรับติดตั้งเอง) และ `.aab`
+   (สำหรับขึ้น Play Store)
+4. ในไฟล์ zip ที่ได้จะมีไฟล์ **`assetlinks.json`** — เปิดดูแล้วคัดลอกค่า
+   `package_name` และ `sha256_cert_fingerprints`
+5. เอาค่านั้นไปแก้ไฟล์ **`public/.well-known/assetlinks.json`** ใน repo นี้
+   (แก้จากเว็บ github.com บน Tablet ได้: เปิดไฟล์ → ปุ่มดินสอ → วาง → Commit)
+   → Cloud Build จะ deploy ให้อัตโนมัติ
+6. ติดตั้ง `.apk` บน Tablet (แตะไฟล์ → อนุญาต "ติดตั้งจากแหล่งที่ไม่รู้จัก")
+   → ได้แอปเต็มจอไร้แถบ URL เหมือนแอปจริงทุกประการ
+
+> ขั้นที่ 4–5 (assetlinks) ทำเพื่อให้แอปเปิดเต็มจอ — ถ้าข้ามไป แอปยังใช้ได้
+> แต่จะมีแถบ URL เล็กๆ ด้านบน
+>
+> หมายเหตุ: การติดตั้ง PWA จาก Chrome (ทาง C ขั้นสุดท้าย) ได้ผลลัพธ์
+> เกือบเหมือน APK ทุกอย่างโดยไม่ต้องทำทาง D — ทาง D เหมาะเมื่ออยากได้
+> "ไฟล์แอป" ไว้แจก/ลง Play Store
+
 ---
 
 ## ทาง B: รันในเครื่อง Tablet เลย ด้วย Termux (ออฟไลน์จากฝั่งเซิร์ฟเวอร์ 100%)
