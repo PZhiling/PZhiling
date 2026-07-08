@@ -369,6 +369,12 @@
         <div><label for="b_offer">Offer (สินค้า/บริการ)</label><input type="text" id="b_offer" placeholder="เช่น ปรึกษาการเงิน + เวิร์กช็อปวางแผนเกษียณ" /></div>
         <div><label for="b_url">เว็บไซต์/ลิงก์หลัก (Backlink ใน Description)</label><input type="url" id="b_url" placeholder="https://..." /></div>
       </div>
+      <div style="margin-top:12px">
+        <label for="b_dna" style="display:block; font-size:.72rem; font-weight:700; color:var(--muted); margin-bottom:4px">Brand DNA ฉบับเต็ม — กฎกำกับเสียงของรายการ (ฉีดเข้า Prompt ทุกจุด: สคริปต์ / Packaging / Shorts)</label>
+        <textarea id="b_dna" style="min-height:200px; font-family:var(--mono); font-size:.74rem; line-height:1.6"></textarea>
+        <div class="btnrow" style="margin-top:8px"><button class="btn small" id="dnareset">↺ โหลดเทมเพลต DNA เริ่มต้น</button></div>
+        <p class="hint" style="margin-top:6px">แก้ข้อความใน [วงเล็บ] ให้เป็นของรายการคุณ — บรรทัด "Banned words:" จะถูก QC Gate ใช้สแกนสคริปต์อัตโนมัติ</p>
+      </div>
     </details>
 
     <div class="card">
@@ -545,6 +551,61 @@
 - สำคัญมาก: ซอยสคริปต์เป็นย่อหน้าสั้นๆ และใส่ Timestamp [M:SS] หน้าทุกย่อหน้า (ทุกๆ 10-20 วินาที เช่น [0:00], [0:15], [0:35] ...) คำนวณเวลาจากความเร็วพูด 150 คำ/นาที
 - ชื่อ Tools, Keywords, แพลตฟอร์ม ให้ครอบด้วย backticks เสมอ
 - ปิดท้ายด้วย YouTube Description ที่ Timestamps ตรงกับสคริปต์ทุกตัว พร้อม Backlink ไปเว็บไซต์ Hashtags และ CTA
+</script>
+
+<script type="text/plain" id="dnadefault">
+# BRAND DNA — [SHOW NAME]
+
+## 1. Show Identity
+- Format: Faceless narrative podcast, English, [15–25] min episodes
+- Niche: [e.g., unsolved mysteries / money psychology / sleep stories / history deep-dives]
+- One-line promise: "Every episode leaves the listener with one idea they can't stop thinking about."
+- Host persona: A calm, intelligent storyteller — like a trusted friend explaining something fascinating late at night. Never a lecturer, never a hype-man.
+
+## 2. Audience
+- [25–45] year olds who listen while [commuting / working / falling asleep]
+- They choose this show over others because it feels *effortless to follow* but never dumbed down
+- Emotional payoff per episode: [curiosity satisfied / feeling calmer / feeling smarter]
+
+## 3. Narrative Voice Rules (non-negotiable)
+1. Write for the EAR, not the eye: short sentences, natural contractions, rhythm over grammar.
+2. Second person early: address "you" within the first 60 seconds.
+3. Concrete over abstract: one vivid image beats three adjectives. "A coffee cup left half-full on the desk" > "signs of a sudden departure."
+4. One idea per sentence. If a sentence needs a comma to survive, split it.
+5. No filler phrases: never "in this episode we will," "without further ado," "let's dive in."
+6. Emotional temperature: warm and steady. Peaks of tension are earned through pacing, not exclamation.
+
+## 4. Hook Formula (first 30 seconds)
+Pattern: [Specific strange detail] → [why it shouldn't be possible] → [personal stake for the listener] → [promise, no reveal]
+
+Reference-quality examples of the standard:
+- "In 1952, a man walked into a Tokyo bank, said eleven words, and twelve people were dead within minutes. The strangest part? He never touched a weapon."
+- "Your brain deletes about 90% of what happened to you today. Tonight, we find out what it keeps — and why it might be lying to you."
+
+Never open with: a greeting, the show name, a question the listener can answer with "no."
+
+## 5. Retention Architecture
+- Open loop in the hook → close it only in the final 2 minutes
+- New micro-question or turn every 60–90 seconds
+- Pattern interrupt every ~3 minutes: a short punchy line (under 6 words), a direct address, or a "but here's where it gets strange"
+- Mid-episode re-hook at ~40% mark: remind the listener of the unanswered question in fresh words
+- Ending: resolve the loop, then ONE final lingering thought (a question or image) — no summary recap, no "thanks for listening" padding
+
+## 6. Language Style
+- Reading level: grade 6–7 vocabulary, adult ideas
+- Sentence length: average 8–12 words, deliberate variation
+- Banned words: unleash, delve, dive, journey, game-changer, revolutionary, elevate, tapestry
+- Numbers: always specific ("$4,200", "eleven minutes") never vague ("a lot of money", "a short time")
+
+## 7. Quality Bar (self-check before output)
+- Could the listener retell the hook to a friend in one sentence? If not, rewrite it.
+- Is there any 60-second stretch with no new information or tension? Cut or compress it.
+- Does every section earn its place, or is it there to hit a word count?
+
+## 8. Shorts Adaptation
+- Each Short = ONE loop from the episode, self-contained
+- First line of the Short must work with sound OFF (caption-first)
+- End Shorts on the question, never the answer — the answer lives in the full episode
 </script>
 
 <script type="text/plain" id="auxkw">
@@ -774,17 +835,33 @@ $("#trendlive").addEventListener("click", async () => {
 });
 
 /* ── brand profile (Brand DNA, injected into every prompt) ── */
-const BRAND_FIELDS = ["b_name", "b_tagline", "b_aud", "b_proof", "b_offer", "b_url"];
+const BRAND_FIELDS = ["b_name", "b_tagline", "b_aud", "b_proof", "b_offer", "b_url", "b_dna"];
 const brandData = store.get("brand", {});
 function brandStatus() {
   const n = BRAND_FIELDS.filter((id) => (brandData[id] || "").trim()).length;
-  $("#brandstatus").textContent = n ? `กรอกแล้ว ${n}/6 ช่อง ✓` : "ยังไม่ตั้งค่า";
+  $("#brandstatus").textContent = n ? `กรอกแล้ว ${n}/7 ช่อง ✓` : "ยังไม่ตั้งค่า";
 }
 BRAND_FIELDS.forEach((id) => {
   const el = $("#" + id);
   el.value = brandData[id] || "";
   el.addEventListener("input", () => { brandData[id] = el.value; store.set("brand", brandData); brandStatus(); });
 });
+// First run: preload the bundled Brand DNA template so it ships with the app
+if (brandData.b_dna === undefined) {
+  brandData.b_dna = $("#dnadefault").textContent.trim();
+  $("#b_dna").value = brandData.b_dna;
+  store.set("brand", brandData);
+}
+$("#dnareset").addEventListener("click", () => {
+  brandData.b_dna = $("#dnadefault").textContent.trim();
+  $("#b_dna").value = brandData.b_dna;
+  store.set("brand", brandData); brandStatus();
+  toast("โหลดเทมเพลต DNA เริ่มต้นแล้ว ✓");
+});
+const dnaText = () => (brandData.b_dna || "").trim();
+const dnaSuffix = () => dnaText()
+  ? "\n\n===== BRAND DNA (กฎกำกับเสียงของรายการ — สำคัญสูงสุด ยึดเหนือกฎทั่วไปเมื่อขัดกัน) =====\n" + dnaText()
+  : "";
 brandStatus();
 
 /* ── API keys: BYO-key mode (direct browser calls; works on GitHub Pages) ── */
@@ -878,6 +955,7 @@ function buildPrompt() {
     if (brandData.b_offer?.trim()) p += `\n- Offer: ${brandData.b_offer.trim()} (ปูทางแบบ soft-sell ช่วงท้ายเท่านั้น)`;
     if (brandData.b_url?.trim()) p += `\n- เว็บไซต์สำหรับ Backlink และ CTA ใน Description: ${brandData.b_url.trim()}`;
   }
+  p += dnaSuffix();
 
   const pillar = $("#pillar").value;
   if (pillar !== "AUTO") {
@@ -1075,16 +1153,21 @@ function computeQC(c) {
   const low = script.toLowerCase();
   const checks = [];
 
-  // 1) human-sounding language (2 pts)
+  // 1) human-sounding language (2 pts) — AI patterns + Brand DNA banned words
   const found = AI_PHRASES.filter((ph) => low.includes(ph));
+  const dnaLine = (brandData.b_dna || "").match(/banned words:?\s*([^\n]+)/i);
+  const dnaBanned = dnaLine ? dnaLine[1].split(/,\s*/).map((w) => w.trim().toLowerCase()).filter(Boolean) : [];
+  const foundDna = dnaBanned.filter((w) =>
+    new RegExp("\\b" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(script));
+  const allFound = [...found, ...foundDna.map((w) => w + " (DNA)")];
   checks.push({
-    name: "ภาษาเหมือนมนุษย์ (ไม่มี Pattern AI)", max: 2,
-    score: Math.max(0, 2 - found.length * 0.5),
-    detail: found.length
-      ? `พบวลีเสี่ยง ${found.length} จุด: ${found.slice(0, 5).map((f) => '"' + f + '"').join(", ")}${found.length > 5 ? " …" : ""}`
-      : "ไม่พบวลี Pattern AI ในสคริปต์",
-    fix: found.length
-      ? `จากสคริปต์ที่คุณสร้างให้ก่อนหน้านี้ พบวลี Pattern AI ที่เสี่ยงต่อข้อหา Inauthentic Content ของ YouTube: ${found.join(", ")}\n\nกรุณาเขียนประโยคที่มีวลีเหล่านี้ใหม่เป็นภาษาพูดธรรมชาติแบบมนุษย์ คงเนื้อหาและ Timestamp เดิมทั้งหมด แสดงเฉพาะย่อหน้าที่แก้ไข`
+    name: "ภาษาเหมือนมนุษย์ (Pattern AI + คำต้องห้ามใน Brand DNA)", max: 2,
+    score: Math.max(0, 2 - allFound.length * 0.5),
+    detail: allFound.length
+      ? `พบคำ/วลีเสี่ยง ${allFound.length} จุด: ${allFound.slice(0, 6).map((f) => '"' + f + '"').join(", ")}${allFound.length > 6 ? " …" : ""}`
+      : "ไม่พบวลี Pattern AI" + (dnaBanned.length ? ` และคำต้องห้ามตาม Brand DNA (${dnaBanned.length} คำ)` : ""),
+    fix: allFound.length
+      ? `จากสคริปต์ที่คุณสร้างให้ก่อนหน้านี้ พบคำ/วลีที่ผิดกฎ: ${found.join(", ")}${foundDna.length ? (found.length ? ", " : "") + "คำต้องห้ามตาม Brand DNA: " + foundDna.join(", ") : ""}\n\nกรุณาเขียนประโยคที่มีคำเหล่านี้ใหม่เป็นภาษาพูดธรรมชาติแบบมนุษย์ตามกฎ Brand DNA คงเนื้อหาและ Timestamp เดิมทั้งหมด แสดงเฉพาะย่อหน้าที่แก้ไข`
       : null,
   });
 
@@ -1424,7 +1507,7 @@ function renderPack() {
       ? `<div class="btnrow" style="margin-top:0"><button class="btn primary" id="packgen">🎯 สร้าง Packaging ด้วย AI</button></div>`
       : `<div class="btnrow" style="margin-top:0"><button class="btn" id="packcopy">📋 คัดลอก Prompt (โหมดไม่มี key)</button></div><p class="hint">วางในแอป AI แล้วนำ JSON ที่ได้มาศึกษา — หรือใส่ key ในแท็บ 1 เพื่อกดปุ่มเดียวจบ</p>`;
     $("#packgen")?.addEventListener("click", genPack);
-    $("#packcopy")?.addEventListener("click", () => copyText(current.md + "\n\n---\n\n" + PACK_INSTRUCTION, "คัดลอกแล้ว — ไปวางในแอป AI"));
+    $("#packcopy")?.addEventListener("click", () => copyText(current.md + "\n\n---\n\n" + PACK_INSTRUCTION + dnaSuffix(), "คัดลอกแล้ว — ไปวางในแอป AI"));
     return;
   }
   body.innerHTML = `
@@ -1471,7 +1554,7 @@ async function genPack() {
   const body = $("#packbody");
   body.innerHTML = `<p class="hint">⏳ AI กำลังคิด Packaging...</p>`;
   try {
-    const text = await callGemini(current.md.slice(0, 14000) + "\n\n---\n\n" + PACK_INSTRUCTION, { temp: 0.8 });
+    const text = await callGemini(current.md.slice(0, 14000) + "\n\n---\n\n" + PACK_INSTRUCTION + dnaSuffix(), { temp: 0.8 });
     const m = text.match(/\{[\s\S]*\}/);
     current.pack = JSON.parse(m ? m[0] : text);
     renderPack();
@@ -1548,7 +1631,7 @@ function renderShorts() {
       ? `<div class="btnrow" style="margin-top:0"><button class="btn primary" id="shortsgen">✂️ สร้าง Shorts 3 คลิปด้วย AI</button></div>`
       : `<div class="btnrow" style="margin-top:0"><button class="btn" id="shortscopy">📋 คัดลอก Prompt (โหมดไม่มี key)</button></div>`;
     $("#shortsgen")?.addEventListener("click", genShorts);
-    $("#shortscopy")?.addEventListener("click", () => copyText(current.md + "\n\n---\n\n" + SHORTS_INSTRUCTION, "คัดลอกแล้ว — ไปวางในแอป AI"));
+    $("#shortscopy")?.addEventListener("click", () => copyText(current.md + "\n\n---\n\n" + SHORTS_INSTRUCTION + dnaSuffix(), "คัดลอกแล้ว — ไปวางในแอป AI"));
     return;
   }
   body.innerHTML = `<div class="md">${mdToHtml(current.shorts)}</div>
@@ -1560,7 +1643,7 @@ async function genShorts() {
   const body = $("#shortsbody");
   body.innerHTML = `<p class="hint">⏳ AI กำลังตัด Shorts...</p>`;
   try {
-    const text = await callGemini(current.md.slice(0, 14000) + "\n\n---\n\n" + SHORTS_INSTRUCTION, { temp: 0.8 });
+    const text = await callGemini(current.md.slice(0, 14000) + "\n\n---\n\n" + SHORTS_INSTRUCTION + dnaSuffix(), { temp: 0.8 });
     if (!text.trim()) throw new Error("ผลลัพธ์ว่างเปล่า ลองใหม่");
     current.shorts = text;
     renderShorts();
