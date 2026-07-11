@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Release Studio — Dreamscape Soul</title>
+<style>
+  :root {
+    --bg: #f6f4f7; --panel: #ffffff; --panel2: #efecf2; --line: #ded9e4;
+    --ink: #26222b; --muted: #6f6a78; --faint: #9a94a4;
+    --accent: #7a5fae; --accent-ink: #63499a; --accent-soft: rgba(122,95,174,.10);
+    --rec: #b26a10; --good: #2e8555; --warn: #9a6a00; --crit: #bf4636;
+    --good-soft: rgba(46,133,85,.12); --warn-soft: rgba(154,106,0,.12); --crit-soft: rgba(191,70,54,.12);
+    --code-bg: #edeaf1; --shadow: 0 1px 3px rgba(30,25,40,.08);
+    --mono: ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;
+    --sans: "Noto Sans Thai","Sarabun",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16151a; --panel: #1d1b23; --panel2: #24222c; --line: #2f2c39;
+      --ink: #e9e6ee; --muted: #a29cae; --faint: #6f6a78;
+      --accent: #9d8bd8; --accent-ink: #c3b6ec; --accent-soft: rgba(157,139,216,.14);
+      --rec: #e8a03c; --good: #3f9c66; --warn: #b8881a; --crit: #d96553;
+      --good-soft: rgba(63,156,102,.16); --warn-soft: rgba(184,136,26,.16); --crit-soft: rgba(217,101,83,.16);
+      --code-bg: #26232e; --shadow: 0 1px 3px rgba(0,0,0,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:15px; line-height:1.55; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 16px 14px 80px; }
+  header h1 { font-size: 1.35rem; margin: 8px 0 2px; letter-spacing:.2px; }
+  header h1 .moon { color: var(--accent); }
+  header p { color: var(--muted); margin: 0 0 14px; font-size:.9rem; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; box-shadow:var(--shadow); }
+  .card h2 { font-size:1rem; margin:0 0 10px; display:flex; align-items:center; gap:8px; }
+  label { display:block; font-size:.85rem; color:var(--muted); margin:10px 0 4px; }
+  input[type=text], textarea, select {
+    width:100%; background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+    border-radius:8px; padding:9px 10px; font-family:var(--sans); font-size:.95rem;
+  }
+  textarea { min-height:84px; resize:vertical; }
+  textarea.big { min-height:180px; font-family:var(--mono); font-size:.85rem; }
+  input:focus, textarea:focus, select:focus { outline:2px solid var(--accent); outline-offset:1px; border-color:transparent; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:150px; }
+  button {
+    background:var(--accent); color:#fff; border:none; border-radius:8px; padding:10px 16px;
+    font-family:var(--sans); font-size:.95rem; cursor:pointer; font-weight:600;
+  }
+  button:hover { background:var(--accent-ink); }
+  button.ghost { background:var(--panel2); color:var(--ink); border:1px solid var(--line); font-weight:500; }
+  button.ghost:hover { background:var(--accent-soft); }
+  button.small { padding:6px 12px; font-size:.85rem; }
+  .btnrow { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-top:12px; }
+  .btncol { display:flex; flex-direction:column; gap:3px; }
+  .route { font-size:.72rem; color:var(--faint); text-align:center; }
+  .route.fable { color: var(--rec); }
+  details.profile { border:1px dashed var(--line); border-radius:10px; padding:10px 12px; margin-bottom:14px; background:var(--panel); }
+  details.profile summary { cursor:pointer; font-weight:600; font-size:.92rem; }
+  details.profile summary .st { color:var(--muted); font-weight:400; font-size:.82rem; }
+  .hint { font-size:.8rem; color:var(--faint); margin-top:6px; }
+  #subtabs { display:flex; gap:6px; flex-wrap:wrap; margin:14px 0 10px; }
+  #subtabs button { background:var(--panel2); color:var(--muted); border:1px solid var(--line); font-weight:500; padding:7px 12px; font-size:.88rem; }
+  #subtabs button.on { background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent); font-weight:600; }
+  .track { border:1px solid var(--line); border-radius:10px; margin-bottom:12px; overflow:hidden; }
+  .track .thead { background:var(--panel2); padding:9px 12px; font-weight:600; display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  .track .thead .no { color:var(--accent); font-family:var(--mono); font-size:.85rem; }
+  .track .tbody { padding:10px 12px; }
+  .fieldlab { font-size:.75rem; text-transform:uppercase; letter-spacing:.6px; color:var(--faint); margin:8px 0 3px; }
+  pre.block { background:var(--code-bg); border-radius:8px; padding:10px; font-family:var(--mono); font-size:.82rem; white-space:pre-wrap; word-break:break-word; margin:0 0 4px; max-height:280px; overflow:auto; }
+  .pill { display:inline-block; font-size:.75rem; padding:2px 9px; border-radius:99px; margin:0 6px 6px 0; }
+  .pill.good { background:var(--good-soft); color:var(--good); }
+  .pill.warn { background:var(--warn-soft); color:var(--warn); }
+  .pill.crit { background:var(--crit-soft); color:var(--crit); }
+  .kv { display:grid; grid-template-columns: 130px 1fr; gap:4px 10px; font-size:.9rem; }
+  .kv .k { color:var(--muted); }
+  ul.tips { margin:6px 0 0; padding-left:18px; font-size:.86rem; color:var(--muted); }
+  ul.tips li { margin-bottom:4px; }
+  #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--bg);
+    padding:9px 16px; border-radius:8px; font-size:.88rem; opacity:0; transition:opacity .25s; pointer-events:none; z-index:50; }
+  #toast.show { opacity:1; }
+  section[hidden] { display:none; }
+  .empty { color:var(--faint); font-size:.9rem; text-align:center; padding:24px 8px; }
+  #histlist { list-style:none; margin:0; padding:0; }
+  #histlist li { padding:8px 10px; border:1px solid var(--line); border-radius:8px; margin-bottom:6px; cursor:pointer; font-size:.88rem; display:flex; justify-content:space-between; gap:8px; }
+  #histlist li:hover { background:var(--accent-soft); }
+  #histlist li .d { color:var(--faint); font-size:.78rem; white-space:nowrap; }
+  @media (prefers-reduced-motion: reduce) { #toast { transition:none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1><span class="moon">☾</span> Music Release Studio</h1>
+  <p>เจนแพ็กเกจปล่อยเพลงครบชุด: Suno → DistroKid → YouTube — copy-paste workflow ไม่ใช้ API</p>
+</header>
+
+<!-- ══════════ ARTIST PROFILE ══════════ -->
+<details class="profile" id="profileBox">
+  <summary>🎤 Artist Profile <span class="st" id="profStatus"></span></summary>
+  <div class="row">
+    <div><label>ชื่อศิลปิน</label><input type="text" id="a_name" placeholder="Dreamscape Soul"></div>
+    <div><label>ช่อง YouTube</label><input type="text" id="a_url" placeholder="@kasoul-t8n"></div>
+  </div>
+  <label>แนวเพลงหลักของศิลปิน (คั่นด้วย ,)</label>
+  <input type="text" id="a_genres" placeholder="healing ambient, cinematic folk-pop, lo-fi, dream pop, city pop, phonk">
+  <label>Artist DNA — โทนเสียง ธีมเนื้อเพลง สไตล์ประจำตัว (แม่แบบจาก Fable วางที่นี่)</label>
+  <textarea id="a_dna" placeholder="เช่น: warm airy female vocal, themes of light-in-darkness / healing / night solitude, imagery: lanterns, dusk sky, rain, breath..."></textarea>
+  <div class="btnrow"><button class="small ghost" id="saveProfile">บันทึกโปรไฟล์</button></div>
+  <p class="hint">เก็บในเครื่อง (localStorage) และถูกฝังใน Prompt อัตโนมัติทุกครั้ง</p>
+</details>
+
+<!-- ══════════ BRIEF FORM ══════════ -->
+<div class="card">
+  <h2>🎼 สร้างงานใหม่</h2>
+  <div class="row">
+    <div>
+      <label>ประเภทงาน</label>
+      <select id="f_type">
+        <option value="single">Single (1 เพลง)</option>
+        <option value="ep">EP (3–5 เพลง)</option>
+        <option value="album">Album (8–12 เพลง)</option>
+        <option value="mix">1-Hour Mix (เพลงสั้นวนซ้ำ สาย utility)</option>
+      </select>
+    </div>
+    <div>
+      <label>จำนวนเพลง</label>
+      <select id="f_count">
+        <option>1</option><option>3</option><option>4</option><option selected>5</option>
+        <option>8</option><option>10</option><option>12</option>
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <label>แนวเพลงงานนี้</label>
+      <select id="f_genre">
+        <option>Healing Ambient Folk-Pop</option>
+        <option>Cinematic Ambient</option>
+        <option>Lo-fi Chill</option>
+        <option>Dream Pop</option>
+        <option>City Pop</option>
+        <option>Phonk</option>
+        <option value="custom">อื่นๆ (พิมพ์ในคอนเซ็ปต์)</option>
+      </select>
+    </div>
+    <div>
+      <label>ภาษาเนื้อเพลง</label>
+      <select id="f_lang">
+        <option value="th">ไทย</option>
+        <option value="en">อังกฤษ</option>
+        <option value="then">ไทย + อังกฤษ (bilingual)</option>
+        <option value="inst">Instrumental (ไม่มีเนื้อร้อง)</option>
+      </select>
+    </div>
+    <div>
+      <label>Use case ผู้ฟัง</label>
+      <select id="f_use">
+        <option>ฟังก่อนนอน / ผ่อนคลาย</option>
+        <option>เปิดคลอตอนทำงาน / โฟกัส</option>
+        <option>ขับรถกลางคืน / late night</option>
+        <option>ฮีลใจ / เศร้าแล้วอยากหาย</option>
+        <option>ออกกำลัง / เดินเร็ว</option>
+      </select>
+    </div>
+  </div>
+  <label>คอนเซ็ปต์ / อารมณ์ / เรื่องราวของงานนี้</label>
+  <textarea id="f_concept" placeholder="เช่น: อัลบั้มธีมแสงโคมกลางความมืด — การเดินทางจากเหนื่อยล้ากลางคืนสู่แสงแรกของเช้า..."></textarea>
+  <div class="btnrow">
+    <div class="btncol">
+      <button id="genPrompt">🪄 สร้าง Master Prompt</button>
+    </div>
+    <div class="btncol">
+      <button class="ghost" id="copyPrompt" disabled>📋 คัดลอก Prompt</button>
+      <span class="route">🏭 วางใน Gemini (ฟรี) · งานชุดพิเศษ → 👑 Claude Opus/Fable</span>
+    </div>
+  </div>
+  <textarea class="big" id="promptOut" placeholder="Master Prompt จะปรากฏที่นี่..." readonly hidden></textarea>
+</div>
+
+<!-- ══════════ PASTE RESULT ══════════ -->
+<div class="card">
+  <h2>📥 วางผลลัพธ์จาก AI</h2>
+  <textarea class="big" id="resultIn" placeholder="วางคำตอบทั้งหมดของ AI ที่นี่ แล้วกดวิเคราะห์..."></textarea>
+  <div class="btnrow"><button id="analyzeBtn">🔍 วิเคราะห์ + แยกส่วน</button></div>
+</div>
+
+<!-- ══════════ RESULT TABS ══════════ -->
+<div id="resultArea" hidden>
+  <div id="subtabs">
+    <button data-view="suno" class="on">🎵 Suno</button>
+    <button data-view="dk">📀 DistroKid</button>
+    <button data-view="yt">▶️ YouTube</button>
+    <button data-view="cover">🎨 Cover</button>
+    <button data-view="raw">📄 ทั้งหมด</button>
+  </div>
+  <section id="v_suno"></section>
+  <section id="v_dk" hidden></section>
+  <section id="v_yt" hidden></section>
+  <section id="v_cover" hidden></section>
+  <section id="v_raw" hidden>
+    <div class="card">
+      <div class="btnrow">
+        <button class="ghost small" id="dlRaw">💾 ดาวน์โหลด .md</button>
+        <button class="ghost small" id="copyRaw">📋 คัดลอกทั้งหมด</button>
+      </div>
+      <pre class="block" id="rawOut" style="max-height:420px"></pre>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════ HISTORY ══════════ -->
+<div class="card">
+  <h2>🕘 ประวัติ</h2>
+  <ul id="histlist"></ul>
+  <p class="empty" id="histEmpty">ยังไม่มีงานที่วิเคราะห์</p>
+</div>
+
+<!-- ══════════ DISTROKID CHECKLIST ══════════ -->
+<div class="card">
+  <h2>✅ เช็คลิสต์ก่อนส่ง DistroKid</h2>
+  <ul class="tips">
+    <li>อย่าใส่คำว่า Suno / AI ในชื่อศิลปินหรือชื่อเพลง — ใช้ชื่อศิลปินจริงเท่านั้น</li>
+    <li>ชื่อเพลงห้ามมีวงเล็บบอกแนว เช่น "(Lo-fi)" — กรอกแนวในช่อง Genre แทน</li>
+    <li>Songwriter ต้องเป็นชื่อ-นามสกุลจริงตามกฎหมาย ไม่ใช่ชื่อศิลปิน</li>
+    <li>ปก 3000×3000px ห้ามมี URL, โซเชียล, หรือข้อความเบลอ/อ่านไม่ออก</li>
+    <li>เลือก release date ล่วงหน้า ≥ 1 สัปดาห์ เพื่อให้เพลงเข้า editorial pitch ได้</li>
+    <li>เปิด YouTube Content ID เฉพาะเมื่อมั่นใจว่าจะไม่เอาเพลงไปใช้ในวิดีโอช่องอื่นของตัวเอง</li>
+  </ul>
+</div>
+
+</div><!-- /wrap -->
+<div id="toast"></div>
+
+<script>
+/* ───────── helpers (โคลน pattern จาก Podcast SEO Studio) ───────── */
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("mrs_" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("mrs_" + k, JSON.stringify(v)); } catch {} },
+};
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800); }
+async function copyText(text, okMsg) {
+  try { await navigator.clipboard.writeText(text); toast(okMsg || "คัดลอกแล้ว ✓"); }
+  catch { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); toast(okMsg || "คัดลอกแล้ว ✓"); }
+}
+function download(name, text, mime) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: mime || "text/markdown" }));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+function esc(s) { return (s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+/* ───────── artist profile ───────── */
+const PROF = ["a_name", "a_url", "a_genres", "a_dna"];
+let prof = store.get("profile", {});
+PROF.forEach((id) => { $("#" + id).value = prof[id] || ""; });
+function profStatus() {
+  const n = PROF.filter((id) => (prof[id] || "").trim()).length;
+  $("#profStatus").textContent = n ? `(กรอกแล้ว ${n}/${PROF.length})` : "(ยังไม่ได้ตั้งค่า)";
+}
+profStatus();
+$("#saveProfile").onclick = () => {
+  PROF.forEach((id) => { prof[id] = $("#" + id).value; });
+  store.set("profile", prof); profStatus(); toast("บันทึกโปรไฟล์แล้ว ✓");
+};
+
+/* ───────── master prompt ───────── */
+const LANGTXT = { th: "ภาษาไทยทั้งหมด", en: "ภาษาอังกฤษทั้งหมด", then: "ไทยผสมอังกฤษ (ท่อนฮุกอังกฤษ เวิร์สไทย หรือสลับอย่างมีชั้นเชิง)", inst: "Instrumental — ไม่มีเนื้อร้อง (ให้เว้นส่วน Lyrics เป็น [Instrumental])" };
+const TYPETXT = { single: "Single 1 เพลง", ep: "EP", album: "อัลบั้มเต็ม", mix: "ชุดเพลงสั้น (1.5–3 นาที/เพลง) สำหรับทำ 1-Hour Mix แบบวนซ้ำ สาย utility music" };
+
+function buildPrompt() {
+  const type = $("#f_type").value, count = type === "single" ? 1 : +$("#f_count").value;
+  const genre = $("#f_genre").value === "custom" ? "(ดูจากคอนเซ็ปต์)" : $("#f_genre").value;
+  const lang = LANGTXT[$("#f_lang").value], use = $("#f_use").value;
+  const concept = $("#f_concept").value.trim() || "(อิสระ — ออกแบบจาก Artist DNA)";
+  const p = prof;
+  const dna = [
+    p.a_name && `ศิลปิน: ${p.a_name}`, p.a_url && `ช่อง YouTube: ${p.a_url}`,
+    p.a_genres && `แนวประจำตัว: ${p.a_genres}`, p.a_dna && `Artist DNA:\n${p.a_dna}`,
+  ].filter(Boolean).join("\n");
+
+  return `คุณคือโปรดิวเซอร์เพลง + ผู้เชี่ยวชาญ Suno AI + ผู้เชี่ยวชาญการปล่อยเพลง DistroKid และ YouTube music SEO
+
+${dna ? "═══ ARTIST PROFILE ═══\n" + dna + "\n" : ""}
+═══ งานที่ต้องทำ ═══
+ประเภท: ${TYPETXT[type]} จำนวน ${count} เพลง
+แนวเพลง: ${genre}
+ภาษาเนื้อเพลง: ${lang}
+Use case ผู้ฟัง: ${use}
+คอนเซ็ปต์: ${concept}
+
+═══ รูปแบบคำตอบ (ต้องตรงเป๊ะ ห้ามเปลี่ยนหัวข้อ ห้ามมีข้อความอื่นนอกโครงสร้างนี้) ═══
+
+# MUSIC RELEASE PACKAGE
+
+## CONCEPT
+(สรุปคอนเซ็ปต์งานนี้ 3-4 ประโยค + ลำดับอารมณ์ของเพลงทั้งชุด)
+
+## TRACKS
+### TRACK 1: <ชื่อเพลงอังกฤษ> — <ชื่อไทย ถ้าเนื้อเพลงมีภาษาไทย>
+**Suno Style:** <style prompt ภาษาอังกฤษ 1 ย่อหน้า ≤900 ตัวอักษร เรียงตามน้ำหนัก: genre ขึ้นก่อนเสมอ → mood → เครื่องดนตรี → โทนเสียงร้อง → tempo/BPM → production texture (Suno ให้น้ำหนัก tag ต้นประโยคมากกว่า) — เขียนให้ทุกแทร็กในชุดนี้มี sonic identity เดียวกันแต่ต่างรายละเอียด>
+**Suno Lyrics:**
+\`\`\`
+[Intro]
+...
+[Verse 1]
+...
+[Chorus]
+...
+\`\`\`
+**Mood:** <3-5 คำ>
+(ทำซ้ำโครงสร้างเดิมจนครบ ${count} เพลง — ### TRACK 2:, ### TRACK 3:, ...)
+
+## DISTROKID
+- Release Title: ...
+- Genre หลัก: ... / Genre รอง: ...
+- Language: ...
+- Explicit: No
+- Release Description (ถ้ามีช่องให้กรอก): ...
+- ลำดับเพลงแนะนำ + เหตุผลสั้นๆ: ...
+
+## YOUTUBE
+**Title A:** ... (SEO เน้น use case + keyword ค้นหาจริง)
+**Title B:** ... (เน้นอารมณ์/เรื่องราว)
+**Title C:** ... (เน้นตัวเลข/ความยาว เช่น 1 Hour)
+**Description:** (ย่อหน้าแรก 2 บรรทัดมี keyword หลัก, ตามด้วยเรื่องราวสั้น, ช่องว่างสำหรับ timestamps, CTA subscribe, hashtag 3-5 ตัว)
+**Tags:** (คั่นด้วย comma 15-20 tags ผสมไทย/อังกฤษตาม use case)
+**Timestamps:** (ถ้าเป็น Mix: ลำดับเพลงพร้อมเวลาโดยประมาณ / ถ้า Single: ข้าม)
+
+## COVER ART PROMPT
+<prompt ภาษาอังกฤษสำหรับเจนภาพปก 1 ย่อหน้า — บรรยากาศตรงคอนเซ็ปต์, ระบุ: square 1:1 composition, no text no letters no watermark, และ style token: "soft dusk palette with peach and periwinkle tones, dreamy atmospheric lighting, subtle film grain, cinematic">
+
+═══ กติกาคุณภาพ ═══
+1. เนื้อเพลงต้องร้องได้จริง: จำนวนพยางค์ต่อบรรทัดสม่ำเสมอ ฮุกจำง่าย ไม่ยัดคำ
+2. ห้ามใช้ชื่อศิลปินอื่น ชื่อเพลงดัง หรือเนื้อเพลงที่มีอยู่จริง — ต้อง original 100%
+3. Suno Style ห้ามใส่ชื่อศิลปินจริงเพื่ออ้างอิงเสียง (ใช้คำบรรยายแทน)
+4. Title/Tags ฝั่ง YouTube ให้คิดจากคำที่คนค้นจริงตาม use case ไม่ใช่ชื่อเพลง
+5. เนื้อเพลงแต่ละเพลงไม่เกิน ~3,000 ตัวอักษร (เกินนี้ Suno จะรีบร้องหรือข้ามท่อน)`;
+}
+
+$("#genPrompt").onclick = () => {
+  const out = $("#promptOut"); out.value = buildPrompt(); out.hidden = false;
+  $("#copyPrompt").disabled = false; toast("สร้าง Prompt แล้ว ✓");
+};
+$("#copyPrompt").onclick = () => copyText($("#promptOut").value, "คัดลอก Prompt แล้ว — วางใน Gemini ได้เลย");
+
+/* ───────── parser ───────── */
+function parsePackage(md) {
+  const sec = {};
+  const grab = (name) => {
+    const re = new RegExp("^##\\s*" + name + "[^\\n]*\\n([\\s\\S]*?)(?=\\n##\\s|$(?![\\s\\S]))", "mi");
+    const m = md.match(re); return m ? m[1].trim() : "";
+  };
+  sec.concept = grab("CONCEPT");
+  sec.dk = grab("DISTROKID");
+  sec.yt = grab("YOUTUBE");
+  sec.cover = grab("COVER ART PROMPT");
+  const tracksBlock = grab("TRACKS");
+  sec.tracks = [];
+  const parts = tracksBlock.split(/^###\s*TRACK\s*/mi).slice(1);
+  for (const part of parts) {
+    const t = {};
+    const head = part.match(/^([\d]+)\s*:\s*([^\n]+)/);
+    t.no = head ? head[1] : "?"; t.title = head ? head[2].trim() : "(ไม่มีชื่อ)";
+    const style = part.match(/\*\*Suno Style:\*\*\s*([\s\S]*?)(?=\*\*Suno Lyrics|\*\*Mood|$)/i);
+    t.style = style ? style[1].trim() : "";
+    const lyr = part.match(/\*\*Suno Lyrics:\*\*\s*```([\s\S]*?)```/i) || part.match(/\*\*Suno Lyrics:\*\*\s*([\s\S]*?)(?=\*\*Mood|$)/i);
+    t.lyrics = lyr ? lyr[1].trim() : "";
+    const mood = part.match(/\*\*Mood:\*\*\s*([^\n]+)/i);
+    t.mood = mood ? mood[1].trim() : "";
+    sec.tracks.push(t);
+  }
+  return sec;
+}
+
+/* ───────── render ───────── */
+let currentPkg = null, currentRaw = "";
+function qcPills(t) {
+  const pills = [];
+  if (!t.style) pills.push('<span class="pill crit">ไม่มี Style</span>');
+  else if (t.style.length > 950) pills.push('<span class="pill warn">Style ยาว ' + t.style.length + ' ตัวอักษร (Suno จำกัด ~1000)</span>');
+  else pills.push('<span class="pill good">Style ' + t.style.length + ' ตัวอักษร</span>');
+  if (!t.lyrics) pills.push('<span class="pill crit">ไม่มี Lyrics</span>');
+  else if (t.lyrics.length > 3000) pills.push('<span class="pill warn">Lyrics ยาว ' + t.lyrics.length + ' ตัวอักษร (เกิน ~3000 Suno จะรีบร้อง/ข้ามท่อน)</span>');
+  return pills.join("");
+}
+function polishPrompt(i) {
+  const t = currentPkg.tracks[i];
+  const txt = `คุณคือนักแต่งเพลงระดับโปร ช่วยขัดเกลาเพลงนี้ให้ถึงขั้น "ชิ้นเอก" โดยคงโครงสร้างและคอนเซ็ปต์เดิม
+
+${(prof.a_dna || "").trim() ? "Artist DNA:\n" + prof.a_dna + "\n\n" : ""}เพลง: ${t.title}
+Style เดิม: ${t.style}
+
+เนื้อเพลงเดิม:
+"""
+${t.lyrics}
+"""
+
+สิ่งที่ต้องทำ:
+1. ขัดเนื้อเพลง: ภาพชัดขึ้น อารมณ์ลึกขึ้น ร้องลื่นขึ้น (คงโครงสร้าง [Tag] และจำนวนท่อนเดิม, ผลลัพธ์ไม่เกิน 3,000 ตัวอักษร)
+2. เสนอ Style ปรับใหม่ 1 เวอร์ชัน (genre ขึ้นก่อน, ≤900 ตัวอักษร)
+3. อธิบายสั้นๆ ว่าแก้จุดไหนเพราะอะไร
+
+ตอบด้วยรูปแบบ: **Suno Style:** และ **Suno Lyrics:** ใน code block เหมือนต้นฉบับ`;
+  copyText(txt, "คัดลอกแล้ว — วางใน Claude (Opus/Fable)");
+}
+function render(pkg) {
+  /* Suno tab */
+  $("#v_suno").innerHTML = pkg.tracks.length
+    ? pkg.tracks.map((t) => `
+      <div class="track">
+        <div class="thead"><span><span class="no">TRACK ${esc(t.no)}</span> · ${esc(t.title)}</span><span style="font-weight:400;color:var(--muted);font-size:.82rem">${esc(t.mood)}</span></div>
+        <div class="tbody">
+          <div>${qcPills(t)}</div>
+          <div class="fieldlab">Style (วางช่อง Style of Music)</div>
+          <pre class="block">${esc(t.style)}</pre>
+          <button class="ghost small" onclick="copyText(currentPkg.tracks[${pkg.tracks.indexOf(t)}].style,'คัดลอก Style ✓')">📋 Style</button>
+          <div class="fieldlab">Lyrics (วางช่อง Custom Lyrics)</div>
+          <pre class="block">${esc(t.lyrics)}</pre>
+          <button class="ghost small" onclick="copyText(currentPkg.tracks[${pkg.tracks.indexOf(t)}].lyrics,'คัดลอก Lyrics ✓')">📋 Lyrics</button>
+          <div class="btncol" style="display:inline-flex;vertical-align:top;margin-left:6px">
+            <button class="ghost small" onclick="polishPrompt(${pkg.tracks.indexOf(t)})">👑 Prompt ขัดเกลา</button>
+            <span class="route fable">เพลงชุดพิเศษ → วางใน Claude (Opus/Fable)</span>
+          </div>
+        </div>
+      </div>`).join("")
+    : '<p class="empty">ไม่พบ TRACK ในผลลัพธ์ — เช็คว่า AI ตอบตามโครงสร้าง ## TRACKS / ### TRACK 1:</p>';
+
+  /* DistroKid tab */
+  $("#v_dk").innerHTML = `<div class="card">
+    <div class="btnrow"><button class="ghost small" onclick="copyText(currentPkg.dk,'คัดลอกข้อมูล DistroKid ✓')">📋 คัดลอกทั้งส่วน</button></div>
+    <pre class="block" style="max-height:none">${esc(pkg.dk || "ไม่พบส่วน DISTROKID")}</pre></div>`;
+
+  /* YouTube tab */
+  $("#v_yt").innerHTML = `<div class="card">
+    <div class="btnrow"><button class="ghost small" onclick="copyText(currentPkg.yt,'คัดลอกแพ็กเกจ YouTube ✓')">📋 คัดลอกทั้งส่วน</button></div>
+    <pre class="block" style="max-height:none">${esc(pkg.yt || "ไม่พบส่วน YOUTUBE")}</pre></div>
+  <div class="card">
+    <h2>⏱️ คำนวณ Timestamps จริง (สำหรับ Mix)</h2>
+    <p class="hint" style="margin-top:0">หลังเจนเพลงจาก Suno แล้ว ใส่ความยาวจริงของแต่ละเพลงตามลำดับ บรรทัดละเพลง (เช่น 2:45) — ถ้าทำ mix วนซ้ำ ใส่เกินจำนวนเพลงได้เลย ระบบจะวนชื่อเพลงให้</p>
+    <textarea id="tsDur" placeholder="2:45\n3:12\n2:58"></textarea>
+    <div class="btnrow"><button class="ghost small" onclick="calcTimestamps()">คำนวณ</button>
+    <button class="ghost small" onclick="copyText($('#tsOut').textContent,'คัดลอก Timestamps ✓')">📋 คัดลอกผล</button></div>
+    <pre class="block" id="tsOut" style="margin-top:8px"></pre>
+  </div>`;
+
+  /* Cover tab */
+  $("#v_cover").innerHTML = `<div class="card">
+    <div class="btnrow"><div class="btncol">
+      <button class="ghost small" onclick="copyText(currentPkg.cover,'คัดลอก Cover Prompt ✓')">📋 คัดลอก Prompt ปก</button>
+      <span class="route">🏭 วางในแท็บเจนภาพของ Podcast SEO Studio หรือ Gemini</span>
+    </div></div>
+    <pre class="block" style="max-height:none">${esc(pkg.cover || "ไม่พบส่วน COVER ART PROMPT")}</pre>
+    <p class="hint">DistroKid ต้องการปก 3000×3000 (1:1) · ปกวิดีโอ YouTube ใช้เจนแยก 16:9 ได้จาก prompt เดียวกัน</p></div>`;
+
+  $("#rawOut").textContent = currentRaw;
+  $("#resultArea").hidden = false;
+}
+
+/* ───────── analyze + history ───────── */
+function saveHistory(pkg) {
+  const h = store.get("history", []);
+  h.unshift({ d: new Date().toISOString().slice(0, 10), t: (pkg.tracks[0] && pkg.tracks[0].title) || "งานเพลง", n: pkg.tracks.length, raw: currentRaw });
+  store.set("history", h.slice(0, 20)); renderHistory();
+}
+function renderHistory() {
+  const h = store.get("history", []);
+  $("#histEmpty").style.display = h.length ? "none" : "";
+  $("#histlist").innerHTML = h.map((x, i) =>
+    `<li onclick="loadHist(${i})"><span>🎵 ${esc(x.t)} · ${x.n} เพลง</span><span class="d">${x.d}</span></li>`).join("");
+}
+function loadHist(i) {
+  const h = store.get("history", []);
+  if (!h[i]) return;
+  $("#resultIn").value = h[i].raw; analyze(); toast("โหลดจากประวัติ ✓");
+}
+function analyze() {
+  currentRaw = $("#resultIn").value.trim();
+  if (!currentRaw) { toast("ยังไม่ได้วางผลลัพธ์"); return; }
+  currentPkg = parsePackage(currentRaw);
+  render(currentPkg);
+}
+$("#analyzeBtn").onclick = () => { analyze(); if (currentPkg && currentPkg.tracks.length) saveHistory(currentPkg); };
+renderHistory();
+
+function fmtSec(s) {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(ss).padStart(2, "0");
+}
+function calcTimestamps() {
+  const lines = $("#tsDur").value.trim().split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  if (!lines.length) { toast("ใส่ความยาวเพลงก่อน บรรทัดละเพลง เช่น 2:45"); return; }
+  const nT = (currentPkg && currentPkg.tracks.length) || 0;
+  let cur = 0; const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^(\d+):(\d{1,2})$/);
+    if (!m) { toast("บรรทัด " + (i + 1) + " รูปแบบไม่ถูก — ใช้ นาที:วินาที เช่น 2:45"); return; }
+    const title = nT ? currentPkg.tracks[i % nT].title : "Track " + (i + 1);
+    out.push(fmtSec(cur) + " " + title);
+    cur += (+m[1]) * 60 + (+m[2]);
+  }
+  out.push("— รวม " + fmtSec(cur) + " —");
+  $("#tsOut").textContent = out.join("\n");
+}
+
+/* ───────── tabs / misc ───────── */
+$$("#subtabs button").forEach((b) => b.onclick = () => {
+  $$("#subtabs button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+  ["suno", "dk", "yt", "cover", "raw"].forEach((v) => $("#v_" + v).hidden = v !== b.dataset.view);
+});
+$("#dlRaw").onclick = () => download("music-release-" + Date.now() + ".md", currentRaw);
+$("#copyRaw").onclick = () => copyText(currentRaw, "คัดลอกทั้งหมด ✓");
+</script>
+</body>
+</html>
