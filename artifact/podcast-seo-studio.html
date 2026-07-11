@@ -195,6 +195,16 @@
   .imgcard .ph { width: 100%; aspect-ratio: 16/9; border-radius: 8px; border: 1px dashed var(--line); display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: .78rem; }
   .statuschip { cursor: pointer; border: none; font-family: inherit; }
 
+  /* retention analyzer */
+  .meter .seg.rewatch { background: var(--accent); }
+  .mlabel { display: block; font-size: .72rem; color: var(--faint); margin-top: 3px; }
+  .retrow { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-top: 10px; background: var(--bg); font-size: .84rem; }
+  .retrow .para { font-family: var(--mono); font-size: .74rem; color: var(--muted); background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 8px 0; white-space: pre-wrap; }
+  .retrow .sb { font-size: .78rem; color: var(--muted); }
+  .zonebar { display: flex; height: 22px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); margin-top: 8px; }
+  .zonebar .z { flex: 1; }
+  .zonebar .z + .z { border-left: 2px solid var(--bg); }
+
   /* ── Stat tiles ──────────────────────────────── */
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
   .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
@@ -390,6 +400,7 @@
       <div class="btnrow" style="margin-top:0">
         <button class="btn primary" id="copyprompt">📋 คัดลอก Prompt ทั้งหมด</button>
       </div>
+      <span class="mlabel">🏭 วางใน Gemini (ฟรี)</span>
       <div class="promptbox" id="promptout"></div>
       <div class="copies" id="promptmeta"></div>
     </div>
@@ -441,6 +452,7 @@
         <button role="tab" aria-selected="false" data-view="pack">🎯 Packaging</button>
         <button role="tab" aria-selected="false" data-view="broll">🖼 B-Roll</button>
         <button role="tab" aria-selected="false" data-view="shorts">✂️ Shorts</button>
+        <button role="tab" aria-selected="false" data-view="retention">📈 Retention</button>
       </div>
 
       <div class="card md" id="mdview"></div>
@@ -485,6 +497,26 @@
         <h2>ตัดตอนเต็มเป็น Shorts 3 คลิป</h2>
         <p class="hint">Shorts คือท่อส่งคนเข้าตอนเต็ม — สร้างสคริปต์สั้น ~45-60 วิ 3 คลิปจากจุดพีคของตอน พร้อม Hook, CTA และ Hashtags</p>
         <div id="shortsbody"></div>
+      </div>
+
+      <div class="card" id="retentionview" hidden>
+        <div class="eyebrow">Retention Analyzer</div>
+        <h2>จับคู่ Audience Retention กับสคริปต์</h2>
+        <div class="empty" id="retempty" hidden>วางผลลัพธ์ AI ของตอนนี้ในแท็บหลักแล้วกดวิเคราะห์ก่อน จึงจะ match retention กับสคริปต์ได้</div>
+        <div id="retinputs">
+          <p class="hint">วางข้อมูลจาก YouTube Studio (Advanced mode → Audience retention → Export CSV) หรือพิมพ์เองบรรทัดละจุด เช่น <code>1:45 62%</code> (คงเหลือ) หรือ <code>1:45 -8%</code> (หายไป) — ไม่มีการเรียก API ใดๆ ในแท็บนี้</p>
+          <div class="grid2">
+            <div>
+              <label class="f" for="retdur">ความยาวคลิปจริงหลังตัดต่อ (mm:ss)</label>
+              <input type="text" id="retdur" placeholder="15:30" />
+            </div>
+          </div>
+          <label class="f" for="retdata">ข้อมูล Retention</label>
+          <textarea id="retdata" placeholder="Video position (%),Absolute audience retention (%)&#10;0,100&#10;5,87&#10;10,81 ..."></textarea>
+          <div class="btnrow"><button class="btn primary" id="retanalyze">📈 วิเคราะห์ Retention</button></div>
+          <div id="retresults"></div>
+        </div>
+        <div id="retpattern"></div>
       </div>
     </div>
   </section>
@@ -1280,11 +1312,13 @@ function showView(v) {
   $("#packview").hidden = v !== "pack";
   $("#brollview").hidden = v !== "broll";
   $("#shortsview").hidden = v !== "shorts";
+  $("#retentionview").hidden = v !== "retention";
   const isMd = ["all", "p1", "p2", "p3"].includes(v);
   $("#mdview").hidden = !isMd;
   if (v === "pack") renderPack();
   if (v === "broll") renderBroll();
   if (v === "shorts") renderShorts();
+  if (v === "retention") renderRetention();
   if (!isMd) return;
   const c = current;
   const src = v === "all" ? c.md : (c.phases["p" + v[1]] ?? "ไม่พบส่วนนี้ในผลลัพธ์ — ตรวจว่า AI ใส่หัวข้อ \"Phase " + v[1] + "\" หรือไม่");
@@ -1310,7 +1344,7 @@ function renderQA() {
     return `<div class="qcrow">
       <span class="chip ${sev}">${sev === "good" ? "✓ ผ่าน" : sev === "warn" ? "! เตือน" : "✕ แก้"}</span>
       <span><strong>${k.name}</strong><br /><span style="color:var(--muted)">${esc(k.detail)}</span>
-        ${k.fix && r < 0.85 ? `<br /><button class="btn small" style="margin-top:6px" data-qcfix="${i}">📋 คัดลอก Prompt แก้ไข</button>` : ""}</span>
+        ${k.fix && r < 0.85 ? `<br /><button class="btn small" style="margin-top:6px" data-qcfix="${i}">📋 คัดลอก Prompt แก้ไข</button><span class="mlabel">🎯 วางใน Claude (Opus 4.8)</span>` : ""}</span>
       <span class="pts">${k.score.toFixed(1)}/${k.max}</span>
     </div>`;
   }).join("");
@@ -1344,12 +1378,12 @@ function renderQA() {
   let fixes = "";
   if (c.missing.length) {
     const fixMissing = `จากผลลัพธ์ที่คุณสร้างให้ก่อนหน้านี้ พบว่า Timestamp เหล่านี้ในสคริปต์ยังไม่มีแถวในตาราง Visual Storyboard: ${c.missing.map((t) => t.label).join(", ")}\n\nกรุณาสร้างแถวตาราง markdown เพิ่มสำหรับคิวเวลาเหล่านี้ ใช้สไตล์ภาพเดิม คอลัมน์: | Timestamp | Visual Suggestion | Reasoning & Viewer Benefit | Google Flow Prompt | Motion Direction | โดย Google Flow Prompt ต้องมี motion cue + องค์ประกอบเว้น headroom 15% ตามกติกาเดิม`;
-    fixes += `<div class="btnrow"><button class="btn small" data-fix="${esc(fixMissing)}">📋 คัดลอก Prompt แก้ "ขาดคิวภาพ" (ไปวางต่อในแชทเดิม)</button></div>`;
+    fixes += `<div class="btnrow"><button class="btn small" data-fix="${esc(fixMissing)}">📋 คัดลอก Prompt แก้ "ขาดคิวภาพ" (ไปวางต่อในแชทเดิม)</button></div><span class="mlabel">🎯 วางใน Claude (Opus 4.8)</span>`;
   }
   if (freezes.some((s) => s.sev === "crit")) {
     const list = c.segs.filter((s) => s.sev === "crit").map((s) => `${s.from.label} (ยาว ${s.len} วิ)`).join(", ");
     const fixFreeze = `จากสคริปต์ที่คุณสร้างให้ก่อนหน้านี้ พบช่วง "ภาพค้าง" (Visual Freeze) นานเกิน 25 วินาที ที่: ${list}\n\nกรุณา (1) แทรก Timestamp ใหม่รูปแบบ [M:SS] ซอยช่วงเหล่านี้ให้ถี่ขึ้น (ไม่เกิน 15-20 วิต่อภาพ) โดยเขียนเฉพาะย่อหน้าที่แก้ และ (2) สร้างแถวตาราง Storyboard สำหรับ Timestamp ใหม่ทุกตัว`;
-    fixes += `<div class="btnrow"><button class="btn small" data-fix="${esc(fixFreeze)}">📋 คัดลอก Prompt แก้ "ภาพค้าง" (ไปวางต่อในแชทเดิม)</button></div>`;
+    fixes += `<div class="btnrow"><button class="btn small" data-fix="${esc(fixFreeze)}">📋 คัดลอก Prompt แก้ "ภาพค้าง" (ไปวางต่อในแชทเดิม)</button></div><span class="mlabel">🎯 วางใน Claude (Opus 4.8)</span>`;
   }
   $("#issues").innerHTML = issues + fixes;
   $$("#issues [data-fix]").forEach((b) => b.addEventListener("click", () => copyText(b.dataset.fix, "คัดลอก Prompt แก้ไขแล้ว")));
@@ -1650,6 +1684,240 @@ async function genShorts() {
     toast("สคริปต์ Shorts พร้อมแล้ว ✓");
   } catch (err) { alert(aiErrorThai(err)); current.shorts = null; renderShorts(); }
 }
+
+/* ── Retention Analyzer (copy-paste workflow only, no API calls) ── */
+const DROP_WARN = 3, DROP_CRIT = 6; // % lost within one segment; first 60s uses x2
+const fmtMMSS = (s) => `${Math.floor(s / 60)}:${String(Math.round(s) % 60).padStart(2, "0")}`;
+const parseMMSS = (str) => {
+  const m = String(str).trim().match(/^(\d{1,3}):(\d{2})$/);
+  return m ? (+m[1]) * 60 + (+m[2]) : null;
+};
+function parseRetentionData(text, durationSec) {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  // CSV mode: lines whose first two numeric fields are both within 0-100
+  const csvPts = [];
+  for (const l of lines) {
+    const fields = l.split(/[,;\t]/).map((f) => f.trim().replace(/%$/, ""));
+    const nums = fields.map(Number).filter((n) => !isNaN(n));
+    if (nums.length >= 2 && nums[0] >= 0 && nums[0] <= 100 && nums[1] >= 0 && nums[1] <= 100) {
+      csvPts.push({ sec: (nums[0] / 100) * durationSec, ret: nums[1] });
+    }
+  }
+  if (csvPts.length >= 3) return csvPts.sort((a, b) => a.sec - b.sec);
+  // manual mode: "1:45 62%" (absolute) or "1:45 -8%" (delta)
+  const manual = [];
+  for (const l of lines) {
+    const m = l.match(/^(\d{1,3}):(\d{2})\s+(-?)(\d+(?:\.\d+)?)%?$/);
+    if (m) manual.push({ sec: (+m[1]) * 60 + (+m[2]), val: +m[4], delta: m[3] === "-" });
+  }
+  if (manual.length < 2 && !(manual.length === 1 && manual[0].delta)) {
+    if (!manual.length) return null;
+  }
+  manual.sort((a, b) => a.sec - b.sec);
+  let ret = 100;
+  const pts = [{ sec: 0, ret: 100 }];
+  for (const p of manual) {
+    ret = p.delta ? Math.max(0, ret - p.val) : Math.min(100, Math.max(0, p.val));
+    pts.push({ sec: p.sec, ret });
+  }
+  return pts.length >= 2 ? pts : null;
+}
+function retAt(pts, t) {
+  if (t <= pts[0].sec) return pts[0].ret;
+  for (let i = 1; i < pts.length; i++) {
+    if (t <= pts[i].sec) {
+      const a = pts[i - 1], b = pts[i];
+      return a.ret + ((t - a.sec) / Math.max(1e-6, b.sec - a.sec)) * (b.ret - a.ret);
+    }
+  }
+  return pts[pts.length - 1].ret;
+}
+function scriptParagraphs() {
+  const p3 = current.phases.p3 || current.md;
+  const marks = [...p3.matchAll(tsRe)].map((m) => ({
+    sec: m[3] !== undefined ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : (+m[1]) * 60 + (+m[2]),
+    end: m.index + m[0].length, start: m.index,
+  }));
+  const paras = new Map();
+  marks.forEach((mk, i) => {
+    if (paras.has(mk.sec)) return;
+    const text = p3.slice(mk.end, i + 1 < marks.length ? marks[i + 1].start : undefined)
+      .replace(/\*\*/g, "").trim().slice(0, 500);
+    paras.set(mk.sec, text);
+  });
+  return paras;
+}
+function analyzeRetentionClick() {
+  const dur = parseMMSS($("#retdur").value) ?? (current.ts.length ? current.ts[current.ts.length - 1].sec + 20 : null);
+  if (!dur) return toast("ใส่ความยาวคลิปเป็น mm:ss เช่น 15:30");
+  const pts = parseRetentionData($("#retdata").value, dur);
+  if (!pts) {
+    return toast('รูปแบบไม่ถูกต้อง — ตัวอย่าง: "1:45 62%" (คงเหลือ) หรือ "1:45 -8%" (หายไป) บรรทัดละจุด');
+  }
+  const lastTs = current.ts[current.ts.length - 1].sec || 1;
+  const scale = dur / lastTs;
+  const rows = current.segs.map((s) => {
+    const realStart = s.from.sec * scale, realEnd = (s.from.sec + s.len) * scale;
+    const drop = retAt(pts, realStart) - retAt(pts, realEnd);
+    const mul = realStart < 60 ? 2 : 1;
+    const kind = drop < -0.5 ? "rewatch" : drop >= DROP_CRIT * mul ? "crit" : drop >= DROP_WARN * mul ? "warn" : "good";
+    return { label: s.from.label, scriptSec: s.from.sec, realStart, realEnd, len: s.len, drop, kind };
+  });
+  current.ret = { dur, rows };
+  // auto-save to cross-episode history (cap 30)
+  const entry = {
+    date: new Date().toISOString().slice(0, 10),
+    title: current.pack?.titles?.[0]?.title || (input.value.trim().slice(0, 60) || "ตอนไม่ระบุชื่อ"),
+    durationSec: dur,
+    drops: rows.filter((r) => r.kind === "warn" || r.kind === "crit")
+      .map((r) => ({ label: r.label, posPct: Math.round((r.realStart / dur) * 100), dropPct: Math.round(r.drop * 10) / 10, kind: r.kind })),
+    rewatches: rows.filter((r) => r.kind === "rewatch")
+      .map((r) => ({ label: r.label, posPct: Math.round((r.realStart / dur) * 100) })),
+  };
+  const rh = store.get("retentionHistory", []);
+  rh.unshift(entry);
+  store.set("retentionHistory", rh.slice(0, 30));
+  renderRetResults();
+  renderRetPattern();
+  toast("วิเคราะห์ Retention เสร็จ — บันทึกลง Pattern ข้ามตอนแล้ว ✓");
+}
+function renderRetResults() {
+  const box = $("#retresults");
+  const ret = current.ret;
+  if (!ret) { box.innerHTML = ""; return; }
+  const paras = scriptParagraphs();
+  const sbRows = storyboardRows() || [];
+  const sbBySec = new Map();
+  sbRows.forEach((r) => {
+    const m = r.ts.match(/(\d{1,3}):(\d{2})/);
+    if (m) sbBySec.set((+m[1]) * 60 + (+m[2]), r);
+  });
+  const meter = `<h3 style="margin:18px 0 6px">แผนที่การหลุดรายช่วงสคริปต์</h3>
+    <div class="meter">${ret.rows.map((r) =>
+      `<div class="seg ${r.kind}" style="flex:${Math.max(r.len, 1)}" title="${r.label} · ${r.drop >= 0 ? "หาย " + r.drop.toFixed(1) + "%" : "🔁 rewatch +" + (-r.drop).toFixed(1) + "%"}"></div>`).join("")}</div>
+    <div class="legend">
+      <span><span class="k" style="background:var(--good)"></span>ปกติ</span>
+      <span><span class="k" style="background:var(--warn)"></span>หลุด ≥${DROP_WARN}%</span>
+      <span><span class="k" style="background:var(--crit)"></span>หลุด ≥${DROP_CRIT}% (60 วิแรก ×2)</span>
+      <span><span class="k" style="background:var(--accent)"></span>🔁 Rewatch (จุดแข็ง)</span>
+    </div>
+    ${current.ts[0].sec > 0 ? `<p class="hint">หมายเหตุ: สคริปต์เริ่ม timestamp ที่ ${current.ts[0].label} — ช่วงก่อนหน้านั้นไม่ถูกวิเคราะห์</p>` : ""}`;
+  const ordered = ret.rows.filter((r) => r.kind === "warn" || r.kind === "crit").sort((a, b) => b.drop - a.drop);
+  const rewatches = ret.rows.filter((r) => r.kind === "rewatch");
+  const segIdx = (sec) => current.segs.findIndex((s) => s.from.sec === sec);
+  const rowsHtml = ordered.map((r) => {
+    const i = segIdx(r.scriptSec);
+    const prev = i > 0 ? paras.get(current.segs[i - 1].from.sec) || "" : "";
+    const cur = paras.get(r.scriptSec) || "";
+    const next = i + 1 < current.segs.length ? paras.get(current.segs[i + 1].from.sec) || "" : "";
+    const sb = sbBySec.get(r.scriptSec);
+    const fix = `คุณคือผู้เชี่ยวชาญ YouTube retention สำหรับ Faceless Podcast
+ตอนนี้: "${current.pack?.titles?.[0]?.title || "(ยังไม่ได้ตั้งชื่อ)"}"
+จุดที่คนหลุด: ${r.label} (นาทีจริง ~${fmtMMSS(r.realStart)}) ผู้ชมหายไป ${r.drop.toFixed(1)}% ภายในช่วงนี้
+
+สคริปต์ช่วงที่คนหลุด:
+"""
+${[prev, cur, next].filter(Boolean).join("\n\n")}
+"""
+ภาพประกอบช่วงนั้น: ${sb ? sb.visual : "(ไม่พบแถว Storyboard ของคิวนี้)"}
+
+วิเคราะห์เป็นภาษาไทย:
+1. สาเหตุที่เป็นไปได้มากสุด 2 ข้อ (เนื้อหา/จังหวะ/ภาพ) พร้อมเหตุผลจากข้อความจริง
+2. เขียนย่อหน้านั้นใหม่ 1 เวอร์ชัน (ภาษาอังกฤษ) ที่น่าจะรั้งคนดูได้ดีกว่า
+3. สรุปเป็น "กติกา 1 บรรทัด" ภาษาอังกฤษ สำหรับเพิ่มเข้า Brand DNA ข้อ 5 (Retention Architecture) เพื่อกันปัญหานี้ในตอนต่อๆ ไป`;
+    retFixes.push(fix);
+    return `<div class="retrow">
+      <div><span class="chip ${r.kind}">${r.kind === "crit" ? "หลุดหนัก" : "หลุด"} −${r.drop.toFixed(1)}%</span>
+        <strong style="margin-left:6px">${r.label}</strong> <span style="color:var(--muted)">≈ นาทีจริง ${fmtMMSS(r.realStart)}–${fmtMMSS(r.realEnd)}</span></div>
+      ${cur ? `<div class="para">${esc(cur.slice(0, 400))}${cur.length > 400 ? "…" : ""}</div>` : `<div class="para">(ไม่พบย่อหน้าของคิวนี้ในสคริปต์)</div>`}
+      ${sb ? `<div class="sb">🖼 ${esc(sb.visual.slice(0, 120))}<br /><span style="font-family:var(--mono);font-size:.7rem">${esc(sb.prompt.slice(0, 140))}</span></div>` : ""}
+      <div class="btnrow" style="margin-top:8px"><button class="btn small" data-retfix="${retFixes.length - 1}">📋 คัดลอก Prompt วิเคราะห์</button></div>
+      <span class="mlabel">🎯 วางใน Claude (Opus 4.8)</span>
+    </div>`;
+  }).join("");
+  const rwHtml = rewatches.length
+    ? `<h3 style="margin:18px 0 4px">🔁 จุด Rewatch (จุดแข็ง — จดไว้ทำซ้ำ)</h3>` +
+      rewatches.map((r) => `<div class="retrow"><span class="chip good">🔁 +${(-r.drop).toFixed(1)}%</span>
+        <strong style="margin-left:6px">${r.label}</strong>
+        ${paras.get(r.scriptSec) ? `<div class="para">${esc((paras.get(r.scriptSec) || "").slice(0, 250))}…</div>` : ""}</div>`).join("")
+    : "";
+  box.innerHTML = meter + (ordered.length ? `<h3 style="margin:18px 0 4px">จุดหลุด เรียงจากหนักสุด</h3>` + rowsHtml
+    : `<p class="hint" style="margin-top:12px">ไม่พบช่วงที่หลุดเกินเกณฑ์ — retention ของตอนนี้แข็งแรง 🎉</p>`) + rwHtml;
+  $$("#retresults [data-retfix]").forEach((b) => b.addEventListener("click", () =>
+    copyText(retFixes[Number(b.dataset.retfix)], "คัดลอก Prompt วิเคราะห์แล้ว")));
+}
+let retFixes = [];
+function renderRetPattern() {
+  const box = $("#retpattern");
+  const rh = store.get("retentionHistory", []);
+  let html = "";
+  if (rh.length >= 3) {
+    const buckets = Array.from({ length: 10 }, () => ({ eps: new Set(), crit: 0, drops: [] }));
+    const rwBuckets = Array.from({ length: 10 }, () => 0);
+    rh.forEach((ep, ei) => {
+      ep.drops.forEach((d) => {
+        const bi = Math.min(9, Math.floor(d.posPct / 10));
+        buckets[bi].eps.add(ei);
+        buckets[bi].drops.push(d.dropPct);
+        if (d.kind === "crit") buckets[bi].crit++;
+      });
+      (ep.rewatches || []).forEach((r) => { rwBuckets[Math.min(9, Math.floor(r.posPct / 10))]++; });
+    });
+    const chronic = [];
+    const bar = buckets.map((b, i) => {
+      const freq = b.eps.size / rh.length;
+      const avg = b.drops.length ? (b.drops.reduce((s, x) => s + x, 0) / b.drops.length).toFixed(1) : 0;
+      if (freq >= 0.6) chronic.push(`${i * 10}-${i * 10 + 10}% (หลุด ${b.eps.size}/${rh.length} ตอน เฉลี่ย ${avg}%)`);
+      const bg = freq >= 0.6 ? "var(--crit)" : freq > 0 ? "var(--warn)" : "var(--panel2)";
+      const op = freq >= 0.6 ? 1 : freq > 0 ? (0.35 + freq) : 1;
+      return `<div class="z" style="background:${bg};opacity:${op}" title="${i * 10}-${i * 10 + 10}%: หลุด ${b.eps.size}/${rh.length} ตอน"></div>`;
+    }).join("");
+    const rwZones = rwBuckets.map((n, i) => n >= 2 ? `${i * 10}-${i * 10 + 10}% (${n} ครั้ง)` : null).filter(Boolean);
+    const dnaSec = dnaText().match(/## 4\.[\s\S]*?(?=\n## 6\.|$)/);
+    const dnaPrompt = `ข้อมูล retention ${rh.length} ตอนล่าสุดของช่องพบว่าผู้ชมหลุดซ้ำที่ตำแหน่ง ${chronic.length ? chronic.join(", ") : "(ไม่มีโซนเรื้อรัง แต่มีจุดหลุดกระจาย: " + buckets.map((b, i) => b.eps.size ? `${i * 10}-${i * 10 + 10}% ${b.eps.size} ตอน` : null).filter(Boolean).join(", ") + ")"}
+และมีจุด rewatch ซ้ำที่ ${rwZones.length ? rwZones.join(", ") : "(ไม่มี)"}
+นี่คือ Brand DNA ปัจจุบันข้อ 4 (Hook) และข้อ 5 (Retention Architecture):
+"""
+${dnaSec ? dnaSec[0] : dnaText() || "(ยังไม่ได้ตั้งค่า Brand DNA)"}
+"""
+เสนอการแก้ไข Brand DNA สองข้อนี้ (ภาษาอังกฤษ, รูปแบบเดิม) โดยแก้เฉพาะบรรทัดที่ข้อมูลรองรับ พร้อมเหตุผลสั้นๆ เป็นภาษาไทยว่าแต่ละบรรทัดแก้เพราะ pattern ไหน`;
+    html += `<h3 style="margin:20px 0 4px">Pattern ข้ามตอน (${rh.length} ตอน)</h3>
+      <p class="hint">แบ่งคลิปเป็น 10 ช่วง — สีแดง = โซนหลุดเรื้อรัง (หลุด ≥60% ของตอนทั้งหมด)</p>
+      <div class="zonebar">${bar}</div>
+      <div class="legend"><span>0%</span><span style="margin-left:auto">100%</span></div>
+      ${chronic.length ? `<p class="hint" style="margin-top:8px">⚠️ โซนหลุดเรื้อรัง: ${chronic.join(" · ")}</p>` : ""}
+      <div class="btnrow"><button class="btn small" id="retdna">📋 คัดลอก Prompt อัปเดต Brand DNA</button></div>
+      <span class="mlabel">👑 วางใน Claude (Fable) — งานแม่แบบ ใช้โมเดลสูงสุด</span>`;
+    box.innerHTML = html;
+    $("#retdna")?.addEventListener("click", () => copyText(dnaPrompt, "คัดลอก Prompt อัปเดต DNA แล้ว"));
+  } else {
+    html += rh.length ? `<p class="hint" style="margin-top:16px">บันทึกแล้ว ${rh.length} ตอน — Pattern ข้ามตอนจะแสดงเมื่อครบ 3 ตอน</p>` : "";
+    box.innerHTML = html;
+  }
+  if (rh.length) {
+    box.innerHTML += `<div style="margin-top:10px">${rh.map((ep, i) =>
+      `<div class="d" style="font-family:var(--mono);font-size:.72rem;color:var(--muted);padding:3px 0">${ep.date} · ${esc((ep.title || "").slice(0, 40))} · หลุด ${ep.drops.length} จุด
+        <button class="chip statuschip crit" data-retdel="${i}" style="margin-left:6px">ลบ</button></div>`).join("")}</div>`;
+    $$("#retpattern [data-retdel]").forEach((b) => b.addEventListener("click", () => {
+      const list = store.get("retentionHistory", []);
+      list.splice(Number(b.dataset.retdel), 1);
+      store.set("retentionHistory", list);
+      renderRetPattern();
+    }));
+  }
+}
+function renderRetention() {
+  const ok = !!(current && current.ts.length);
+  $("#retempty").hidden = ok;
+  $("#retinputs").hidden = !ok;
+  if (ok) {
+    if (!$("#retdur").value.trim()) $("#retdur").value = fmtMMSS(current.ts[current.ts.length - 1].sec + 20);
+    retFixes = [];
+    renderRetResults();
+  }
+  renderRetPattern();
+}
+$("#retanalyze").addEventListener("click", () => { retFixes = []; analyzeRetentionClick(); });
 
 /* ── history ── */
 const HIST_STATUS = ["💡 ไอเดีย", "📝 สคริปต์แล้ว", "🎙 อัดเสียงแล้ว", "🎬 ตัดต่อแล้ว", "🚀 โพสต์แล้ว"];
