@@ -166,6 +166,8 @@
   </div>
   <label>คอนเซ็ปต์ / อารมณ์ / เรื่องราวของงานนี้</label>
   <textarea id="f_concept" placeholder="เช่น: อัลบั้มธีมแสงโคมกลางความมืด — การเดินทางจากเหนื่อยล้ากลางคืนสู่แสงแรกของเช้า..."></textarea>
+  <label>ต่อยอดซีรีส์จากงานในคลัง (ถ้ามี)</label>
+  <select id="f_series"><option value="">— งานใหม่อิสระ —</option></select>
   <div class="btnrow">
     <div class="btncol">
       <button id="genPrompt">🪄 สร้าง Master Prompt</button>
@@ -187,6 +189,12 @@
 
 <!-- ══════════ RESULT TABS ══════════ -->
 <div id="resultArea" hidden>
+  <div class="card" style="padding:10px 14px">
+    <div class="btnrow" style="margin-top:0"><div class="btncol">
+      <button class="small" id="saveCatalog">💿 บันทึกเข้าคลัง (เมื่อปล่อยงานจริง)</button>
+      <span class="route">คลังจะถูกฝังใน Prompt งานหน้า เพื่อกันชื่อ/คอนเซ็ปต์ซ้ำ</span>
+    </div></div>
+  </div>
   <div id="subtabs">
     <button data-view="suno" class="on">🎵 Suno</button>
     <button data-view="dk">📀 DistroKid</button>
@@ -214,6 +222,18 @@
   <h2>🕘 ประวัติ</h2>
   <ul id="histlist"></ul>
   <p class="empty" id="histEmpty">ยังไม่มีงานที่วิเคราะห์</p>
+</div>
+
+<!-- ══════════ CATALOG & TRENDS ══════════ -->
+<div class="card">
+  <h2>💿 คลังเพลง & เทรนด์การฟังซ้ำ</h2>
+  <p class="hint" style="margin-top:0">กรอกสถิติจาก YouTube Studio ของแต่ละงานหลังปล่อย ~7-14 วัน: ยอดวิว, % ดูเฉลี่ย (Average percentage viewed), % ผู้ชมที่กลับมา (Returning viewers) — ตัวเลขสองตัวหลังคือหัวใจของ "คนชอบกลับมาฟังอีก"</p>
+  <div id="catlist"></div>
+  <p class="empty" id="catEmpty">ยังไม่มีงานในคลัง — วิเคราะห์ผลลัพธ์แล้วกด "บันทึกเข้าคลัง"</p>
+  <div class="btnrow"><div class="btncol">
+    <button class="ghost small" id="trendPrompt">📋 คัดลอก Prompt วิเคราะห์เทรนด์</button>
+    <span class="route fable">👑 วางใน Claude (Fable) — งานแม่แบบ ปรับ Artist DNA</span>
+  </div></div>
 </div>
 
 <!-- ══════════ DISTROKID CHECKLIST ══════════ -->
@@ -281,9 +301,22 @@ function buildPrompt() {
     p.a_genres && `แนวประจำตัว: ${p.a_genres}`, p.a_dna && `Artist DNA:\n${p.a_dna}`,
   ].filter(Boolean).join("\n");
 
+  /* catalog: กันซ้ำ + ต่อยอดซีรีส์ */
+  const cat = store.get("catalog", []);
+  let catBlock = "";
+  if (cat.length) {
+    const used = cat.map((r) => `- "${r.title}" (${r.genre || "?"}) เพลง: ${(r.tracks || []).join(", ")}`).join("\n");
+    catBlock = `\n═══ ผลงานที่ปล่อยแล้ว (ห้ามซ้ำ) ═══\n${used}\nกติกา: ชื่อเพลง ชื่องาน ท่อนฮุก และ imagery หลัก ต้องไม่ซ้ำหรือใกล้เคียงรายการข้างบน — ให้อยู่ในจักรวาลเดียวกันแต่เป็นบทใหม่\n`;
+  }
+  const si = $("#f_series").value;
+  if (si !== "" && cat[+si]) {
+    const s = cat[+si];
+    catBlock += `\n═══ ต่อยอดซีรีส์ ═══\nงานนี้เป็นภาคต่อของ "${s.title}"\nคอนเซ็ปต์ภาคก่อน: ${s.concept || "-"}\nกติกา: สานต่ออารมณ์และจักรวาลเดิม ใช้ sonic identity ใกล้เคียงกัน แต่เล่าเรื่อง "บทถัดไป" — ห้ามเล่าซ้ำ ให้พัฒนาไปข้างหน้า (เช่น จากค่ำคืน → รุ่งเช้า, จากหลงทาง → พบทาง)\n`;
+  }
+
   return `คุณคือโปรดิวเซอร์เพลง + ผู้เชี่ยวชาญ Suno AI + ผู้เชี่ยวชาญการปล่อยเพลง DistroKid และ YouTube music SEO
 
-${dna ? "═══ ARTIST PROFILE ═══\n" + dna + "\n" : ""}
+${dna ? "═══ ARTIST PROFILE ═══\n" + dna + "\n" : ""}${catBlock}
 ═══ งานที่ต้องทำ ═══
 ประเภท: ${TYPETXT[type]} จำนวน ${count} เพลง
 แนวเพลง: ${genre}
@@ -504,6 +537,75 @@ function calcTimestamps() {
   out.push("— รวม " + fmtSec(cur) + " —");
   $("#tsOut").textContent = out.join("\n");
 }
+
+/* ───────── catalog & trends ───────── */
+function catGet() { return store.get("catalog", []); }
+function catSet(c) { store.set("catalog", c); renderCatalog(); }
+$("#saveCatalog") && ($("#saveCatalog").onclick = () => {
+  if (!currentPkg || !currentPkg.tracks.length) { toast("ยังไม่มีผลลัพธ์ให้บันทึก"); return; }
+  const c = catGet();
+  const dkTitle = (currentPkg.dk.match(/Release Title:\s*([^\n]+)/i) || [])[1];
+  c.unshift({
+    d: new Date().toISOString().slice(0, 10),
+    title: (dkTitle || currentPkg.tracks[0].title).trim(),
+    genre: $("#f_genre").value === "custom" ? "" : $("#f_genre").value,
+    use: $("#f_use").value,
+    concept: $("#f_concept").value.trim().slice(0, 300),
+    tracks: currentPkg.tracks.map((t) => t.title),
+    stats: {},
+  });
+  catSet(c.slice(0, 40)); toast("บันทึกเข้าคลังแล้ว 💿");
+});
+function renderCatalog() {
+  const c = catGet();
+  $("#catEmpty").style.display = c.length ? "none" : "";
+  /* series dropdown */
+  $("#f_series").innerHTML = '<option value="">— งานใหม่อิสระ —</option>' +
+    c.map((r, i) => `<option value="${i}">${esc(r.title)} (${r.d})</option>`).join("");
+  /* catalog list with stat inputs */
+  $("#catlist").innerHTML = c.map((r, i) => {
+    const s = r.stats || {};
+    const score = (s.avg || s.ret) ? Math.round(((+s.avg || 0) + (+s.ret || 0)) / 2) : null;
+    const pill = score === null ? '<span class="pill" style="background:var(--panel2);color:var(--faint)">ยังไม่มีสถิติ</span>'
+      : score >= 55 ? `<span class="pill good">ฟังซ้ำสูง ${score}</span>`
+      : score >= 35 ? `<span class="pill warn">ปานกลาง ${score}</span>`
+      : `<span class="pill crit">ต่ำ ${score}</span>`;
+    return `<div class="track"><div class="thead"><span>💿 ${esc(r.title)} <span style="font-weight:400;color:var(--muted);font-size:.8rem">· ${esc(r.genre || "")} · ${r.tracks.length} เพลง</span></span>${pill}</div>
+    <div class="tbody"><div class="row">
+      <div><label>ยอดวิว</label><input type="text" id="st_v_${i}" value="${s.v || ""}" placeholder="เช่น 1200"></div>
+      <div><label>% ดูเฉลี่ย</label><input type="text" id="st_a_${i}" value="${s.avg || ""}" placeholder="เช่น 45"></div>
+      <div><label>% ผู้ชมกลับมา</label><input type="text" id="st_r_${i}" value="${s.ret || ""}" placeholder="เช่น 30"></div>
+    </div>
+    <div class="btnrow"><button class="ghost small" onclick="saveStats(${i})">บันทึกสถิติ</button>
+    <button class="ghost small" onclick="delCatalog(${i})" style="color:var(--crit)">ลบ</button></div></div></div>`;
+  }).join("");
+}
+function saveStats(i) {
+  const c = catGet();
+  c[i].stats = { v: $("#st_v_" + i).value.trim(), avg: $("#st_a_" + i).value.trim(), ret: $("#st_r_" + i).value.trim() };
+  catSet(c); toast("บันทึกสถิติ ✓");
+}
+function delCatalog(i) {
+  if (!confirm("ลบงานนี้ออกจากคลัง?")) return;
+  const c = catGet(); c.splice(i, 1); catSet(c); toast("ลบแล้ว");
+}
+$("#trendPrompt").onclick = () => {
+  const c = catGet().filter((r) => r.stats && (r.stats.avg || r.stats.ret || r.stats.v));
+  if (c.length < 2) { toast("ต้องมีงานที่กรอกสถิติแล้วอย่างน้อย 2 งาน จึงเทียบเทรนด์ได้"); return; }
+  const rows = c.map((r) => `- "${r.title}" | แนว: ${r.genre || "?"} | use case: ${r.use || "?"} | ${r.tracks.length} เพลง | วิว: ${r.stats.v || "?"} | ดูเฉลี่ย: ${r.stats.avg || "?"}% | ผู้ชมกลับมา: ${r.stats.ret || "?"}%`).join("\n");
+  const txt = `คุณคือนักวิเคราะห์ข้อมูล YouTube music สาย utility/ambient
+สถิติผลงานเพลงของช่อง (ตัวชี้วัดหลักของ "คนชอบกลับมาฟังอีก" คือ % ดูเฉลี่ย และ % ผู้ชมกลับมา):
+${rows}
+
+${(prof.a_dna || "").trim() ? "Artist DNA ปัจจุบัน:\n\"\"\"\n" + prof.a_dna + "\n\"\"\"\n\n" : ""}วิเคราะห์เป็นภาษาไทย:
+1. แนวเพลง / use case / ลักษณะงานแบบไหน perform ดีสุดในแง่การฟังซ้ำ — อิงเฉพาะตัวเลขที่ให้ ห้ามเดาเกินข้อมูล
+2. แบบไหน perform ต่ำ และสมมติฐานว่าเพราะอะไร (ระบุว่าเป็นสมมติฐาน)
+3. เสนอคอนเซ็ปต์งานถัดไป 3 แบบที่ต่อยอดจากจุดแข็งที่พบ
+4. เสนอการแก้ Artist DNA เฉพาะบรรทัดที่ข้อมูลรองรับ (ภาษาอังกฤษ รูปแบบเดิม) พร้อมเหตุผลสั้นๆ
+ข้อควรระวัง: ถ้าข้อมูลยังน้อยเกินกว่าจะสรุปข้อไหนได้ ให้บอกตรงๆ ว่ายังสรุปไม่ได้ อย่าฝืนหา pattern`;
+  copyText(txt, "คัดลอกแล้ว — วางใน Claude (Fable)");
+};
+renderCatalog();
 
 /* ───────── tabs / misc ───────── */
 $$("#subtabs button").forEach((b) => b.onclick = () => {
