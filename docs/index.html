@@ -86,6 +86,11 @@
 
   .wrap { max-width: 1060px; margin: 0 auto; padding: 0 16px 64px; }
 
+  /* suite nav (GitHub Pages: links to the sibling studio pages) */
+  nav.apps { font-size: .82rem; color: var(--faint); padding-top: 12px; }
+  nav.apps a { color: var(--muted); text-decoration: none; margin-right: 12px; }
+  nav.apps a:hover { color: var(--accent); }
+
   /* ── Console header ─────────────────────────── */
   header.console {
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
@@ -279,6 +284,7 @@
 </style>
 
 <div class="wrap">
+  <nav class="apps"><span style="color:var(--accent-ink); margin-right:12px">🎙️ Podcast Studio</span><a href="music-release-studio.html">☾ Music Studio</a><a href="shorts-studio.html">⚡ Shorts Studio</a></nav>
   <header class="console">
     <span class="recdot" aria-hidden="true"></span>
     <div class="brand">Podcast SEO Studio

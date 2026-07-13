@@ -28,6 +28,9 @@
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:15px; line-height:1.55; }
   .wrap { max-width: 880px; margin: 0 auto; padding: 16px 14px 80px; }
+  nav.apps { font-size:.82rem; color:var(--faint); margin-bottom:4px; }
+  nav.apps a { color:var(--muted); text-decoration:none; margin-right:12px; }
+  nav.apps a:hover { color:var(--accent); }
   header h1 { font-size: 1.35rem; margin: 8px 0 2px; letter-spacing:.2px; }
   header h1 .moon { color: var(--accent); }
   header p { color: var(--muted); margin: 0 0 14px; font-size:.9rem; }
@@ -90,6 +93,7 @@
 </head>
 <body>
 <div class="wrap">
+<nav class="apps"><a href="index.html">🎙️ Podcast Studio</a><span style="color:var(--accent)">☾ Music Studio</span><a href="shorts-studio.html" style="margin-left:12px">⚡ Shorts Studio</a></nav>
 <header>
   <h1><span class="moon">☾</span> Music Release Studio</h1>
   <p>เจนแพ็กเกจปล่อยเพลงครบชุด: Suno → DistroKid → YouTube — copy-paste workflow ไม่ใช้ API</p>
