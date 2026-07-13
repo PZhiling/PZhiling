@@ -227,6 +227,10 @@
 <!-- ══════════ CATALOG & TRENDS ══════════ -->
 <div class="card">
   <h2>💿 คลังเพลง & เทรนด์การฟังซ้ำ</h2>
+  <div class="row">
+    <div style="flex:2"><label>YouTube API Key (ดึงยอดวิวอัตโนมัติ — ใช้ key เดียวกับ Shorts Studio ได้)</label><input type="text" id="ytKey" placeholder="key จาก console.cloud.google.com (YouTube Data API v3)"></div>
+    <div><label>&nbsp;</label><button class="ghost small" id="saveKey" style="width:100%">บันทึก Key</button></div>
+  </div>
   <p class="hint" style="margin-top:0">กรอกสถิติจาก YouTube Studio ของแต่ละงานหลังปล่อย ~7-14 วัน: ยอดวิว, % ดูเฉลี่ย (Average percentage viewed), % ผู้ชมที่กลับมา (Returning viewers) — ตัวเลขสองตัวหลังคือหัวใจของ "คนชอบกลับมาฟังอีก"</p>
   <div id="catlist"></div>
   <p class="empty" id="catEmpty">ยังไม่มีงานในคลัง — วิเคราะห์ผลลัพธ์แล้วกด "บันทึกเข้าคลัง"</p>
@@ -572,6 +576,10 @@ function renderCatalog() {
       : `<span class="pill crit">ต่ำ ${score}</span>`;
     return `<div class="track"><div class="thead"><span>💿 ${esc(r.title)} <span style="font-weight:400;color:var(--muted);font-size:.8rem">· ${esc(r.genre || "")} · ${r.tracks.length} เพลง</span></span>${pill}</div>
     <div class="tbody"><div class="row">
+      <div style="flex:2"><label>ลิงก์วิดีโอ YouTube</label><input type="text" id="st_u_${i}" value="${esc(s.u || "")}" placeholder="วางลิงก์แล้วกด ⬇️"></div>
+      <div><label>&nbsp;</label><button class="ghost small" onclick="fetchStats(${i})" style="width:100%">⬇️ ดึงยอดวิว</button></div>
+    </div>
+    <div class="row">
       <div><label>ยอดวิว</label><input type="text" id="st_v_${i}" value="${s.v || ""}" placeholder="เช่น 1200"></div>
       <div><label>% ดูเฉลี่ย</label><input type="text" id="st_a_${i}" value="${s.avg || ""}" placeholder="เช่น 45"></div>
       <div><label>% ผู้ชมกลับมา</label><input type="text" id="st_r_${i}" value="${s.ret || ""}" placeholder="เช่น 30"></div>
@@ -582,8 +590,31 @@ function renderCatalog() {
 }
 function saveStats(i) {
   const c = catGet();
-  c[i].stats = { v: $("#st_v_" + i).value.trim(), avg: $("#st_a_" + i).value.trim(), ret: $("#st_r_" + i).value.trim() };
+  c[i].stats = { u: $("#st_u_" + i).value.trim(), v: $("#st_v_" + i).value.trim(), avg: $("#st_a_" + i).value.trim(), ret: $("#st_r_" + i).value.trim() };
   catSet(c); toast("บันทึกสถิติ ✓");
+}
+/* ───────── YouTube Data API: ดึงยอดวิว ───────── */
+let ytKey = store.get("ytkey", "");
+$("#ytKey").value = ytKey;
+$("#saveKey").onclick = () => { ytKey = $("#ytKey").value.trim(); store.set("ytkey", ytKey); toast("บันทึก Key ✓"); };
+function vidId(u) {
+  const m = (u || "").match(/(?:v=|youtu\.be\/|shorts\/|live\/)([\w-]{11})/);
+  if (m) return m[1];
+  return /^[\w-]{11}$/.test((u || "").trim()) ? u.trim() : null;
+}
+async function fetchStats(i) {
+  if (!ytKey) { toast("ใส่ YouTube API Key ก่อน (ช่องบนการ์ดคลัง)"); return; }
+  const url = $("#st_u_" + i).value.trim(); const id = vidId(url);
+  if (!id) { toast("ลิงก์ไม่ถูกต้อง — รองรับ watch?v= / youtu.be / shorts"); return; }
+  try {
+    const r = await fetch("https://www.googleapis.com/youtube/v3/videos?part=statistics&id=" + id + "&key=" + encodeURIComponent(ytKey));
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e.error && e.error.message) || "HTTP " + r.status); }
+    const j = await r.json();
+    if (!j.items || !j.items.length) { toast("ไม่พบวิดีโอนี้"); return; }
+    const c = catGet(); c[i].stats = c[i].stats || {};
+    c[i].stats.u = url; c[i].stats.v = j.items[0].statistics.viewCount || "";
+    catSet(c); toast("ดึงยอดวิวแล้ว ✓ " + c[i].stats.v + " วิว");
+  } catch (e) { toast("ผิดพลาด: " + e.message); }
 }
 function delCatalog(i) {
   if (!confirm("ลบงานนี้ออกจากคลัง?")) return;

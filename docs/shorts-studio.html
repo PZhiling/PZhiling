@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shorts Studio — Faceless Creator Suite</title>
+<style>
+  :root {
+    --bg: #f8f5f3; --panel: #ffffff; --panel2: #f1ece8; --line: #e3dad3;
+    --ink: #2b2320; --muted: #776a62; --faint: #a2948b;
+    --accent: #c2502e; --accent-ink: #a03c1e; --accent-soft: rgba(194,80,46,.10);
+    --rec: #8a5fae; --good: #2e8555; --warn: #9a6a00; --crit: #bf4636;
+    --good-soft: rgba(46,133,85,.12); --warn-soft: rgba(154,106,0,.12); --crit-soft: rgba(191,70,54,.12);
+    --code-bg: #efe9e4; --shadow: 0 1px 3px rgba(40,28,20,.08);
+    --mono: ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;
+    --sans: "Noto Sans Thai","Sarabun",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #191412; --panel: #201a17; --panel2: #292019; --line: #372c24;
+      --ink: #eee7e2; --muted: #ab9c92; --faint: #77685f;
+      --accent: #ff8a5c; --accent-ink: #ffb090; --accent-soft: rgba(255,138,92,.13);
+      --rec: #b79ae0; --good: #3f9c66; --warn: #b8881a; --crit: #d96553;
+      --good-soft: rgba(63,156,102,.16); --warn-soft: rgba(184,136,26,.16); --crit-soft: rgba(217,101,83,.16);
+      --code-bg: #2b2119; --shadow: 0 1px 3px rgba(0,0,0,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:15px; line-height:1.55; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 16px 14px 80px; }
+  nav.apps { font-size:.82rem; color:var(--faint); margin-bottom:4px; }
+  nav.apps a { color:var(--muted); text-decoration:none; margin-right:12px; }
+  nav.apps a:hover { color:var(--accent); }
+  header h1 { font-size: 1.35rem; margin: 8px 0 2px; }
+  header h1 .bolt { color: var(--accent); }
+  header p { color: var(--muted); margin: 0 0 14px; font-size:.9rem; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; box-shadow:var(--shadow); }
+  .card h2 { font-size:1rem; margin:0 0 10px; }
+  label { display:block; font-size:.85rem; color:var(--muted); margin:10px 0 4px; }
+  input[type=text], textarea, select {
+    width:100%; background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+    border-radius:8px; padding:9px 10px; font-family:var(--sans); font-size:.95rem;
+  }
+  textarea { min-height:84px; resize:vertical; }
+  textarea.big { min-height:180px; font-family:var(--mono); font-size:.85rem; }
+  input:focus, textarea:focus, select:focus { outline:2px solid var(--accent); outline-offset:1px; border-color:transparent; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:150px; }
+  button { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:10px 16px;
+    font-family:var(--sans); font-size:.95rem; cursor:pointer; font-weight:600; }
+  button:hover { background:var(--accent-ink); }
+  button.ghost { background:var(--panel2); color:var(--ink); border:1px solid var(--line); font-weight:500; }
+  button.ghost:hover { background:var(--accent-soft); }
+  button.small { padding:6px 12px; font-size:.85rem; }
+  .btnrow { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; margin-top:12px; }
+  .btncol { display:flex; flex-direction:column; gap:3px; }
+  .route { font-size:.72rem; color:var(--faint); text-align:center; }
+  .route.fable { color: var(--rec); }
+  details.profile { border:1px dashed var(--line); border-radius:10px; padding:10px 12px; margin-bottom:14px; background:var(--panel); }
+  details.profile summary { cursor:pointer; font-weight:600; font-size:.92rem; }
+  .hint { font-size:.8rem; color:var(--faint); margin-top:6px; }
+  .clip { border:1px solid var(--line); border-radius:10px; margin-bottom:12px; overflow:hidden; }
+  .clip .thead { background:var(--panel2); padding:9px 12px; font-weight:600; display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  .clip .thead .no { color:var(--accent); font-family:var(--mono); font-size:.85rem; }
+  .clip .tbody { padding:10px 12px; }
+  .fieldlab { font-size:.75rem; text-transform:uppercase; letter-spacing:.6px; color:var(--faint); margin:10px 0 3px; }
+  pre.block { background:var(--code-bg); border-radius:8px; padding:10px; font-family:var(--mono); font-size:.82rem; white-space:pre-wrap; word-break:break-word; margin:0 0 4px; max-height:300px; overflow:auto; }
+  .pill { display:inline-block; font-size:.75rem; padding:2px 9px; border-radius:99px; margin:0 6px 6px 0; }
+  .pill.good { background:var(--good-soft); color:var(--good); }
+  .pill.crit { background:var(--crit-soft); color:var(--crit); }
+  #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--bg);
+    padding:9px 16px; border-radius:8px; font-size:.88rem; opacity:0; transition:opacity .25s; pointer-events:none; z-index:50; }
+  #toast.show { opacity:1; }
+  .empty { color:var(--faint); font-size:.9rem; text-align:center; padding:20px 8px; }
+  #catlist .clip .tbody { font-size:.86rem; color:var(--muted); }
+  @media (prefers-reduced-motion: reduce) { #toast { transition:none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="apps"><a href="index.html">🎙️ Podcast Studio</a><a href="music.html">☾ Music Studio</a><span style="color:var(--accent)">⚡ Shorts Studio</span></nav>
+<header>
+  <h1><span class="bolt">⚡</span> Shorts Studio</h1>
+  <p>โรงงานคลิปสั้น Faceless: Commentary · Ranking · Text Humor — copy-paste workflow ไม่ใช้ API</p>
+</header>
+
+<!-- ══════════ CHANNEL PROFILES ══════════ -->
+<details class="profile" id="profileBox">
+  <summary>📺 โปรไฟล์ช่อง <span class="hint" style="display:inline" id="profCount"></span></summary>
+  <label>เลือกช่องที่ใช้งาน</label>
+  <select id="profSel"></select>
+  <div class="row">
+    <div><label>ชื่อช่อง</label><input type="text" id="p_name" placeholder="เช่น ขำๆ ประเทศไทย"></div>
+    <div><label>ภาษา</label><select id="p_lang"><option value="th">ไทย</option><option value="en">อังกฤษ</option><option value="then">ไทย+อังกฤษ</option></select></div>
+  </div>
+  <label>นิช / กลุ่มคนดู</label>
+  <input type="text" id="p_niche" placeholder="เช่น มุกวัยทำงานไทย 20-35 ปี / ทาสหมา / สายมู">
+  <label>โทนเสียง + เอกลักษณ์ของช่อง</label>
+  <textarea id="p_tone" placeholder="เช่น: ปากแซ่บแต่ไม่หยาบ, bias ชัดเจนแบบตั้งใจให้เถียง, มุกไทยร่วมสมัย, จบทุกคลิปด้วยคำถามยั่วคอมเมนต์"></textarea>
+  <div class="btnrow">
+    <button class="small ghost" id="saveProf">บันทึกช่องนี้</button>
+    <button class="small ghost" id="newProf">+ เพิ่มช่องใหม่</button>
+    <button class="small ghost" id="delProf" style="color:var(--crit)">ลบช่องนี้</button>
+  </div>
+</details>
+
+<!-- ══════════ SHORTS DNA ══════════ -->
+<details class="profile">
+  <summary>🧬 Shorts DNA (กติกากลาง ใช้ทุกช่อง — แก้ได้)</summary>
+  <textarea class="big" id="dnaBox"></textarea>
+  <div class="btnrow"><button class="small ghost" id="saveDna">บันทึก DNA</button>
+  <button class="small ghost" id="resetDna">คืนค่าเริ่มต้น</button></div>
+</details>
+
+<!-- ══════════ VIRAL FINDER ══════════ -->
+<div class="card">
+  <h2>🔥 Viral Finder <span class="hint" style="display:inline">(YouTube Data API — ฟรี ~100 ครั้งค้นหา/วัน)</span></h2>
+  <div class="row">
+    <div style="flex:2"><label>YouTube API Key</label><input type="text" id="ytKey" placeholder="key จาก console.cloud.google.com (เปิดใช้ YouTube Data API v3)"></div>
+    <div><label>&nbsp;</label><button class="ghost small" id="saveKey" style="width:100%">บันทึก Key</button></div>
+  </div>
+  <div class="row">
+    <div style="flex:2"><label>คีย์เวิร์ดค้นหาในนิช</label><input type="text" id="vf_q" placeholder="เช่น จัดอันดับ ขนมไทย / dog facts / ราศี"></div>
+    <div><label>ช่วงเวลา</label><select id="vf_days"><option value="30">30 วัน</option><option value="90" selected>90 วัน</option><option value="365">1 ปี</option><option value="">ทุกช่วง</option></select></div>
+    <div><label>&nbsp;</label><button id="vf_go" style="width:100%">ค้นหา</button></div>
+  </div>
+  <p class="hint">เรียงตาม ⚡ ตัวคูณไวรัล = วิวของคลิป ÷ วิวเฉลี่ยต่อคลิปของช่องนั้น — ยิ่งสูงยิ่งแปลว่าคลิปนั้น "แหกเพดานช่องตัวเอง" = โครงคลิปแรงจริง ไม่ใช่ช่องใหญ่ดันขึ้นมา</p>
+  <div id="vf_out"></div>
+</div>
+
+<!-- ══════════ BRIEF ══════════ -->
+<div class="card">
+  <h2>⚡ สร้างคลิป</h2>
+  <div class="row">
+    <div>
+      <label>รูปแบบคลิป</label>
+      <select id="f_mode">
+        <option value="commentary">🗣️ Commentary (มุมมอง/hot take)</option>
+        <option value="ranking">🏆 Ranking / Tier List (มุกรายอันดับ)</option>
+        <option value="chat">💬 Text Humor (แชท/โพสต์หักมุก)</option>
+        <option value="teardown">🔬 Teardown & Remix (แกะคลิปไวรัล)</option>
+        <option value="podcast">✂️ ตัดจากตอน Podcast</option>
+      </select>
+    </div>
+    <div>
+      <label>จำนวนคลิป</label>
+      <select id="f_count"><option>1</option><option selected>3</option><option>5</option><option>8</option></select>
+    </div>
+    <div>
+      <label>ความยาวต่อคลิป</label>
+      <select id="f_len"><option value="30">~30 วินาที</option><option value="45" selected>~45 วินาที</option><option value="60">~60 วินาที</option><option value="90">~90 วินาที</option></select>
+    </div>
+  </div>
+  <label id="topicLab">หัวข้อ / ประเด็น / ธีมของชุดนี้</label>
+  <textarea id="f_topic" placeholder="เช่น: จัดอันดับขนมไทยที่คนรุ่นใหม่ลืม / ประเด็นดราม่า X วันนี้ / นิสัยหมาแต่ละพันธุ์..."></textarea>
+  <div id="podcastBox" hidden>
+    <label>วางสคริปต์ตอน Podcast ที่จะตัด</label>
+    <textarea class="big" id="f_transcript" placeholder="วางสคริปต์ตอนเต็ม — AI จะเลือกช่วงที่แรงสุดมาทำคลิป"></textarea>
+  </div>
+  <div id="teardownBox" hidden>
+    <label>คลิปต้นแบบที่จะแกะ (ชื่อ + คำอธิบาย + transcript ถ้ามี)</label>
+    <textarea class="big" id="f_ref" placeholder="วางข้อมูลคลิปไวรัลที่เจอ — หรือกด 🔬 จากผล Viral Finder ด้านบน ระบบจะเติมให้อัตโนมัติ"></textarea>
+  </div>
+  <div class="btnrow">
+    <div class="btncol"><button id="genPrompt">🪄 สร้าง Master Prompt</button></div>
+    <div class="btncol">
+      <button class="ghost" id="copyPrompt" disabled>📋 คัดลอก Prompt</button>
+      <span class="route">🏭 วางใน Gemini (ฟรี) · ชุดสำคัญ → 🎯 Claude (Opus)</span>
+    </div>
+  </div>
+  <textarea class="big" id="promptOut" readonly hidden></textarea>
+</div>
+
+<!-- ══════════ PASTE RESULT ══════════ -->
+<div class="card">
+  <h2>📥 วางผลลัพธ์จาก AI</h2>
+  <textarea class="big" id="resultIn" placeholder="วางคำตอบทั้งหมดของ AI ที่นี่..."></textarea>
+  <div class="btnrow"><button id="analyzeBtn">🔍 วิเคราะห์ + แยกคลิป</button></div>
+</div>
+
+<!-- ══════════ RESULTS ══════════ -->
+<div id="resultArea" hidden>
+  <div class="card" style="padding:10px 14px">
+    <div class="btnrow" style="margin-top:0">
+      <div class="btncol">
+        <button class="small" id="saveCatalog">🗂️ บันทึกหัวข้อเข้าคลัง (กันมุกซ้ำ)</button>
+        <span class="route">คลังของช่องนี้จะถูกฝังใน Prompt ครั้งหน้า</span>
+      </div>
+      <button class="ghost small" id="dlRaw">💾 ดาวน์โหลด .md</button>
+    </div>
+  </div>
+  <div id="clipsOut"></div>
+</div>
+
+<!-- ══════════ CATALOG ══════════ -->
+<div class="card">
+  <h2>🗂️ คลังหัวข้อที่ทำแล้ว <span class="hint" style="display:inline">(ของช่องที่เลือกอยู่)</span></h2>
+  <div id="catlist"></div>
+  <p class="empty" id="catEmpty">ยังไม่มีหัวข้อในคลังของช่องนี้</p>
+</div>
+
+</div><!-- /wrap -->
+<div id="toast"></div>
+
+<script>
+/* ───────── helpers ───────── */
+const $ = (s) => document.querySelector(s);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("sst_" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("sst_" + k, JSON.stringify(v)); } catch {} },
+};
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800); }
+async function copyText(text, okMsg) {
+  try { await navigator.clipboard.writeText(text); toast(okMsg || "คัดลอกแล้ว ✓"); }
+  catch { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); toast(okMsg || "คัดลอกแล้ว ✓"); }
+}
+function download(name, text) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+function esc(s) { return (s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+/* ───────── Shorts DNA (กลั่นจาก Skill shorts-commentary-editor) ───────── */
+const DNA_DEFAULT = `เป้าหมาย: Average View Percentage >65%, rewatch สูง, first-3-second retention แข็ง
+
+HOOK (0-3 วิ) — สูตรที่ใช้ได้:
+"เหตุผลที่ [กลุ่มคน] ส่วนใหญ่..." / "ผมเคยคิดแบบนี้... จนกระทั่ง [twist]" / "คนส่วนใหญ่เข้าใจผิดว่า..." / "ถ้าคุณยัง [ทำ X] อยู่ คุณกำลัง..." / "POV: ..." / คำถามตรง + ข้อเท็จจริงที่คนไม่คาดคิด
+Hook ต้องอ่านรู้เรื่องแม้ปิดเสียง (caption-first) + มี visual change ทันที
+
+PACING:
+- ภาพนิ่งห้ามเกิน 3-4 วินาที
+- Pattern interrupt ทุก 3-5 วิ: zoom 110-130% / text pop / speed ramp 1.15-1.3x / เปลี่ยน B-roll
+- ทุก 3-5 วิ ต้องมีอย่างน้อย 1 อย่าง: ข้อมูลใหม่ / visual change / emotional beat / curiosity gap ("แต่...", "จนกระทั่ง")
+
+โครงคลิป: 0-3s Hook แรง → 3-12s Setup เร็ว → กลางคลิป เนื้อหา+Twist (interrupt ตลอด) → ท้ายคลิป Punchline ชัด + คำถามปลายเปิดยั่วคอมเมนต์
+ห้ามจบด้วย "ขอบคุณที่ดู" — จบแบบวน loop กลับหัวคลิปได้ = โบนัส
+
+TEXT OVERLAY: 3-7 คำต่อหน้า, ขยายอารมณ์/สรุปประเด็น ไม่พิมพ์ซ้ำทั้งประโยค, แนะนำ animation: Pop+Scale / Typewriter / Slide`;
+
+let dna = store.get("dna", DNA_DEFAULT);
+$("#dnaBox").value = dna;
+$("#saveDna").onclick = () => { dna = $("#dnaBox").value; store.set("dna", dna); toast("บันทึก DNA ✓"); };
+$("#resetDna").onclick = () => { $("#dnaBox").value = DNA_DEFAULT; dna = DNA_DEFAULT; store.set("dna", dna); toast("คืนค่าเริ่มต้นแล้ว"); };
+
+/* ───────── channel profiles ───────── */
+let profiles = store.get("profiles", [{ name: "", niche: "", lang: "th", tone: "" }]);
+let profIdx = Math.min(store.get("profIdx", 0), profiles.length - 1);
+const PF = ["p_name", "p_niche", "p_lang", "p_tone"];
+const PKEY = { p_name: "name", p_niche: "niche", p_lang: "lang", p_tone: "tone" };
+function renderProfSel() {
+  $("#profSel").innerHTML = profiles.map((p, i) => `<option value="${i}" ${i === profIdx ? "selected" : ""}>${esc(p.name || "ช่องที่ " + (i + 1))}</option>`).join("");
+  $("#profCount").textContent = `(${profiles.length} ช่อง)`;
+  const p = profiles[profIdx];
+  PF.forEach((id) => { $("#" + id).value = p[PKEY[id]] || (id === "p_lang" ? "th" : ""); });
+}
+$("#profSel").onchange = () => { profIdx = +$("#profSel").value; store.set("profIdx", profIdx); renderProfSel(); renderCatalog(); };
+$("#saveProf").onclick = () => {
+  PF.forEach((id) => { profiles[profIdx][PKEY[id]] = $("#" + id).value; });
+  store.set("profiles", profiles); renderProfSel(); toast("บันทึกช่อง ✓");
+};
+$("#newProf").onclick = () => { profiles.push({ name: "", niche: "", lang: "th", tone: "" }); profIdx = profiles.length - 1; store.set("profiles", profiles); store.set("profIdx", profIdx); renderProfSel(); renderCatalog(); };
+$("#delProf").onclick = () => {
+  if (profiles.length <= 1) { toast("ต้องมีอย่างน้อย 1 ช่อง"); return; }
+  if (!confirm("ลบช่องนี้? (คลังหัวข้อของช่องนี้จะถูกลบด้วย)")) return;
+  const del = profIdx;
+  profiles.splice(del, 1);
+  /* remap คลัง: ลบของช่องที่หาย เลื่อน index ช่องที่อยู่หลัง */
+  const cat = catGet().filter((c) => c.pi !== del).map((c) => c.pi > del ? { ...c, pi: c.pi - 1 } : c);
+  store.set("catalog", cat);
+  profIdx = 0; store.set("profiles", profiles); store.set("profIdx", 0); renderProfSel(); renderCatalog();
+};
+renderProfSel();
+
+/* ───────── mode-specific prompt blocks ───────── */
+$("#f_mode").onchange = () => {
+  $("#podcastBox").hidden = $("#f_mode").value !== "podcast";
+  $("#teardownBox").hidden = $("#f_mode").value !== "teardown";
+};
+const LANGP = { th: "ภาษาไทย", en: "ภาษาอังกฤษ", then: "ไทยผสมอังกฤษ" };
+const MODE_RULES = {
+  teardown: `รูปแบบ: Teardown & Remix — แกะโครงคลิปไวรัลแล้วสร้างใหม่เป็นของช่องนี้
+- ขั้นแรก แกะคลิปต้นแบบ: ประเภท hook, โครงเรื่อง, ตำแหน่ง twist, กลไกที่ทำให้คน retain, เหตุผลที่มันไวรัล
+- ขั้นสอง remix: สร้างคลิปใหม่ที่ใช้ "โครงกระดูก" เดียวกัน แต่เปลี่ยนหัวข้อ/มุก/ตัวอย่างเป็นของนิชช่องนี้ทั้งหมด
+- ห้ามเด็ดขาด: ลอกประโยค มุก หรือตัวอย่างเฉพาะจากต้นแบบ — เก็บได้เฉพาะโครงสร้างและจังหวะ (โครงไม่มีลิขสิทธิ์ แต่เนื้อมี)
+- ถ้าคลิปต้นแบบอยู่คนละนิช ให้แปลงโครงข้ามนิชอย่างเนียน`,
+  commentary: `รูปแบบ: Commentary — มุมมอง/hot take ที่ชัดเจน
+- ทุกคลิปต้องมี "จุดยืน" เดียวที่คม (ฉัน vs คนอื่น หรือ ความเชื่อเดิม vs ความจริง)
+- Setup สั้น เข้า insight เร็ว มี twist กลางคลิปด้วย "แต่..." หรือ "จนกระทั่ง..."
+- จบด้วยความเห็นแรงพอให้คนอยากเถียงในคอมเมนต์`,
+  ranking: `รูปแบบ: Ranking / Tier List แบบมี bias
+- จัดอันดับ 5-8 รายการ เรียงจากอันดับท้าย ไต่ขึ้นอันดับ 1 (เก็บอันดับ 1 เป็น payoff ท้ายคลิป — คนต้องดูจบถึงรู้)
+- ทุกอันดับต้องมี "มุก/ความเห็นแรง" 1 ประโยค ห้ามบรรยายเฉยๆ (นี่คือหัวใจ ตบมุกได้ 5-8 ครั้งต่อคลิป)
+- bias ต้องชัดจนคนอยากเถียง เช่น อันดับที่คนคาดว่าสูงกลับต่ำ พร้อมเหตุผลกวนๆ ที่ฟังแล้วขำแต่มีเค้าจริง
+- ในส่วน Visuals: 1 อันดับ = 1 ภาพ`,
+  chat: `รูปแบบ: Text-based Humor — เล่าเรื่องผ่านหน้าจอแชท/โพสต์
+- เนื้อเรื่องเปิดเผยทีละบับเบิล มุกใหญ่อยู่ "บรรทัดสุดท้าย" เท่านั้น (คนต้องอ่านจนจบ = retention)
+- ระหว่างทางมีมุกเล็กหลอกล่อ 1-2 จุด และจุดที่คนเดาผิดโดยตั้งใจ 1 จุด
+- ใน Script ให้เขียนเป็นบทแชท: ชื่อผู้ส่ง | ข้อความ | จังหวะหน่วง (เช่น "...กำลังพิมพ์" ก่อนมุกใหญ่)
+- ส่วน Overlays ของโหมดนี้ = จังหวะบับเบิลแชทขึ้นจอ (เวลา | ผู้ส่ง | ข้อความ) เพราะบับเบิลจะทำในโปรแกรมตัดต่อ ไม่ใช่เจนจากภาพ
+- ส่วน Visuals: เฉพาะฉากหลัง/บรรยากาศ (โต๊ะ มือถือ แสงห้อง) ห้ามมีตัวอักษรใดๆ ในภาพเจน`,
+  podcast: `รูปแบบ: ตัดจากตอน Podcast
+- อ่านสคริปต์ที่ให้ แล้วเลือกช่วงที่ "แรงสุด" ต่อจำนวนคลิปที่ขอ (เกณฑ์: มี twist/ความเห็นแรง/ข้อเท็จจริงเซอร์ไพรส์ และ ยืนได้ด้วยตัวเองโดยไม่ต้องรู้บริบทตอนเต็ม)
+- เขียน hook ใหม่สำหรับแต่ละคลิป ห้าม copy ประโยคแรกของช่วงนั้นมาตรงๆ
+- จบแต่ละคลิปด้วยคำถามค้าง ให้คำตอบอยู่ในตอนเต็ม (บอกใน Packaging ว่า pin comment ลิงก์ตอนเต็ม)`,
+};
+
+/* ───────── master prompt ───────── */
+function buildPrompt() {
+  const mode = $("#f_mode").value, count = +$("#f_count").value, len = $("#f_len").value;
+  const topic = $("#f_topic").value.trim() || "(อิสระ — คิดจากนิชของช่อง)";
+  const p = profiles[profIdx];
+  const cat = catGet().filter((c) => c.pi === profIdx);
+  const used = cat.length ? `\n═══ หัวข้อที่ทำไปแล้ว (ห้ามซ้ำทั้งหัวข้อและมุก) ═══\n${cat.map((c) => "- " + c.topic + (c.clips.length ? " (" + c.clips.join(" / ") + ")" : "")).join("\n")}\n` : "";
+  const transcript = mode === "podcast" ? `\n═══ สคริปต์ตอนเต็ม ═══\n"""\n${$("#f_transcript").value.trim()}\n"""\n`
+    : mode === "teardown" ? `\n═══ คลิปต้นแบบ (สำหรับแกะโครงเท่านั้น ห้ามลอกเนื้อ) ═══\n"""\n${$("#f_ref").value.trim()}\n"""\n` : "";
+  const tdSection = mode === "teardown" ? `## TEARDOWN
+(สรุปโครงคลิปต้นแบบ 5 ข้อ: ประเภท hook / โครงเรื่อง / ตำแหน่ง twist / กลไก retention / สิ่งที่ "ห้ามลอก" จากคลิปนี้)
+
+` : "";
+
+  return `คุณคือครีเอเตอร์ + editor คลิปสั้นแนว Faceless ระดับโปร
+
+═══ ช่อง ═══
+ชื่อ: ${p.name || "-"} | นิช: ${p.niche || "-"} | ภาษา: ${LANGP[p.lang]}
+โทน/เอกลักษณ์: ${p.tone || "-"}
+
+═══ SHORTS DNA (กติกาบังคับทุกคลิป) ═══
+${dna}
+
+═══ ${MODE_RULES[mode].split("\n")[0].replace("รูปแบบ: ", "")} ═══
+${MODE_RULES[mode]}
+${used}${transcript}
+═══ งาน ═══
+สร้างคลิปสั้น ${count} คลิป ยาวคลิปละ ~${len} วินาที
+หัวข้อ/ธีม: ${topic}
+
+═══ รูปแบบคำตอบ (ต้องตรงเป๊ะทุกหัวข้อ ห้ามมีข้อความนอกโครงสร้าง) ═══
+
+# SHORTS PACKAGE
+
+${tdSection}## CLIP 1: <ชื่อคลิป>
+**Hook:** <ประโยค hook หลัก + เวอร์ชันสำรอง 1 เวอร์ชัน>
+**Script:**
+\`\`\`
+[0-3s] ...
+[3-Xs] ...
+(ระบุช่วงเวลาทุกท่อนจนจบ ${len} วิ)
+\`\`\`
+**Overlays:**
+\`\`\`
+<เวลา> | <animation: Pop/Typewriter/Slide> | <ข้อความ 3-7 คำ>
+(ทุกจุดที่มี text บนจอ)
+\`\`\`
+**Visuals:**
+\`\`\`
+[ช่วงเวลา] <image prompt ภาษาอังกฤษ 9:16 แนวตั้ง — subject กลางเฟรม เว้นขอบบนล่าง 15%, มี motion cue 1-2 อย่าง (drifting smoke, dust in light ฯลฯ) + camera: slow push-in/pan, ห้าม: close-up hands, close-up faces, readable text, crowds — ลงท้ายทุก prompt ด้วย style token เดียวกันทั้งคลิป>
+\`\`\`
+**Packaging:** Title 2 แบบ + hashtags 5 ตัว + first pinned comment
+**Edit Cues:**
+\`\`\`
+<เวลา> | <คำสั่งตัดต่อ CapCut: zoom in 115-125% / speed ramp 1.15-1.3x / เปลี่ยน B-roll / text pop + เสียง whoosh / shake เบา>
+(วาง pattern interrupt ทุก 3-5 วิ ตาม DNA — ให้ตรงกับจังหวะใน Script)
+\`\`\`
+**Self-QC:** <ประเมิน AVP ที่คาดหวัง เป็น % + ระบุ "วินาทีที่อ่อนสุด" ของคลิปนี้ว่าคือช่วงไหนเพราะอะไร พร้อมวิธีแก้ 1 บรรทัด>
+**Loop:** <ประโยค/ภาพท้ายคลิปที่วนกลับหัวคลิปได้อย่างไร>
+
+(ทำซ้ำจนครบ ## CLIP ${count})
+
+═══ กติกาคุณภาพ ═══
+1. Hook ทุกคลิปต้องอ่านรู้เรื่องแม้ปิดเสียง
+2. ${count > 1 ? "ทั้ง " + count + " คลิปห้ามใช้มุกหรือโครงมุกซ้ำกันเอง และ" : ""}ห้ามซ้ำกับคลังหัวข้อที่ให้ไว้
+3. มุก/ความเห็นต้อง original — ห้ามลอกมีมหรือประโยคดังที่มีอยู่แล้ว
+4. เขียนตามโทนช่องเคร่งครัด`;
+}
+$("#genPrompt").onclick = () => {
+  if ($("#f_mode").value === "podcast" && !$("#f_transcript").value.trim()) { toast("โหมดตัดจาก Podcast ต้องวางสคริปต์ก่อน"); return; }
+  if ($("#f_mode").value === "teardown" && !$("#f_ref").value.trim()) { toast("โหมด Teardown ต้องวางข้อมูลคลิปต้นแบบก่อน"); return; }
+  const out = $("#promptOut"); out.value = buildPrompt(); out.hidden = false;
+  $("#copyPrompt").disabled = false; toast("สร้าง Prompt แล้ว ✓");
+};
+$("#copyPrompt").onclick = () => copyText($("#promptOut").value, "คัดลอกแล้ว — วางใน Gemini ได้เลย");
+
+/* ───────── parser ───────── */
+function parseClips(md) {
+  const parts = md.split(/^##\s*CLIP\s*/mi).slice(1);
+  return parts.map((part) => {
+    const c = {};
+    const head = part.match(/^([\d]+)\s*:\s*([^\n]+)/);
+    c.no = head ? head[1] : "?"; c.title = head ? head[2].trim() : "(ไม่มีชื่อ)";
+    const g = (label, cb) => {
+      const withCode = part.match(new RegExp("\\*\\*" + label + ":\\*\\*\\s*```([\\s\\S]*?)```", "i"));
+      if (withCode) return withCode[1].trim();
+      const plain = part.match(new RegExp("\\*\\*" + label + ":\\*\\*\\s*([\\s\\S]*?)(?=\\n\\*\\*|$)", "i"));
+      return plain ? plain[1].trim() : "";
+    };
+    c.hook = g("Hook"); c.script = g("Script"); c.overlays = g("Overlays");
+    c.visuals = g("Visuals"); c.pack = g("Packaging"); c.edit = g("Edit Cues"); c.qc = g("Self-QC"); c.loop = g("Loop");
+    return c;
+  });
+}
+
+/* ───────── render ───────── */
+let clips = [], currentRaw = "";
+function render() {
+  $("#clipsOut").innerHTML = clips.length ? clips.map((c, i) => {
+    const secs = [
+      ["Hook", "hook"], ["Script (จับเวลา)", "script"], ["Text Overlays", "overlays"],
+      ["Visuals 9:16", "visuals"], ["Packaging", "pack"], ["Edit Cues (CapCut)", "edit"], ["Self-QC", "qc"], ["Loop", "loop"],
+    ].map(([lab, k]) => c[k] ? `
+      <div class="fieldlab">${lab}</div>
+      <pre class="block">${esc(c[k])}</pre>
+      <button class="ghost small" onclick="copyText(clips[${i}].${k},'คัดลอก ${lab} ✓')">📋 ${lab}</button>` : "").join("");
+    const miss = ["hook", "script", "visuals"].filter((k) => !c[k]);
+    return `<div class="clip">
+      <div class="thead"><span><span class="no">CLIP ${esc(c.no)}</span> · ${esc(c.title)}</span>
+      ${miss.length ? `<span class="pill crit">ขาด: ${miss.join(", ")}</span>` : '<span class="pill good">ครบ</span>'}</div>
+      <div class="tbody">${secs}
+      <div class="btncol" style="display:inline-flex;margin-top:10px">
+        <button class="ghost small" onclick="polishClip(${i})">👑 Prompt ขัดเกลา Hook+มุก</button>
+        <span class="route fable">คลิปเรือธง → วางใน Claude (Opus/Fable)</span>
+      </div></div></div>`;
+  }).join("") : '<p class="empty">ไม่พบ CLIP — เช็คว่า AI ตอบตามโครงสร้าง ## CLIP 1:</p>';
+  $("#resultArea").hidden = false;
+}
+function polishClip(i) {
+  const c = clips[i];
+  const txt = `คุณคือ editor คลิปสั้นระดับโปร ช่วยขัดคลิปนี้ให้ retention สูงสุด
+
+SHORTS DNA:
+${dna}
+
+คลิป: ${c.title}
+Hook เดิม: ${c.hook}
+Script เดิม:
+"""
+${c.script}
+"""
+
+ทำ 3 อย่าง:
+1. เขียน Hook ใหม่ 3 เวอร์ชันที่แรงกว่าเดิม (อ่านรู้เรื่องแม้ปิดเสียง)
+2. ชี้จุดใน Script ที่คนน่าจะเลื่อนหนี + แก้จุดนั้น (คงความยาวเดิม)
+3. ขัดมุก/punchline ให้คมขึ้นโดยคงโครงเดิม
+ตอบรูปแบบเดิม: **Hook:** / **Script:** ใน code block`;
+  copyText(txt, "คัดลอกแล้ว — วางใน Claude (Opus/Fable)");
+}
+function analyze() {
+  currentRaw = $("#resultIn").value.trim();
+  if (!currentRaw) { toast("ยังไม่ได้วางผลลัพธ์"); return; }
+  clips = parseClips(currentRaw); render();
+  const td = currentRaw.match(/^##\s*TEARDOWN\s*\n([\s\S]*?)(?=\n##\s*CLIP|$)/mi);
+  if (td) $("#clipsOut").insertAdjacentHTML("afterbegin",
+    `<div class="clip"><div class="thead"><span>🔬 โครงที่แกะได้จากคลิปต้นแบบ</span></div>
+    <div class="tbody"><pre class="block">${esc(td[1].trim())}</pre></div></div>`);
+}
+$("#analyzeBtn").onclick = analyze;
+$("#dlRaw").onclick = () => download("shorts-" + Date.now() + ".md", currentRaw);
+
+/* ───────── Viral Finder (YouTube Data API v3) ───────── */
+let ytKey = store.get("ytkey", "");
+$("#ytKey").value = ytKey;
+$("#saveKey").onclick = () => { ytKey = $("#ytKey").value.trim(); store.set("ytkey", ytKey); toast("บันทึก Key ✓"); };
+async function yt(path, params) {
+  const u = new URL("https://www.googleapis.com/youtube/v3/" + path);
+  Object.entries({ ...params, key: ytKey }).forEach(([k, v]) => v !== "" && u.searchParams.set(k, v));
+  const r = await fetch(u);
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e.error && e.error.message) || "HTTP " + r.status); }
+  return r.json();
+}
+function pDur(iso) { const m = (iso || "").match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/) || []; return (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0); }
+function fN(n) { n = +n; return n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(0) + "K" : "" + n; }
+let vf = [];
+$("#vf_go").onclick = async () => {
+  if (!ytKey) { toast("ใส่ YouTube API Key ก่อน"); return; }
+  const q = $("#vf_q").value.trim(); if (!q) { toast("ใส่คีย์เวิร์ดก่อน"); return; }
+  $("#vf_out").innerHTML = '<p class="empty">กำลังค้นหา...</p>';
+  try {
+    const days = $("#vf_days").value;
+    const sp = { part: "id", q, type: "video", videoDuration: "short", order: "viewCount", maxResults: 15 };
+    if (days) sp.publishedAfter = new Date(Date.now() - days * 864e5).toISOString();
+    const s = await yt("search", sp);
+    const ids = s.items.map((i) => i.id.videoId).filter(Boolean);
+    if (!ids.length) { $("#vf_out").innerHTML = '<p class="empty">ไม่พบผลลัพธ์ ลองคีย์เวิร์ดอื่น</p>'; return; }
+    const v = await yt("videos", { part: "snippet,statistics,contentDetails", id: ids.join(",") });
+    const chIds = [...new Set(v.items.map((x) => x.snippet.channelId))];
+    const ch = await yt("channels", { part: "statistics", id: chIds.join(",") });
+    const chMap = {}; (ch.items || []).forEach((c) => { chMap[c.id] = c.statistics; });
+    vf = v.items.map((x) => {
+      const st = x.statistics || {}, cs = chMap[x.snippet.channelId] || {};
+      const avg = (+cs.viewCount || 0) / Math.max(+cs.videoCount || 1, 1);
+      return { id: x.id, title: x.snippet.title, ch: x.snippet.channelTitle, desc: x.snippet.description || "",
+        thumb: ((x.snippet.thumbnails || {}).medium || (x.snippet.thumbnails || {}).default || {}).url || "",
+        views: +st.viewCount || 0, likes: +st.likeCount || 0, dur: pDur((x.contentDetails || {}).duration),
+        mult: avg ? (+st.viewCount || 0) / avg : 0 };
+    }).sort((a, b) => b.mult - a.mult);
+    $("#vf_out").innerHTML = vf.map((x, i) => `<div class="clip"><div class="thead" style="font-weight:500">
+      <span style="display:flex;gap:10px;align-items:center;min-width:0">${x.thumb ? `<img src="${x.thumb}" style="width:64px;border-radius:6px;flex-shrink:0" alt="">` : ""}
+      <span style="min-width:0"><a href="https://youtube.com/watch?v=${x.id}" target="_blank" rel="noopener" style="color:var(--ink)">${esc(x.title)}</a>
+      <div class="hint" style="margin:2px 0 0">${esc(x.ch)} · ${fN(x.views)} วิว · ${x.likes ? (x.likes / Math.max(x.views, 1) * 100).toFixed(1) + "% ไลก์ · " : ""}${x.dur}s</div></span></span>
+      <span style="text-align:right;flex-shrink:0"><span class="pill ${x.mult >= 10 ? "good" : "crit"}" style="font-weight:700">⚡${x.mult >= 100 ? x.mult.toFixed(0) : x.mult.toFixed(1)}x</span><br>
+      <button class="ghost small" onclick="sendTeardown(${i})">🔬 แกะคลิปนี้</button></span></div></div>`).join("");
+  } catch (e) { $("#vf_out").innerHTML = `<p class="empty">ผิดพลาด: ${esc(e.message)}</p>`; }
+};
+function sendTeardown(i) {
+  const x = vf[i];
+  $("#f_mode").value = "teardown"; $("#f_mode").onchange();
+  $("#f_ref").value = `คลิปต้นแบบ: ${x.title}\nช่อง: ${x.ch} | ${fN(x.views)} วิว | ⚡${x.mult.toFixed(1)}x | ยาว ${x.dur}s\nลิงก์: https://youtube.com/watch?v=${x.id}\nคำอธิบายคลิป:\n${x.desc.slice(0, 600)}\n\n(แนะนำ: เปิดคลิปจริง แล้วพิมพ์/วาง transcript คร่าวๆ ต่อท้ายตรงนี้ — ยิ่งละเอียด โครงที่แกะยิ่งแม่น)`;
+  $("#f_topic").scrollIntoView({ behavior: "smooth" });
+  toast("ส่งเข้าโหมด Teardown แล้ว 🔬");
+}
+
+/* ───────── catalog (กันมุกซ้ำ รายช่อง) ───────── */
+function catGet() { return store.get("catalog", []); }
+$("#saveCatalog").onclick = () => {
+  if (!clips.length) { toast("ยังไม่มีคลิปให้บันทึก"); return; }
+  const c = catGet();
+  c.unshift({ d: new Date().toISOString().slice(0, 10), pi: profIdx, mode: $("#f_mode").value, topic: $("#f_topic").value.trim().slice(0, 120) || clips[0].title, clips: clips.map((x) => x.title) });
+  store.set("catalog", c.slice(0, 60)); renderCatalog(); toast("บันทึกเข้าคลัง 🗂️");
+};
+function delCat(realIdx) {
+  if (!confirm("ลบหัวข้อนี้?")) return;
+  const c = catGet(); c.splice(realIdx, 1); store.set("catalog", c); renderCatalog();
+}
+function renderCatalog() {
+  const all = catGet();
+  const mine = all.map((c, i) => ({ ...c, _i: i })).filter((c) => c.pi === profIdx);
+  $("#catEmpty").style.display = mine.length ? "none" : "";
+  $("#catlist").innerHTML = mine.map((c) => `<div class="clip"><div class="thead"><span>🗂️ ${esc(c.topic)}</span>
+    <button class="ghost small" onclick="delCat(${c._i})" style="color:var(--crit)">ลบ</button></div>
+    <div class="tbody">${c.d} · ${esc(c.mode)} · ${c.clips.map(esc).join(" / ")}</div></div>`).join("");
+}
+renderCatalog();
+</script>
+</body>
+</html>
