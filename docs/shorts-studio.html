@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https://i.ytimg.com data: blob:; media-src blob: data:; connect-src https://www.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Shorts Studio — Faceless Creator Suite</title>
 <style>
   :root {
@@ -116,7 +117,7 @@
 <div class="card">
   <h2>🔥 Viral Finder <span class="hint" style="display:inline">(YouTube Data API — ฟรี ~100 ครั้งค้นหา/วัน)</span></h2>
   <div class="row">
-    <div style="flex:2"><label>YouTube API Key</label><input type="text" id="ytKey" placeholder="key จาก console.cloud.google.com (เปิดใช้ YouTube Data API v3)"></div>
+    <div style="flex:2"><label>YouTube API Key</label><input type="password" id="ytKey" autocomplete="off" placeholder="key จาก console.cloud.google.com (เปิดใช้ YouTube Data API v3)"></div>
     <div><label>&nbsp;</label><button class="ghost small" id="saveKey" style="width:100%">บันทึก Key</button></div>
   </div>
   <div class="row">

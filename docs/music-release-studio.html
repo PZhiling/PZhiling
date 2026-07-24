@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src blob: data:; connect-src https://www.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Music Release Studio — Dreamscape Soul</title>
 <style>
   :root {
@@ -232,7 +233,7 @@
 <div class="card">
   <h2>💿 คลังเพลง & เทรนด์การฟังซ้ำ</h2>
   <div class="row">
-    <div style="flex:2"><label>YouTube API Key (ดึงยอดวิวอัตโนมัติ — ใช้ key เดียวกับ Shorts Studio ได้)</label><input type="text" id="ytKey" placeholder="key จาก console.cloud.google.com (YouTube Data API v3)"></div>
+    <div style="flex:2"><label>YouTube API Key (ดึงยอดวิวอัตโนมัติ — ใช้ key เดียวกับ Shorts Studio ได้)</label><input type="password" id="ytKey" autocomplete="off" placeholder="key จาก console.cloud.google.com (YouTube Data API v3)"></div>
     <div><label>&nbsp;</label><button class="ghost small" id="saveKey" style="width:100%">บันทึก Key</button></div>
   </div>
   <p class="hint" style="margin-top:0">กรอกสถิติจาก YouTube Studio ของแต่ละงานหลังปล่อย ~7-14 วัน: ยอดวิว, % ดูเฉลี่ย (Average percentage viewed), % ผู้ชมที่กลับมา (Returning viewers) — ตัวเลขสองตัวหลังคือหัวใจของ "คนชอบกลับมาฟังอีก"</p>
