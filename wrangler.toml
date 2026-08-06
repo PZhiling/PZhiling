@@ -1,0 +1,8 @@
+# Cloudflare Pages configuration.
+#
+# The site under docs/ is prebuilt static HTML — the same directory GitHub
+# Pages serves — so Cloudflare needs no build step. Leave the build command
+# empty in the Cloudflare dashboard; running `npm run build` would produce
+# dist/ (the Vite app), which is not what is published here.
+name = "podcast-seo-studio"
+pages_build_output_dir = "./docs"
