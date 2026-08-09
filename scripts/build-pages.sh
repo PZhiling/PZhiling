@@ -17,7 +17,7 @@ cp public/icons/icon-192.png public/icons/icon-512.png \
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src blob: data:; connect-src https://generativelanguage.googleapis.com https://texttospeech.googleapis.com https://www.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https://i.ytimg.com data: blob:; media-src blob: data:; connect-src https://generativelanguage.googleapis.com https://texttospeech.googleapis.com https://www.googleapis.com; object-src 'none'; base-uri 'none'; form-action 'none'" />
 <meta name="theme-color" content="#17181a" />
 <meta name="description" content="สตูดิโอสร้างคอนเทนต์ YouTube Faceless Podcast: Prompt + Brand DNA + QC Gate + Storyboard + TTS" />
 <title>Podcast SEO Studio</title>

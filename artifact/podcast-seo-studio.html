@@ -154,6 +154,11 @@
   .compitem .ur { font-family: var(--mono); font-size: .72rem; color: var(--accent-ink); word-break: break-all; }
   .compitem .nt { font-size: .78rem; color: var(--muted); }
   .compitem .grow { flex: 1; min-width: 0; }
+  .vfitem { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg); margin-top: 8px; }
+  .vfitem img { width: 92px; border-radius: 6px; flex: none; border: 1px solid var(--line); }
+  .vfitem .grow { flex: 1; min-width: 0; }
+  .vfitem .tt { font-weight: 700; font-size: .85rem; line-height: 1.4; }
+  .vfitem .mt { font-size: .74rem; color: var(--muted); margin-top: 3px; }
 
   /* weekly trends */
   .trendhead { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
@@ -296,6 +301,7 @@
       <div class="brandgrid">
         <div><label for="k_gemini">GEMINI_API_KEY</label><input type="password" id="k_gemini" placeholder="AIza..." autocomplete="off" /></div>
         <div><label for="k_tts">GOOGLE_TTS_API_KEY (ถ้าจะใช้เสียงพากย์)</label><input type="password" id="k_tts" placeholder="AIza... (ต้องเปิด Cloud Text-to-Speech API)" autocomplete="off" /></div>
+        <div><label for="k_yt">YOUTUBE_API_KEY (สำหรับค้นหา Outlier — ใช้ key เดียวกับ Shorts Studio ได้)</label><input type="password" id="k_yt" placeholder="AIza... (ต้องเปิด YouTube Data API v3)" autocomplete="off" /></div>
       </div>
       <div class="btnrow"><button class="btn small" id="testgemini">ทดสอบ Gemini key</button></div>
     </details>
@@ -347,6 +353,32 @@
       <details class="mini">
         <summary>🔭 Outlier Watchlist — <span id="compcount">0</span> รายการ</summary>
         <p class="hint" style="margin-top:8px">ใส่คลิปที่ <strong>ยอดวิวสูงผิดปกติเทียบกับขนาดช่อง</strong> — นั่นคือหลักฐานว่าตลาดมีดีมานด์รออยู่แล้ว ระบบจะคำนวณ "ตัวคูณ Outlier" ให้ แล้วสั่ง AI ทำเวอร์ชันที่ดีกว่าแทนการเดาหัวข้อใหม่</p>
+
+        <div id="vfbox" hidden>
+          <div class="eyebrow" style="margin:14px 0 6px">🔥 Viral Finder</div>
+          <p class="hint" style="margin-top:0">ค้นคลิปยาวในนิชของคุณแล้วเรียงตามตัวคูณ Outlier ให้อัตโนมัติ — กด "+ Watchlist" แล้วยอดวิว/ซับจะถูกกรอกให้เอง ไม่ต้องพิมพ์มือ</p>
+          <div class="grid2">
+            <input type="text" id="vfq" placeholder="คีย์เวิร์ดในนิชของคุณ เช่น money psychology" />
+            <select id="vfdur">
+              <option value="medium">ความยาว 4–20 นาที (ตรงกับ Podcast)</option>
+              <option value="long">ยาวกว่า 20 นาที</option>
+              <option value="any">ทุกความยาว</option>
+            </select>
+          </div>
+          <div class="grid2" style="margin-top:8px">
+            <select id="vfdays">
+              <option value="90">โพสต์ใน 90 วันล่าสุด</option>
+              <option value="30">30 วันล่าสุด</option>
+              <option value="365">1 ปีล่าสุด</option>
+              <option value="">ทุกช่วงเวลา</option>
+            </select>
+            <button class="btn small primary" id="vfgo">🔥 ค้นหา Outlier</button>
+          </div>
+          <div id="vfout"></div>
+        </div>
+        <p class="hint" id="vfhint" style="margin-top:14px">💡 ใส่ <strong>YOUTUBE_API_KEY</strong> ในกล่อง 🔑 ด้านบน เพื่อปลดล็อก Viral Finder (ค้นคลิป Outlier ให้อัตโนมัติ) — หรือกรอกเองด้านล่างก็ได้</p>
+
+        <div class="eyebrow" style="margin:14px 0 6px">เพิ่มเอง</div>
         <div class="grid2">
           <input type="text" id="cname" placeholder="ชื่อคลิป / ช่อง" />
           <input type="url" id="curl" placeholder="https://youtube.com/..." />
@@ -826,6 +858,91 @@ function decodePrompt(c) {
 4. เลือกหัวข้อที่ดีที่สุด 1 หัวข้อ แล้วเขียน Cold Open 30 วินาทีแรกเป็นภาษาอังกฤษ ตามสูตร Hook ใน Brand DNA${dnaSuffix()}`;
 }
 
+/* Viral Finder — YouTube Data API v3, ported from Shorts Studio and retuned for long-form */
+async function yt(path, params) {
+  const u = new URL("https://www.googleapis.com/youtube/v3/" + path);
+  Object.entries({ ...params, key: keys.yt.trim() }).forEach(([k, v]) => v !== "" && v != null && u.searchParams.set(k, v));
+  const r = await fetch(u);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j?.error?.message || "HTTP " + r.status);
+  return j;
+}
+const durSec = (iso) => {
+  const m = (iso || "").match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/) || [];
+  return (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0);
+};
+const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+let vfRows = [];
+function renderVf() {
+  $("#vfout").innerHTML = vfRows.length ? vfRows.map((x, i) => {
+    const t = outlierTier(x.subMult);
+    const added = comps.some((c) => c.url.includes(x.id));
+    return `<div class="vfitem">
+      ${x.thumb ? `<img src="${esc(x.thumb)}" alt="" loading="lazy" />` : ""}
+      <div class="grow">
+        <div class="tt">${esc(x.title)}</div>
+        <div class="mt">${esc(x.ch)} · ${fmtCount(x.views)} วิว · ช่อง ${fmtCount(x.subs)} ซับ · ${mmss(x.dur)} นาที</div>
+        <div class="mt">
+          ${t ? `<span class="chip ${t.cls}"${t.cls ? "" : ' style="background:var(--panel2);color:var(--muted)"'}>${t.txt} ${x.subMult.toFixed(1)}× ต่อซับ</span>` : ""}
+          ${x.avgMult ? `<span class="chip" style="background:var(--panel2);color:var(--muted)">${x.avgMult.toFixed(1)}× ค่าเฉลี่ยช่อง</span>` : ""}
+        </div>
+        <div class="btnrow" style="margin-top:6px">
+          <button class="btn small${added ? "" : " primary"}" data-vfadd="${i}"${added ? " disabled" : ""}>${added ? "✓ อยู่ใน Watchlist แล้ว" : "+ เพิ่มเข้า Watchlist"}</button>
+          <a class="btn small" href="https://youtube.com/watch?v=${esc(x.id)}" target="_blank" rel="noopener">▶ เปิดคลิป</a>
+        </div>
+      </div>
+    </div>`;
+  }).join("") : "";
+  $$("#vfout [data-vfadd]").forEach((b) => b.addEventListener("click", () => {
+    const x = vfRows[Number(b.dataset.vfadd)];
+    comps.unshift({
+      name: x.title.slice(0, 120), url: `https://youtube.com/watch?v=${x.id}`,
+      notes: `ช่อง ${x.ch} · ${x.avgMult ? x.avgMult.toFixed(1) + "× ค่าเฉลี่ยช่องตัวเอง · " : ""}ยาว ${mmss(x.dur)}`,
+      views: x.views, subs: x.subs,
+    });
+    store.set("comps", comps); renderComps(); renderVf();
+    toast("เพิ่มเข้า Watchlist แล้ว ✓");
+  }));
+}
+$("#vfgo").addEventListener("click", async () => {
+  const q = $("#vfq").value.trim();
+  if (!q) return toast("ใส่คีย์เวิร์ดก่อน");
+  const b = $("#vfgo"); b.disabled = true; b.textContent = "⏳ กำลังค้น...";
+  $("#vfout").innerHTML = `<p class="hint">กำลังค้นหา...</p>`;
+  try {
+    const days = $("#vfdays").value, dur = $("#vfdur").value;
+    const sp = { part: "id", q, type: "video", order: "viewCount", maxResults: 20 };
+    if (dur !== "any") sp.videoDuration = dur;
+    if (days) sp.publishedAfter = new Date(Date.now() - days * 864e5).toISOString();
+    const s = await yt("search", sp);
+    const ids = (s.items || []).map((i) => i.id?.videoId).filter(Boolean);
+    if (!ids.length) { $("#vfout").innerHTML = `<p class="hint">ไม่พบผลลัพธ์ — ลองคีย์เวิร์ดอื่นหรือขยายช่วงเวลา</p>`; return; }
+    const v = await yt("videos", { part: "snippet,statistics,contentDetails", id: ids.join(",") });
+    const chIds = [...new Set((v.items || []).map((x) => x.snippet.channelId))];
+    const ch = await yt("channels", { part: "statistics", id: chIds.join(",") });
+    const chMap = {}; (ch.items || []).forEach((c) => { chMap[c.id] = c.statistics || {}; });
+    vfRows = (v.items || []).map((x) => {
+      const st = x.statistics || {}, cs = chMap[x.snippet.channelId] || {};
+      const views = +st.viewCount || 0, subs = +cs.subscriberCount || 0;
+      const avg = (+cs.viewCount || 0) / Math.max(+cs.videoCount || 1, 1);
+      return {
+        id: x.id, title: x.snippet.title, ch: x.snippet.channelTitle,
+        thumb: (x.snippet.thumbnails?.medium || x.snippet.thumbnails?.default || {}).url || "",
+        views, subs, dur: durSec(x.contentDetails?.duration),
+        subMult: subs ? views / subs : null, avgMult: avg ? views / avg : null,
+      };
+    }).filter((x) => x.subMult != null).sort((a, b) => b.subMult - a.subMult);
+    renderVf();
+    if (!vfRows.length) $("#vfout").innerHTML = `<p class="hint">ค้นเจอคลิป แต่ช่องซ่อนจำนวนผู้ติดตามไว้ จึงคำนวณตัวคูณไม่ได้ — ลองคีย์เวิร์ดอื่น</p>`;
+  } catch (e) {
+    const m = String(e.message || e);
+    $("#vfout").innerHTML = `<p class="hint" style="color:var(--crit)">ผิดพลาด: ${esc(
+      /quota/i.test(m) ? "โควตา YouTube API วันนี้หมดแล้ว (ฟรีวันละ ~100 ครั้งค้นหา) — พรุ่งนี้รีเซ็ต"
+      : /API key not valid|keyInvalid/i.test(m) ? "API key ไม่ถูกต้อง หรือยังไม่ได้เปิด YouTube Data API v3"
+      : m)}</p>`;
+  } finally { b.disabled = false; b.textContent = "🔥 ค้นหา Outlier"; }
+});
+
 function renderComps() {
   $("#compcount").textContent = comps.length;
   $("#complist").innerHTML = compSorted().map((c) => {
@@ -970,9 +1087,17 @@ brandStatus();
 
 /* ── API keys: BYO-key mode (direct browser calls; works on GitHub Pages) ── */
 const keys = store.get("keys", {});
+// Same origin as Shorts Studio — reuse its YouTube key rather than making the user paste it twice
+if (!keys.yt) {
+  try {
+    const shared = JSON.parse(localStorage.getItem("sst_ytkey") || '""');
+    if (typeof shared === "string" && shared.trim()) { keys.yt = shared.trim(); store.set("keys", keys); }
+  } catch {}
+}
 const hasGemini = () => !!(keys.gemini || "").trim();
 const hasTTS = () => !!(keys.tts || "").trim();
-[["k_gemini", "gemini"], ["k_tts", "tts"]].forEach(([id, k]) => {
+const hasYT = () => !!(keys.yt || "").trim();
+[["k_gemini", "gemini"], ["k_tts", "tts"], ["k_yt", "yt"]].forEach(([id, k]) => {
   const el = $("#" + id);
   el.value = keys[k] || "";
   el.addEventListener("input", () => { keys[k] = el.value.trim(); store.set("keys", keys); refreshKeyUI(); });
@@ -983,6 +1108,8 @@ function refreshKeyUI() {
     : "โหมด copy-paste (ยังไม่ใส่ key)";
   $("#genai").hidden = !hasGemini();
   $("#trendlive").hidden = !hasGemini();
+  $("#vfbox").hidden = !hasYT();
+  $("#vfhint").hidden = hasYT();
   const showTts = hasTTS() && !!current;
   $("#ttsbtn").hidden = !showTts;
   $("#ttsvoice").hidden = !showTts;
