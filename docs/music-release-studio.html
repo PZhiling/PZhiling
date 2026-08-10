@@ -390,31 +390,59 @@ $("#genPrompt").onclick = () => {
 $("#copyPrompt").onclick = () => copyText($("#promptOut").value, "คัดลอก Prompt แล้ว — วางใน Gemini ได้เลย");
 
 /* ───────── parser ───────── */
+/* Tolerant parser: headings and labels may carry markdown decoration (## / ### / **)
+   or none at all, and lyrics may or may not sit in a code fence. */
 function parsePackage(md) {
-  const sec = {};
-  const grab = (name) => {
-    const re = new RegExp("^##\\s*" + name + "[^\\n]*\\n([\\s\\S]*?)(?=\\n##\\s|$(?![\\s\\S]))", "mi");
-    const m = md.match(re); return m ? m[1].trim() : "";
+  const text = String(md || "").replace(/\r\n?/g, "\n");
+  const NAMES = ["CONCEPT", "TRACKS", "DISTROKID", "YOUTUBE", "COVER ART PROMPT"];
+  // A section header is a line holding only the section name (decoration optional)
+  const headRe = (n) => new RegExp(
+    "^[ \\t]*#{0,6}[ \\t]*\\*{0,2}[ \\t]*" + n.replace(/ /g, "[ \\t]+") + "[ \\t*:]*$", "im");
+  const marks = [];
+  NAMES.forEach((n) => {
+    const m = text.match(headRe(n));
+    if (m) marks.push({ name: n, start: m.index, body: m.index + m[0].length });
+  });
+  marks.sort((a, b) => a.start - b.start);
+  const bodyOf = (n) => {
+    const i = marks.findIndex((x) => x.name === n);
+    if (i < 0) return "";
+    return text.slice(marks[i].body, i + 1 < marks.length ? marks[i + 1].start : text.length).trim();
   };
-  sec.concept = grab("CONCEPT");
-  sec.dk = grab("DISTROKID");
-  sec.yt = grab("YOUTUBE");
-  sec.cover = grab("COVER ART PROMPT");
-  const tracksBlock = grab("TRACKS");
+
+  const sec = {};
+  sec.dk = bodyOf("DISTROKID");
+  sec.yt = bodyOf("YOUTUBE");
+  sec.cover = bodyOf("COVER ART PROMPT");
+  // No explicit CONCEPT heading? Whatever sits above the first section is the concept.
+  sec.concept = bodyOf("CONCEPT") || (marks.length ? text.slice(0, marks[0].start).trim() : "");
+
+  const block = bodyOf("TRACKS") || text;
   sec.tracks = [];
-  const parts = tracksBlock.split(/^###\s*TRACK\s*/mi).slice(1);
-  for (const part of parts) {
-    const t = {};
-    const head = part.match(/^([\d]+)\s*:\s*([^\n]+)/);
-    t.no = head ? head[1] : "?"; t.title = head ? head[2].trim() : "(ไม่มีชื่อ)";
-    const style = part.match(/\*\*Suno Style:\*\*\s*([\s\S]*?)(?=\*\*Suno Lyrics|\*\*Mood|$)/i);
-    t.style = style ? style[1].trim() : "";
-    const lyr = part.match(/\*\*Suno Lyrics:\*\*\s*```([\s\S]*?)```/i) || part.match(/\*\*Suno Lyrics:\*\*\s*([\s\S]*?)(?=\*\*Mood|$)/i);
-    t.lyrics = lyr ? lyr[1].trim() : "";
-    const mood = part.match(/\*\*Mood:\*\*\s*([^\n]+)/i);
-    t.mood = mood ? mood[1].trim() : "";
-    sec.tracks.push(t);
+  const trackRe = /^[ \t]*#{0,6}[ \t]*\*{0,2}[ \t]*TRACK[ \t]*#?[ \t]*(\d+)[ \t]*\*{0,2}[ \t]*[:：][ \t]*([^\n]*)$/gim;
+  const hits = [];
+  let m;
+  while ((m = trackRe.exec(block)) !== null) {
+    hits.push({ no: m[1], title: m[2].replace(/\*/g, "").trim(), start: m.index, body: m.index + m[0].length });
   }
+  // A field label tolerates **Name:**, **Name**:, and plain Name: alike
+  const lbl = (names) =>
+    "^[ \\t]*\\*{0,2}[ \\t]*(?:" + names + ")[ \\t]*\\*{0,2}[ \\t]*:[ \\t]*\\*{0,2}[ \\t]*";
+  const field = (names, stops) => new RegExp(
+    lbl(names) + "\\n?([\\s\\S]*?)(?=" + lbl(stops) + "|$(?![\\s\\S]))", "im");
+  hits.forEach((h, i) => {
+    const part = block.slice(h.body, i + 1 < hits.length ? hits[i + 1].start : block.length);
+    const style = part.match(field("Suno[ \\t]*Style|Style", "Suno[ \\t]*Lyrics|Lyrics|Mood"));
+    const lyr = part.match(field("Suno[ \\t]*Lyrics|Lyrics", "Mood"));
+    const mood = part.match(new RegExp(lbl("Mood") + "([^\\n]+)", "im"));
+    sec.tracks.push({
+      no: h.no,
+      title: h.title || "(ไม่มีชื่อ)",
+      style: style ? style[1].trim() : "",
+      lyrics: lyr ? lyr[1].trim().replace(/^```[a-z]*[ \t]*\n?/i, "").replace(/\n?```[ \t]*$/, "").trim() : "",
+      mood: mood ? mood[1].replace(/\*/g, "").trim() : "",
+    });
+  });
   return sec;
 }
 
@@ -469,7 +497,7 @@ function render(pkg) {
           </div>
         </div>
       </div>`).join("")
-    : '<p class="empty">ไม่พบ TRACK ในผลลัพธ์ — เช็คว่า AI ตอบตามโครงสร้าง ## TRACKS / ### TRACK 1:</p>';
+    : '<p class="empty">ไม่พบ TRACK ในผลลัพธ์ — ต้องมีบรรทัดขึ้นต้นว่า <code>TRACK 1:</code> (จะมี ### นำหน้าหรือไม่ก็ได้) และในแต่ละแทร็กมี <code>Suno Style:</code> / <code>Suno Lyrics:</code> / <code>Mood:</code></p>';
 
   /* DistroKid tab */
   $("#v_dk").innerHTML = `<div class="card">
