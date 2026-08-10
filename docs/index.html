@@ -433,6 +433,21 @@
     </details>
 
     <div class="card">
+      <div class="eyebrow">Channel Setup</div>
+      <h2>🏷️ ตั้งค่าช่อง (ทำครั้งเดียว ใช้ตลอด)</h2>
+      <p class="hint">ชื่อช่อง · คำอธิบาย · Channel Keywords · แบนเนอร์ · Trailer — ดึงจาก Brand DNA ให้อัตโนมัติ พร้อมกติกากันชื่อกลางๆ ที่กลืนหายไปกับคู่แข่ง</p>
+      <label class="f" for="chniche">นิช + จุดตัดที่จะยึด (ยิ่งเจาะจง ชื่อยิ่งคม)</label>
+      <input type="text" id="chniche" placeholder="เช่น จิตวิทยาว่าทำไมคนเก่งถึงติดอยู่กับที่ในงาน — เล่าผ่านเคสจริง ใช้ Stoic เป็นเครื่องมือ" />
+      <div class="btnrow">
+        <button class="btn primary" id="chgen" hidden>🏷️ สร้างชุดตั้งค่าช่อง</button>
+        <button class="btn" id="chcopy">📋 คัดลอก Prompt</button>
+        <button class="btn" id="chclear" hidden>ล้างผล</button>
+      </div>
+      <span class="mlabel">👑 วางใน Claude (Fable) — งานแม่แบบ ตั้งครั้งเดียวใช้ตลอดชีวิตช่อง</span>
+      <div id="chbody"></div>
+    </div>
+
+    <div class="card">
       <div class="trendhead">
         <div>
           <div class="eyebrow" style="margin-bottom:2px">Weekly Trends</div>
@@ -1124,6 +1139,7 @@ function refreshKeyUI() {
   $("#trendlive").hidden = !hasGemini();
   $("#vfbox").hidden = !hasYT();
   $("#vfhint").hidden = hasYT();
+  $("#chgen").hidden = !hasGemini();
   const showTts = hasTTS() && !!current;
   $("#ttsbtn").hidden = !showTts;
   $("#ttsvoice").hidden = !showTts;
@@ -1167,6 +1183,86 @@ $("#testgemini").addEventListener("click", async () => {
   catch (err) { alert(aiErrorThai(err)); }
   finally { b.disabled = false; b.textContent = "ทดสอบ Gemini key"; }
 });
+
+/* ── Channel Setup: one-time channel identity assets, derived from Brand DNA ── */
+const CHANNEL_INSTRUCTION = `คุณคือผู้เชี่ยวชาญการวางตำแหน่งช่อง YouTube Faceless ช่วยสร้างชุดตั้งค่าช่องให้ครบ
+
+ตอบกลับเป็น JSON ล้วนๆ ห้ามมีข้อความอื่นนอกกรอบ JSON:
+{"names":[{"name":"ชื่อช่องภาษาอังกฤษ","type":"topic" หรือ "brand","handle":"@handle_ที่ควรลองเช็ก","why":"เหตุผลสั้นๆ ภาษาไทยว่าทำไมชื่อนี้ใช้ได้ และมันบอกอะไรกับคนดูใน 2 วินาที"}],
+"description":"คำอธิบายช่องภาษาอังกฤษ ขึ้นบรรทัดใหม่ด้วย \\n",
+"keywords":["channel keyword ภาษาอังกฤษ"],
+"banner":{"headline":"ข้อความบนแบนเนอร์ ไม่เกิน 6 คำ","sub":"บรรทัดรองสั้นๆ"},
+"trailer":"โครง Channel Trailer 60 วินาที เขียนเป็นภาษาไทย บอกเป็นช่วงเวลา",
+"checklist":["สิ่งที่ต้องตั้งค่าในช่อง เขียนภาษาไทย"]}
+
+กติกาชื่อช่อง (สำคัญมาก):
+- เสนอ 5 ชื่อ: type "topic" 3 ชื่อ (บอกหัวข้อ คนเข้าใจทันที) + type "brand" 2 ชื่อ (แบรนด์ล้วน จำง่าย)
+- ต้องกว้างพอที่จะขยายหัวข้อได้ในอนาคต แต่แคบพอที่คนดูรู้ว่าจะได้อะไร
+- ห้ามใส่ชื่อแบรนด์/เครื่องหมายการค้าของคนอื่น · ห้ามใช้ตัวเลข ขีดกลาง คำสะกดเพี้ยน หรือคำเติมอย่าง TV / Official / Channel / Hub / Daily
+- ต้องออกเสียงง่ายและสะกดถูกเมื่อได้ยินครั้งเดียว
+- หลีกเลี่ยงคำที่ช่อง AI slop ในนิชนี้ใช้จนเฝือ (เช่น Stoic Wisdom, Mindset, Motivation, Growth, Elevate, Unlock, Alpha) — ถ้าจะใช้คำแนวนี้ต้องมีคำอื่นที่เจาะจงคุมไว้
+
+กติกาคำอธิบายช่อง:
+- โครง 4 ส่วน: (1) ได้อะไร + เพื่อใคร (2) รูปแบบ + ความถี่ (3) ใครอยู่เบื้องหลัง (4) ลิงก์/ติดต่อ
+- ~150 ตัวอักษรแรกคือส่วนที่คนเห็นในผลค้นหา ต้องมีใจความหลักและคีย์เวิร์ดสำคัญอยู่ในนั้น
+- เขียนเป็นประโยคมนุษย์ ห้ามยัดคีย์เวิร์ดเป็นพวง
+
+กติกาอื่น: keywords 12-15 คำ (ผสมคำกว้างกับคำหางยาว) · checklist ต้องมีเรื่องภาษา/ประเทศเป้าหมาย ตารางลงคลิป อีเมลธุรกิจ และลิงก์ยืนยันตัวตน`;
+
+function buildChannelPrompt() {
+  const niche = $("#chniche").value.trim();
+  return CHANNEL_INSTRUCTION + (niche ? `\n\nนิชและจุดตัดที่ช่องนี้จะยึด: ${niche}` : "") + dnaSuffix();
+}
+function renderChannel() {
+  const c = store.get("channel", null);
+  $("#chclear").hidden = !c;
+  if (!c) { $("#chbody").innerHTML = ""; return; }
+  const kw = (c.keywords || []).join(", ");
+  $("#chbody").innerHTML = `
+    <h3 style="margin:18px 0 4px">ชื่อช่อง (แตะเพื่อคัดลอก)</h3>
+    <p class="hint" style="margin-top:0">เช็ก handle ว่างที่ <code>youtube.com/@ชื่อ</code> และค้นชื่อใน YouTube ก่อนตัดสินใจ</p>
+    ${(c.names || []).map((n) => `
+      <button class="titleopt statuschip" data-copytitle="${esc(n.name)}" style="display:block;width:100%;text-align:left">
+        <div class="tt">${esc(n.name)}
+          <span class="chip ${n.type === "topic" ? "good" : "warn"}">${n.type === "topic" ? "บอกหัวข้อ" : "แบรนด์"}</span>
+        </div>
+        <div class="ag">${esc(n.handle || "")} · ${esc(n.why || "")}</div>
+      </button>`).join("")}
+    <h3 style="margin:18px 0 4px">คำอธิบายช่อง</h3>
+    <div class="promptbox" style="margin-top:0">${esc(c.description || "")}</div>
+    <div class="btnrow"><button class="btn small" data-copych="description">📋 คัดลอก</button>
+      <span class="hint" style="margin:0;align-self:center">150 ตัวอักษรแรก: ${(c.description || "").length >= 150 ? "✓ มีเนื้อหาพอ" : "⚠️ สั้นไป"}</span></div>
+    <h3 style="margin:18px 0 4px">Channel Keywords <span class="hint" style="display:inline">(Studio → Settings → Channel → Basic info)</span></h3>
+    <div class="pr" style="font-family:var(--mono);font-size:.78rem;color:var(--muted)">${esc(kw)}</div>
+    <div class="btnrow"><button class="btn small" data-copych="keywords">📋 คัดลอก</button></div>
+    ${c.banner ? `<h3 style="margin:18px 0 4px">แบนเนอร์ช่อง</h3>
+      <div class="retrow"><strong style="font-size:1.05rem">${esc(c.banner.headline || "")}</strong>
+      <div class="hint" style="margin:4px 0 0">${esc(c.banner.sub || "")}</div></div>` : ""}
+    ${c.trailer ? `<h3 style="margin:18px 0 4px">โครง Channel Trailer (60 วิ)</h3>
+      <div class="promptbox" style="margin-top:0">${esc(c.trailer)}</div>` : ""}
+    ${(c.checklist || []).length ? `<h3 style="margin:18px 0 4px">เช็กลิสต์ตั้งค่าช่อง</h3>
+      ${c.checklist.map((x) => `<div class="qcrow"><span class="chip" style="background:var(--panel2);color:var(--muted)">☐</span><span>${esc(x)}</span></div>`).join("")}` : ""}`;
+  $$("#chbody [data-copytitle]").forEach((b) => b.addEventListener("click", () => copyText(b.dataset.copytitle, "คัดลอกชื่อช่องแล้ว ✓")));
+  $$("#chbody [data-copych]").forEach((b) => b.addEventListener("click", () =>
+    copyText(b.dataset.copych === "keywords" ? kw : c.description, "คัดลอกแล้ว ✓")));
+}
+$("#chcopy").addEventListener("click", () => copyText(buildChannelPrompt(), "คัดลอก Prompt แล้ว — วางใน Claude (Fable)"));
+$("#chclear").addEventListener("click", () => { store.set("channel", null); renderChannel(); toast("ล้างผลแล้ว"); });
+$("#chgen").addEventListener("click", async () => {
+  const b = $("#chgen"); const old = b.textContent;
+  b.disabled = true; b.textContent = "⏳ กำลังสร้าง...";
+  try {
+    const text = await callGemini(buildChannelPrompt(), { temp: 0.85 });
+    const m = text.match(/\{[\s\S]*\}/);
+    store.set("channel", JSON.parse(m ? m[0] : text));
+    renderChannel();
+    toast("ชุดตั้งค่าช่องพร้อมแล้ว ✓");
+  } catch (err) { alert(aiErrorThai(err)); }
+  finally { b.disabled = false; b.textContent = old; }
+});
+$("#chniche").value = store.get("chniche", "");
+$("#chniche").addEventListener("input", () => store.set("chniche", $("#chniche").value));
+renderChannel();
 
 /* ── content pillars ── */
 const PILLAR_TARGETS = { INSIGHT: 40, PROOF: 15, FRAMEWORK: 10, OFFER: 5, JOURNEY: 30 };
