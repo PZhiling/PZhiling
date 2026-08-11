@@ -379,10 +379,28 @@ Use case ผู้ฟัง: ${use}
 
 ═══ กติกาคุณภาพ ═══
 1. เนื้อเพลงต้องร้องได้จริง: จำนวนพยางค์ต่อบรรทัดสม่ำเสมอ ฮุกจำง่าย ไม่ยัดคำ
-2. ห้ามใช้ชื่อศิลปินอื่น ชื่อเพลงดัง หรือเนื้อเพลงที่มีอยู่จริง — ต้อง original 100%
-3. Suno Style ห้ามใส่ชื่อศิลปินจริงเพื่ออ้างอิงเสียง (ใช้คำบรรยายแทน)
-4. Title/Tags ฝั่ง YouTube ให้คิดจากคำที่คนค้นจริงตาม use case ไม่ใช่ชื่อเพลง
-5. เนื้อเพลงแต่ละเพลงไม่เกิน ~3,000 ตัวอักษร (เกินนี้ Suno จะรีบร้องหรือข้ามท่อน)`;
+2. Title/Tags ฝั่ง YouTube ให้คิดจากคำที่คนค้นจริงตาม use case ไม่ใช่ชื่อเพลง
+3. เนื้อเพลงแต่ละเพลงไม่เกิน ~3,000 ตัวอักษร (เกินนี้ Suno จะรีบร้องหรือข้ามท่อน)
+
+═══ กติกาความเป็นต้นฉบับ (บังคับ — ผิดข้อเดียว = งานทั้งชุดใช้ไม่ได้) ═══
+เหตุผล: Suno ปฏิเสธ prompt ที่มีชื่อศิลปิน และแพลตฟอร์มสตรีมมิงถอดงานที่เป็น soundalike
+ของเพลงที่มีอยู่ ซึ่งอาจลามไปถึงการระงับบัญชีผู้จัดจำหน่ายทั้งบัญชี
+
+1. ห้ามเอ่ยชื่อศิลปิน วง โปรดิวเซอร์ ค่ายเพลง หรือชื่อเพลงที่มีอยู่จริง ที่ใดก็ตามในคำตอบ
+   ห้ามใช้รูปประโยคอ้างอิงทุกแบบ เช่น "in the style of X", "sounds like X",
+   "inspired by X", "X meets Y", "X-esque", "à la X", "แนวเดียวกับ X", "สไตล์ X"
+2. บรรยายเสียงด้วยคำอธิบายทางเทคนิคและอารมณ์แทนชื่อคนเสมอ:
+   เครื่องดนตรี + เทคนิคการเล่น + BPM + คีย์/โหมด + พื้นผิวการผลิต + อารมณ์
+   ตัวอย่างการแปลง — แทนที่จะเขียน "like [ชื่อศิลปิน]" ให้เขียนว่า
+   "layered falsetto harmonies, heavily processed vocal stacks, sparse fingerpicked
+   guitar, tape-saturated, room-mic'd drums" ซึ่งให้ผลลัพธ์แม่นกว่าและปลอดภัยกว่า
+3. ทำนองและท่อนฮุกต้องคิดขึ้นใหม่ทั้งหมด ห้ามใช้เมโลดี้ที่จำได้จากเพลงที่มีอยู่จริง
+   (chord progression พื้นฐานที่ใช้กันทั่วไปไม่ถือว่าผิด แต่ hook melody ต้องเป็นของเราเอง)
+4. เนื้อเพลงต้อง original 100% — ห้ามยก ห้ามดัดแปลง ห้าม interpolate เนื้อเพลงจริง
+   แม้เพียงวลีเดียว รวมถึงท่อนที่เป็นเอกลักษณ์จนคนจำได้ว่ามาจากเพลงไหน
+5. ชื่อเพลงและชื่ออัลบั้มต้องไม่ซ้ำหรือใกล้เคียงกับชื่อเพลงดังที่มีอยู่แล้ว
+6. ชื่อยี่ห้อเครื่องดนตรีและอุปกรณ์ (Rhodes, Moog, Juno, Wurlitzer, Hammond) ใช้ได้ตามปกติ
+   ไม่นับเป็นการอ้างอิงศิลปิน`;
 }
 
 $("#genPrompt").onclick = () => {
@@ -450,6 +468,76 @@ function parsePackage(md) {
 
 /* ───────── render ───────── */
 let currentPkg = null, currentRaw = "";
+/* ───────── originality guard ─────────
+   The prompt forbids artist references, but the model can still slip one in —
+   Suno rejects prompts naming real artists and platforms pull soundalikes, so
+   the output gets scanned before it ever reaches Suno. */
+const REF_PATTERNS = [
+  [/\bin the style of\b/i, "in the style of"],
+  [/\bsounds? like\b/i, "sounds like"],
+  [/\bsound-?alikes?\b/i, "soundalike"],
+  [/\binspired by\b/i, "inspired by"],
+  [/\bsimilar to\b/i, "similar to"],
+  [/\breminiscent of\b/i, "reminiscent of"],
+  [/\bin the vein of\b/i, "in the vein of"],
+  [/\bvibe of\b/i, "vibe of"],
+  [/\b(?:à|a) la\b/, "à la"],
+  [/\btribute to\b/i, "tribute to"],
+  [/\b(?:cover|remix|rework|interpolation) of\b/i, "cover/remix of"],
+  [/\bhomage to\b/i, "homage to"],
+  [/\b[A-Z][a-zA-Z]+-esque\b/, "X-esque"],
+  [/\b[A-Z][a-zA-Z]+\s+meets\s+[A-Z][a-zA-Z]+/, "X meets Y"],
+  [/แนวเดียวกับ|สไตล์ของ|คล้ายเพลง|เหมือนเพลง|เลียนแบบ/, "อ้างอิงเพลง/ศิลปินอื่น"],
+];
+/* Capitalised words that are legitimately genres, scenes, gear or song-structure
+   tags — everything else that is capitalised mid-sentence is worth a look. */
+const SAFE_CAPS = new Set(("Lo Lofi Hi BPM EQ LFO ADSR DAW " +
+  "Ambient Folk Pop Jazz Blues Rock Indie Soul Gospel Funk Disco Dance House Techno " +
+  "Trance Garage Dub Reggae Ska Bossa Nova Samba Latin Afro Afrobeat Celtic Nordic " +
+  "Scandinavian Americana Appalachian Bluegrass Country Classical Baroque Romantic " +
+  "Gregorian Orchestral Cinematic Chamber Shoegaze Dreampop Synthwave Vaporwave " +
+  "Chillwave Chillhop Trip Hop Drill Grime Flamenco Tango Cumbia Reggaeton Klezmer " +
+  "Balearic Krautrock New Age World Neo Post Alt Nu Prog Psych Math Emo Punk Metal " +
+  "Berlin Detroit Chicago Memphis Nashville Delta Motown Philly Bristol Laurel Canyon " +
+  "Japanese Brazilian Cuban Spanish French Italian Irish Scottish Thai Korean Indian " +
+  "Turkish Persian Arabic African Andean Nordic English American British " +
+  "Rhodes Moog Juno Wurlitzer Mellotron Hammond Leslie Fender Gibson Steinway Yamaha " +
+  "Roland Korg Casio Prophet Oberheim Nord Neumann Ampex Studer Tascam Solina Optigan " +
+  "Omnichord Taylor Martin Selmer Ludwig Gretsch Rickenbacker Univox " +
+  "Intro Verse Chorus Bridge Outro Hook Refrain Pre Drop Break Build Coda Interlude " +
+  "Production Style Mood Tempo Key Mix Master Instrumentation Arrangement Vocals " +
+  "Major Minor Dorian Lydian Mixolydian Aeolian Phrygian Locrian Pentatonic").split(" "));
+function properNouns(s) {
+  const hits = [];
+  // Sentence-initial capitals are grammar, not names — drop the leading word of each clause
+  String(s || "").split(/[.!?:;\n]+/).forEach((clause) => {
+    // Only a leading capitalised Latin word is sentence-initial grammar. Stripping any
+    // first token would swallow the real name in clauses that open in Thai.
+    const body = clause.replace(/^\s*[A-Z][a-zA-Z]*/, "");
+    const re = /\b[A-Z][a-zA-Z]+(?:[ -][A-Z][a-zA-Z]+)*\b/g;
+    let m;
+    while ((m = re.exec(body)) !== null) {
+      if (m[0].split(/[ -]/).every((w) => SAFE_CAPS.has(w))) continue;
+      hits.push(m[0]);
+    }
+  });
+  return [...new Set(hits)];
+}
+function originalityPills(t) {
+  const pills = [];
+  const scan = [t.title, t.style, t.mood].join("\n");
+  const refs = REF_PATTERNS.filter(([re]) => re.test(scan)).map(([, label]) => label);
+  if (refs.length) {
+    pills.push('<span class="pill crit">🚫 อ้างอิงศิลปิน/เพลงอื่น: ' + esc(refs.join(", ")) +
+      " — Suno มักปฏิเสธ ต้องแก้ก่อนใช้</span>");
+  }
+  const names = properNouns(t.style);
+  if (names.length) {
+    pills.push('<span class="pill warn">ชื่อเฉพาะใน Style: ' + esc(names.slice(0, 4).join(", ")) +
+      (names.length > 4 ? " +" + (names.length - 4) : "") + " — ตรวจว่าไม่ใช่ชื่อศิลปิน/วง/เพลง</span>");
+  }
+  return pills.join("");
+}
 function qcPills(t) {
   const pills = [];
   if (!t.style) pills.push('<span class="pill crit">ไม่มี Style</span>');
@@ -457,7 +545,7 @@ function qcPills(t) {
   else pills.push('<span class="pill good">Style ' + t.style.length + ' ตัวอักษร</span>');
   if (!t.lyrics) pills.push('<span class="pill crit">ไม่มี Lyrics</span>');
   else if (t.lyrics.length > 3000) pills.push('<span class="pill warn">Lyrics ยาว ' + t.lyrics.length + ' ตัวอักษร (เกิน ~3000 Suno จะรีบร้อง/ข้ามท่อน)</span>');
-  return pills.join("");
+  return pills.join("") + originalityPills(t);
 }
 function polishPrompt(i) {
   const t = currentPkg.tracks[i];
@@ -475,6 +563,10 @@ ${t.lyrics}
 1. ขัดเนื้อเพลง: ภาพชัดขึ้น อารมณ์ลึกขึ้น ร้องลื่นขึ้น (คงโครงสร้าง [Tag] และจำนวนท่อนเดิม, ผลลัพธ์ไม่เกิน 3,000 ตัวอักษร)
 2. เสนอ Style ปรับใหม่ 1 เวอร์ชัน (genre ขึ้นก่อน, ≤900 ตัวอักษร)
 3. อธิบายสั้นๆ ว่าแก้จุดไหนเพราะอะไร
+
+ข้อบังคับ: ห้ามเอ่ยชื่อศิลปิน วง ค่ายเพลง หรือชื่อเพลงที่มีอยู่จริง และห้ามใช้รูปประโยค
+อ้างอิงเสียงแบบ "in the style of / sounds like / X meets Y / X-esque" — ให้บรรยายด้วย
+เครื่องดนตรี เทคนิคการเล่น และพื้นผิวการผลิตแทน ทำนองกับเนื้อเพลงต้อง original 100%
 
 ตอบด้วยรูปแบบ: **Suno Style:** และ **Suno Lyrics:** ใน code block เหมือนต้นฉบับ`;
   copyText(txt, "คัดลอกแล้ว — วางใน Claude (Opus/Fable)");
