@@ -571,6 +571,63 @@ ${t.lyrics}
 ตอบด้วยรูปแบบ: **Suno Style:** และ **Suno Lyrics:** ใน code block เหมือนต้นฉบับ`;
   copyText(txt, "คัดลอกแล้ว — วางใน Claude (Opus/Fable)");
 }
+/* Album-level polish: the whole tracklist in one prompt, so the model can fix
+   what a per-track pass structurally cannot — repeated imagery across songs,
+   hooks that collide, an emotional arc that does not build. Comes back in the
+   package format so it can be pasted straight back into the analyser. */
+function polishAlbum() {
+  if (!currentPkg || !currentPkg.tracks.length) { toast("ยังไม่มีเพลงให้ขัดเกลา"); return; }
+  const dna = (prof.a_dna || "").trim();
+  const body = currentPkg.tracks.map((t) => `TRACK ${t.no}: ${t.title}
+
+Suno Style: ${t.style}
+
+Suno Lyrics:
+
+${t.lyrics}
+
+Mood: ${t.mood}`).join("\n\n─────────────────\n\n");
+  const txt = `คุณคือนักแต่งเพลงและโปรดิวเซอร์ระดับโปร ช่วยขัดเกลา "ทั้งอัลบั้ม" นี้ให้ถึงขั้นชิ้นเอก
+โดยคงคอนเซ็ปต์ ลำดับเพลง จำนวนเพลง และชื่อเพลงเดิมไว้ (ยกเว้นชื่อที่อ่อนจริงๆ ให้เสนอชื่อใหม่พร้อมเหตุผล)
+
+${dna ? "Artist DNA:\n" + dna + "\n\n" : ""}${currentPkg.concept ? "คอนเซ็ปต์อัลบั้ม:\n" + currentPkg.concept + "\n\n" : ""}═══ เพลงทั้งหมด (${currentPkg.tracks.length} เพลง) ═══
+
+${body}
+
+═══ สิ่งที่ต้องทำ ═══
+1. ขัดเนื้อเพลงทุกเพลง: ภาพชัดขึ้น อารมณ์ลึกขึ้น ร้องลื่นขึ้น
+   คงโครงสร้าง [Tag] และจำนวนท่อนเดิม แต่ละเพลงไม่เกิน 3,000 ตัวอักษร
+2. ปรับ Suno Style ทุกเพลงให้คมขึ้น (genre ขึ้นก่อน, ไม่เกิน 900 ตัวอักษร)
+3. ตรวจ "ภาพรวมทั้งอัลบั้ม" ซึ่งเป็นสิ่งที่ขัดทีละเพลงมองไม่เห็น:
+   - ภาพและคำซ้ำข้ามเพลง (เช่น คำว่า light หรือ breathe โผล่ทุกเพลง) → กระจายให้หลากหลาย
+   - ท่อนฮุกที่โครงสร้างเหมือนกันจนฟังรวดเดียวแล้วเบลอ → ให้แต่ละเพลงมีลายเซ็นของตัวเอง
+   - arc อารมณ์ทั้งอัลบั้มไล่ระดับจริงไหม ถ้ามีเพลงที่ทำให้จังหวะสะดุด ให้บอก
+   - sonic identity ต่อเนื่องพอที่จะเป็นอัลบั้มเดียวกัน แต่ไม่ซ้ำจนน่าเบื่อ
+
+═══ ข้อบังคับ ═══
+ห้ามเอ่ยชื่อศิลปิน วง ค่ายเพลง หรือชื่อเพลงที่มีอยู่จริง และห้ามใช้รูปประโยคอ้างอิงเสียงแบบ
+"in the style of / sounds like / X meets Y / X-esque" — ให้บรรยายด้วยเครื่องดนตรี เทคนิคการเล่น
+และพื้นผิวการผลิตแทน ทำนองกับเนื้อเพลงต้อง original 100%
+
+═══ รูปแบบคำตอบ (ต้องตรงเป๊ะ ไม่งั้นระบบอ่านกลับไม่ได้) ═══
+TRACKS
+
+TRACK 1: <ชื่อเพลง>
+
+Suno Style: <...>
+
+Suno Lyrics:
+
+<เนื้อเพลงพร้อม [Tag]>
+
+Mood: <...>
+
+— ทำซ้ำให้ครบทุกเพลงตามลำดับเดิม ห้ามข้ามเพลง ห้ามสรุปย่อว่า "เหมือนเดิม" —
+
+เมื่อจบเพลงสุดท้ายแล้ว ค่อยเขียนหัวข้อ "สรุปการแก้" ต่อท้าย
+อธิบายสั้นๆ ว่าแต่ละเพลงแก้อะไร และภาพรวมอัลบั้มปรับ arc อย่างไร`;
+  copyText(txt, "คัดลอกทั้งอัลบั้มแล้ว — วางใน Claude (Opus/Fable)");
+}
 function render(pkg) {
   /* Concept box — album-level context, sits above the tabs so it stays visible */
   const cb = $("#conceptBox");
@@ -586,8 +643,18 @@ function render(pkg) {
   }
 
   /* Suno tab */
+  const bulk = pkg.tracks.reduce((n, t) => n + (t.style || "").length + (t.lyrics || "").length, 0);
+  const albumBar = pkg.tracks.length > 1 ? `<div class="card">
+    <div class="btnrow" style="margin-top:0"><div class="btncol">
+      <button class="ghost small" onclick="polishAlbum()">👑 ขัดเกลาทั้งอัลบั้ม (${pkg.tracks.length} เพลง)</button>
+      <span class="route fable">วางใน Claude (Opus/Fable) — เห็นทุกเพลงพร้อมกัน จึงแก้ภาพซ้ำข้ามเพลงและ arc อารมณ์ได้</span>
+    </div></div>
+    <p class="hint" style="margin-bottom:0">ราว ${bulk.toLocaleString()} ตัวอักษร${
+      bulk > 60000 ? " — ยาวมาก ถ้า AI ตอบไม่ครบให้แบ่งขัดทีละครึ่งอัลบั้ม" : ""
+    } · ผลลัพธ์กลับมาในรูปแบบเดิม วางกลับในช่อง "วางผลลัพธ์จาก AI" แล้วกดวิเคราะห์ได้เลย (ส่วน DistroKid/YouTube/Cover เดิมจะไม่หาย)</p>
+  </div>` : "";
   $("#v_suno").innerHTML = pkg.tracks.length
-    ? pkg.tracks.map((t) => `
+    ? albumBar + pkg.tracks.map((t) => `
       <div class="track">
         <div class="thead"><span><span class="no">TRACK ${esc(t.no)}</span> · ${esc(t.title)}</span><span style="font-weight:400;color:var(--muted);font-size:.82rem">${esc(t.mood)}</span></div>
         <div class="tbody">
@@ -657,8 +724,17 @@ function loadHist(i) {
 function analyze() {
   currentRaw = $("#resultIn").value.trim();
   if (!currentRaw) { toast("ยังไม่ได้วางผลลัพธ์"); return; }
-  currentPkg = parsePackage(currentRaw);
+  const pkg = parsePackage(currentRaw);
+  // A polished-album paste carries tracks only — keep the release sections
+  // already on screen instead of wiping them.
+  const tracksOnly = currentPkg && pkg.tracks.length && !pkg.dk && !pkg.yt && !pkg.cover;
+  if (tracksOnly) {
+    pkg.dk = currentPkg.dk; pkg.yt = currentPkg.yt; pkg.cover = currentPkg.cover;
+    pkg.concept = pkg.concept || currentPkg.concept;
+  }
+  currentPkg = pkg;
   render(currentPkg);
+  if (tracksOnly) toast("อ่านเฉพาะเพลง — คง DistroKid / YouTube / Cover เดิมไว้ ✓");
 }
 $("#analyzeBtn").onclick = () => { analyze(); if (currentPkg && currentPkg.tracks.length) saveHistory(currentPkg); };
 renderHistory();
