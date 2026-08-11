@@ -73,6 +73,7 @@
   .track .tbody { padding:10px 12px; }
   .fieldlab { font-size:.75rem; text-transform:uppercase; letter-spacing:.6px; color:var(--faint); margin:8px 0 3px; }
   pre.block { background:var(--code-bg); border-radius:8px; padding:10px; font-family:var(--mono); font-size:.82rem; white-space:pre-wrap; word-break:break-word; margin:0 0 4px; max-height:280px; overflow:auto; }
+  .prose { white-space:pre-wrap; line-height:1.75; font-size:.92rem; }
   .pill { display:inline-block; font-size:.75rem; padding:2px 9px; border-radius:99px; margin:0 6px 6px 0; }
   .pill.good { background:var(--good-soft); color:var(--good); }
   .pill.warn { background:var(--warn-soft); color:var(--warn); }
@@ -201,6 +202,7 @@
       <span class="route">คลังจะถูกฝังใน Prompt งานหน้า เพื่อกันชื่อ/คอนเซ็ปต์ซ้ำ</span>
     </div></div>
   </div>
+  <section id="conceptBox" hidden></section>
   <div id="subtabs">
     <button data-view="suno" class="on">🎵 Suno</button>
     <button data-view="dk">📀 DistroKid</button>
@@ -478,6 +480,19 @@ ${t.lyrics}
   copyText(txt, "คัดลอกแล้ว — วางใน Claude (Opus/Fable)");
 }
 function render(pkg) {
+  /* Concept box — album-level context, sits above the tabs so it stays visible */
+  const cb = $("#conceptBox");
+  if (pkg.concept) {
+    cb.innerHTML = `<div class="card">
+      <h2>🧭 คอนเซ็ปต์อัลบั้ม</h2>
+      <div class="prose">${esc(pkg.concept)}</div>
+      <div class="btnrow"><button class="ghost small" onclick="copyText(currentPkg.concept,'คัดลอกคอนเซ็ปต์ ✓')">📋 คัดลอกคอนเซ็ปต์</button></div>
+    </div>`;
+    cb.hidden = false;
+  } else {
+    cb.innerHTML = ""; cb.hidden = true;
+  }
+
   /* Suno tab */
   $("#v_suno").innerHTML = pkg.tracks.length
     ? pkg.tracks.map((t) => `
