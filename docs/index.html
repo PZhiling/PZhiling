@@ -2007,11 +2007,106 @@ function storyboardRows() {
     };
   });
 }
+/* ───────── FLUX 3 video shot list ─────────
+   FLUX 3 bills by the second, so the value is in shots reused every episode:
+   channel furniture first, then ANCHOR motifs. An ANCHOR run is one motif
+   changing state across frames — which is exactly first/last-frame input. */
+const FLUX_STYLE = {
+  "NotebookLM Analytical Indigo": "dark slate background, glowing knowledge-graph nodes, translucent floating index cards, amber and cyan accents, minimalist analytical aesthetic",
+};
+const FLUX_STYLE_DEFAULT = "cinematic photography, 35mm lens, shallow depth of field, warm dusk colour grade with soft peach and periwinkle tones, gentle film grain, volumetric light";
+const FLUX_TAIL = "16:9, subtle continuous motion, no text, no letters, no logos, no watermark, no recognisable faces, ambient scene only — no dialogue, no music, no narration";
+const FLUX_RATE = 0.17; // USD/second, list price once the free window closes
+const fluxStyle = () => FLUX_STYLE[$("#vis") ? $("#vis").value : ""] || FLUX_STYLE_DEFAULT;
+
+function fluxShots(rows) {
+  const st = fluxStyle();
+  const shots = [];
+  const loopTail = ", seamless loop, first and last frame match exactly, " + FLUX_TAIL;
+  // Tier A — used in every episode forever, so it earns the free window first
+  [
+    ["Intro sting", 5, "A single point of light expands softly into frame and settles at centre, clean and unhurried, " + st, ", " + FLUX_TAIL, "ใช้ทุกตอนตลอดไป — เจนอันนี้ก่อน"],
+    ["Transition stinger", 3, "A soft light sweep passing across the frame left to right, quick and clean, " + st, ", " + FLUX_TAIL, "คั่นระหว่างหัวข้อ"],
+    ["Subscribe bed", 8, "A quiet ambient background with slow particle drift, lower third kept empty and uncluttered, " + st, loopTail, "พื้นหลังตอนขอ subscribe"],
+    ["Quote / lower-third bed", 10, "A softly moving low-contrast textured background made for overlaying text, nothing in the centre, " + st, loopTail, "พื้นหลังใส่คำคม"],
+    ["Outro / end card", 10, "A calm drifting background with the centre of frame left empty for end-card links, " + st, loopTail, "ต้องเว้นกลางเฟรมไว้วางการ์ดจบ"],
+  ].forEach(([label, dur, body, tail, note]) => {
+    shots.push({ tier: "A", label, dur, kind: "text → video", note, prompt: body + tail });
+  });
+
+  if (!rows || !rows.length) return shots;
+
+  // Tier B — one shot per ANCHOR run, driven by its first and last frame
+  const runs = [];
+  rows.forEach((r, i) => {
+    if (r.mode !== "ANCHOR") return;
+    if (i === 0 || rows[i - 1].mode !== "ANCHOR") runs.push([]);
+    runs[runs.length - 1].push(r);
+  });
+  runs.forEach((run, n) => {
+    const first = run[0], last = run[run.length - 1];
+    const motion = [...new Set(run.map((r) => r.motion).filter(Boolean))].join(", ");
+    const dur = Math.min(20, Math.max(5, run.length * 5));
+    shots.push({
+      tier: "B", label: `ANCHOR ชุด ${n + 1} · ${first.ts.replace(/[\[\]]/g, "")} → ${last.ts.replace(/[\[\]]/g, "")}`,
+      dur, kind: run.length > 1 ? "first + last frame → video" : "image → video",
+      note: run.length > 1
+        ? `อัปโหลดภาพเฟรมแรกและเฟรมสุดท้ายที่เจนไว้แล้ว (${run.length} เฟรม) ให้ FLUX เติมการเปลี่ยนผ่านระหว่างกลาง`
+        : "อัปโหลดภาพนิ่งของคิวนี้แล้วให้ขยับ",
+      prompt: [
+        run.length > 1 ? `Start frame: ${first.prompt}` : first.prompt,
+        run.length > 1 ? `End frame: ${last.prompt}` : "",
+        `Motion: ${motion || "slow push-in, barely-there drift"}`,
+        `Hold the same subject, palette and framing throughout — the motif must stay recognisably the same object across the whole clip.`,
+        FLUX_TAIL,
+      ].filter(Boolean).join("\n"),
+    });
+  });
+
+  // Tier C — SUPPORT stills as ambient loops; least reusable, so lowest priority
+  rows.filter((r) => r.mode !== "ANCHOR" && r.prompt).forEach((r) => {
+    shots.push({
+      tier: "C", label: `SUPPORT · ${r.ts.replace(/[\[\]]/g, "")}`, dur: 8, kind: "image → video",
+      note: "ลูปบรรยากาศ ใช้ซ้ำข้ามตอนได้ถ้าภาพไม่เจาะจงเนื้อหา",
+      prompt: `${r.prompt}\nMotion: ${r.motion || "very slow drift, near-static"}${loopTail}`,
+    });
+  });
+  return shots;
+}
+
+function fluxCard(rows) {
+  const shots = fluxShots(rows);
+  const secs = shots.reduce((n, s) => n + s.dur, 0);
+  const byTier = (t) => shots.filter((s) => s.tier === t);
+  const tierName = { A: "🅰 เฟอร์นิเจอร์ช่อง — ใช้ทุกตอนตลอดไป (คุ้มสุด)", B: "🎬 ANCHOR — ภาพเล่าเรื่องที่จุดวิกฤต Retention", C: "🖼 SUPPORT — ลูปบรรยากาศ (ทำท้ายสุด)" };
+  const block = (t) => byTier(t).length ? `
+    <div class="hint" style="margin:12px 0 6px"><strong>${tierName[t]}</strong> · ${byTier(t).length} ช็อต · ${byTier(t).reduce((n, s) => n + s.dur, 0)} วินาที</div>
+    ${byTier(t).map((s) => `
+      <div class="imgcard" style="margin-bottom:8px">
+        <div style="font-size:.82rem"><strong>${esc(s.label)}</strong> <span class="chip" style="background:var(--panel2);color:var(--muted)">${s.dur}s · ${esc(s.kind)}</span></div>
+        <div style="font-size:.75rem;color:var(--muted)">${esc(s.note)}</div>
+        <div class="pr">${esc(s.prompt.slice(0, 260))}${s.prompt.length > 260 ? "…" : ""}</div>
+        <div class="btnrow" style="margin-top:0"><button class="btn small" data-copyprompt="${esc(s.prompt)}">📋 คัดลอก Prompt</button></div>
+      </div>`).join("")}` : "";
+  const all = shots.map((s) => `### [${s.tier}] ${s.label} — ${s.dur}s · ${s.kind}\n${s.note}\n\n${s.prompt}`).join("\n\n───────────\n\n");
+  return `
+  <details class="card" style="margin-bottom:12px" open>
+    <summary style="cursor:pointer;font-weight:600">🎬 Shot List สำหรับ FLUX 3 Video — ${shots.length} ช็อต · รวม ${secs} วินาที</summary>
+    <p class="hint">เรียงตามความคุ้มค่าแล้ว: ทำ 🅰 ให้เสร็จก่อน เพราะใช้ซ้ำทุกตอนไปตลอด ส่วน 🖼 ทำท้ายสุดเพราะใช้ซ้ำได้น้อยสุด<br />
+      หลังหมดช่วงฟรี ราคาราว $${FLUX_RATE}/วินาที — ชุดนี้ทั้งหมดเทียบเท่า <strong>~$${(secs * FLUX_RATE).toFixed(2)}</strong> ถ้าเจนตอนเสียเงิน<br />
+      ⚠️ FLUX 3 สร้างเสียงมาในตัว — คุณมีเสียงบรรยายเองอยู่แล้ว ให้ทิ้งหรือปิดแทร็กเสียงที่ติดมา และคลิปนี้ยาวสุด 20 วินาที ใช้เป็นภาพประกอบ ไม่ใช่เนื้อหลัก</p>
+    <div class="btnrow"><button class="btn small" data-copyprompt="${esc(all)}">📋 คัดลอกทั้งชุด (${shots.length} ช็อต)</button></div>
+    ${block("A")}${block("B")}${block("C")}
+  </details>`;
+}
+
 function renderBroll() {
   const body = $("#brollbody");
   const rows = storyboardRows();
   if (!rows) {
-    body.innerHTML = `<div class="empty">ไม่พบตาราง Storyboard (ที่มีคอลัมน์ Timestamp) ใน Phase 2</div>`;
+    body.innerHTML = fluxCard(null) +
+      `<div class="empty">ไม่พบตาราง Storyboard (ที่มีคอลัมน์ Timestamp) ใน Phase 2 — ช็อต ANCHOR/SUPPORT จะขึ้นเมื่อมีตารางแล้ว</div>`;
+    $$("#brollbody [data-copyprompt]").forEach((b) => b.addEventListener("click", () => copyText(b.dataset.copyprompt, "คัดลอก Prompt แล้ว ✓")));
     return;
   }
   current.brollImgs = current.brollImgs || {};
@@ -2029,7 +2124,7 @@ function renderBroll() {
   const anchorCount = rows.filter((r) => r.mode === "ANCHOR").length;
   const hasModes = rows.some((r) => r.mode);
 
-  body.innerHTML = `
+  body.innerHTML = fluxCard(rows) + `
   ${hasModes ? `<div class="hint" style="margin-bottom:2px">
     🎬 <strong>ANCHOR</strong> = ภาพเล่าเรื่องต่อเนื่อง สลับลำดับไม่ได้ (ใช้ที่จุดวิกฤต Retention) ·
     🖼 <strong>SUPPORT</strong> = ภาพประกอบเดี่ยว ยืนได้ด้วยตัวเอง<br />
