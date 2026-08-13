@@ -130,6 +130,14 @@ async function startServer() {
   // Vite middleware for development. Imported lazily so the production
   // server can run with runtime-only dependencies installed (no vite) —
   // required for lightweight hosts such as Termux on Android.
+  // The fighting game is a second Vite entry (`game/index.html`). Vite's SPA
+  // fallback would rewrite a bare `/game/` to the React app's index, so point
+  // it at the real file before the fallback ever sees the request.
+  app.use((req, _res, next) => {
+    if (req.url === '/game' || req.url === '/game/') req.url = '/game/index.html';
+    next();
+  });
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({

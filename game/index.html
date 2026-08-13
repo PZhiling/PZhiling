@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="description" content="ตำนานนักสู้ — เกมต่อสู้แนว Little Fighter 2 เล่นบนมือถือแนวนอน 15 ตัวละคร 10 ด่าน" />
+    <meta name="theme-color" content="#0a0d1a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>ตำนานนักสู้ · Legend Fighters</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #05060a;
+        /* Stop the browser from hijacking swipes, long-press and double-tap
+           zoom — all of which fight with a virtual gamepad. */
+        touch-action: none;
+        overscroll-behavior: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        font-family: "Trebuchet MS", "Noto Sans Thai", system-ui, sans-serif;
+      }
+      #game {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        touch-action: none;
+      }
+      #fullscreen {
+        position: fixed;
+        top: env(safe-area-inset-top, 8px);
+        left: 10px;
+        z-index: 10;
+        padding: 6px 12px;
+        border: 1px solid rgba(180, 200, 240, 0.35);
+        border-radius: 8px;
+        background: rgba(10, 14, 24, 0.55);
+        color: #e6edff;
+        font: 600 12px/1 "Trebuchet MS", system-ui, sans-serif;
+        cursor: pointer;
+      }
+      #fullscreen:active {
+        background: rgba(60, 84, 130, 0.7);
+      }
+      @media (display-mode: fullscreen) {
+        #fullscreen {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <button id="fullscreen" type="button">เต็มจอ</button>
+    <script type="module" src="/game/src/main.ts"></script>
+    <script>
+      // Fullscreen + landscape lock live outside the module so they still work
+      // if the bundle fails to load for any reason.
+      document.getElementById('fullscreen').addEventListener('click', async () => {
+        try {
+          if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+          }
+          if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock('landscape');
+          }
+        } catch (err) {
+          // Desktop browsers and iOS Safari reject the orientation lock; the
+          // in-game rotate hint covers that case.
+        }
+      });
+    </script>
+  </body>
+</html>

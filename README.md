@@ -10,6 +10,12 @@ generated YouTube assets (title, script, description) are written in
 **English**, tuned to read as human-written and avoid YouTube's
 inauthentic/repetitive-content patterns.
 
+> This repository also hosts a second, unrelated app: **ตำนานนักสู้ /
+> Legend Fighters**, a Little Fighter 2 style browser fighting game served at
+> **`/game/`**. It shares only the dev server and the build — no code. See
+> [`game/README.md`](game/README.md) and
+> [`docs/GAME-ASSETS.md`](docs/GAME-ASSETS.md).
+
 ## Features
 
 - **SEO gap & competitor analysis** with keyword difficulty / opportunity

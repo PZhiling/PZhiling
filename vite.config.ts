@@ -16,6 +16,14 @@ export default defineConfig(() => {
     },
     build: {
       rollupOptions: {
+        // Multi-page: the SEO studio at `/` and the fighting game at `/game/`.
+        // The game is a standalone canvas app and shares no code with the
+        // React app, so keeping them as separate entries keeps both bundles
+        // small.
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          game: path.resolve(__dirname, 'game/index.html'),
+        },
         output: {
           // Split heavy libraries into their own chunks so the main bundle
           // stays small and these can be cached independently by the browser.

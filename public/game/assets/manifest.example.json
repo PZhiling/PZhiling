@@ -1,0 +1,66 @@
+{
+  "_comment": "Copy this file to manifest.json and delete the keys you have no art for. Anything absent keeps using the code-drawn version, so you can swap one character or one stage at a time. Paths are relative to /game/assets/.",
+
+  "portraits": {
+    "kraisorn": "portraits/kraisorn.png",
+    "nilrat": "portraits/nilrat.png"
+  },
+
+  "characters": {
+    "kraisorn": {
+      "src": "characters/kraisorn.png",
+      "frameW": 256,
+      "frameH": 256,
+      "cols": 6,
+      "anchorX": 0.5,
+      "anchorY": 0.95,
+      "ppu": 2.6,
+      "poses": {
+        "stand": [0, 1],
+        "walk1": [2],
+        "walk2": [3],
+        "walk3": [4],
+        "walk4": [5],
+        "jumpRise": [6],
+        "jumpFall": [7],
+        "punch1": [8],
+        "punch2": [9],
+        "punch3": [10],
+        "kick": [11],
+        "guard": [12],
+        "hurt1": [13],
+        "lying": [14],
+        "castWind": [15],
+        "castPush": [16],
+        "slash1": [17],
+        "slash2": [18]
+      }
+    }
+  },
+
+  "stages": {
+    "village": {
+      "layers": [
+        { "src": "stages/village-sky.png", "parallax": 0.0, "y": 0, "repeat": true },
+        { "src": "stages/village-far.png", "parallax": 0.18, "y": 120, "repeat": true },
+        { "src": "stages/village-mid.png", "parallax": 0.4, "y": 190, "repeat": true },
+        { "src": "stages/village-near.png", "parallax": 0.7, "y": 260, "repeat": true, "opacity": 0.95 }
+      ]
+    }
+  },
+
+  "music": {
+    "village": "music/village.mp3",
+    "bamboo": "music/bamboo.mp3"
+  },
+
+  "sfx": {
+    "hit1": "sfx/hit1.wav",
+    "hit2": "sfx/hit2.wav",
+    "hit3": "sfx/hit3.wav",
+    "slash": "sfx/slash.wav",
+    "block": "sfx/block.wav",
+    "super": "sfx/super.wav",
+    "ko": "sfx/ko.wav"
+  }
+}
