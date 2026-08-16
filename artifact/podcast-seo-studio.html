@@ -1477,9 +1477,15 @@ function enhanceTables(root) {
 }
 
 /* ── phases + analysis ── */
+/* Phase headings come back decorated in ways that vary run to run —
+   "## 🎯 Phase 2:", "**ส่วนที่ 2**", "### เฟส 2 —". Allow the markdown marks
+   plus a short run of symbols or emoji ahead of the keyword, and accept the
+   Thai wordings too; a heading this misses drops the whole section. */
+const PH_HEAD = (n) =>
+  `(?:^|\\n)[ \\t]*(?:#{1,6}[ \\t]*)?(?:\\*{1,2}[ \\t]*)?(?:[^\\w\\s\\n]{1,4}[ \\t]*)?` +
+  `(?:Phase|Step|ส่วนที่|ส่วน|เฟส|ขั้นตอนที่|ขั้นที่|ตอนที่)[ \\t]*${n}\\b`;
 const PH = (n, next) => new RegExp(
-  `(?:^|\\n)(?:#+\\s*|\\*\\*\\s*)?(?:Phase\\s*${n}|ส่วนที่\\s*${n}|Step\\s*${n})[\\s\\S]*?` +
-  (next ? `(?=(?:^|\\n)(?:#+\\s*|\\*\\*\\s*)?(?:Phase\\s*${next}|ส่วนที่\\s*${next}|Step\\s*${next})|$)` : "$"), "i");
+  PH_HEAD(n) + "[\\s\\S]*?" + (next ? `(?=${PH_HEAD(next)}|$)` : "$"), "i");
 function extractPhases(text) {
   return {
     p1: text.match(PH(1, 2))?.[0] ?? null,
@@ -1660,7 +1666,10 @@ function analyzeResult(md, save) {
     const gap = end - t.sec;
     return { from: t, len: gap, sev: gap > 25 ? "crit" : gap > 18 ? "warn" : "good" };
   });
-  const sb = storyboardTs(phases.p2);
+  // Fall back to the whole document like storyboardRows() does — otherwise a
+  // heading the phase splitter misses makes the QC Gate report "no table"
+  // while B-Roll Studio, reading the same storyboard, finds it fine.
+  const sb = storyboardTs(phases.p2 || md);
   const missing = sb ? ts.filter((t) => !sb.has(t.sec)) : [];
   const coverage = sb && ts.length ? Math.round(((ts.length - missing.length) / ts.length) * 100) : null;
   current = { md, phases, words, estSec, ts, total, segs, sb, missing, coverage };
