@@ -1379,6 +1379,18 @@ function inlineMd(s) {
   s = s.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
   return s;
 }
+/* Table separator rows come back inconsistently — colons, stray spaces,
+   underscores, or unicode dashes instead of hyphens. Anything this fails to
+   recognise gets rendered as a visible data row of dashes, so keep it loose.
+   Single "-" stays excluded: that is a legitimate "none" placeholder. */
+const isSepCell = (c) => {
+  const t = String(c).replace(/[\s:]/g, "");
+  return t.length > 1 && /^[-–—―_]+$/.test(t);
+};
+const isSepRow = (cells) => {
+  const filled = cells.filter((c) => String(c).trim() !== "");
+  return filled.length > 0 && filled.filter(isSepCell).length * 2 >= filled.length;
+};
 function mdToHtml(md) {
   const lines = md.replace(/\r/g, "").split("\n");
   let html = "", i = 0, list = null;
@@ -1391,12 +1403,12 @@ function mdToHtml(md) {
       while (i < lines.length && !/^```/.test(lines[i])) { code += lines[i] + "\n"; i++; }
       i++; html += `<pre><code>${esc(code)}</code></pre>`; continue;
     }
-    if (/^\s*\|/.test(L) && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|/.test(lines[i + 1])) {
+    if (/^\s*\|/.test(L) && i + 1 < lines.length && /^\s*\|?[\s:|_–—―-]+\|/.test(lines[i + 1])) {
       closeList();
       const rows = [];
       while (i < lines.length && /^\s*\|/.test(lines[i])) {
         const cells = lines[i].trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
-        if (!cells.every((c) => /^:?-+:?$/.test(c))) rows.push(cells);
+        if (!isSepRow(cells)) rows.push(cells);
         i++;
       }
       if (rows.length) {
@@ -1986,7 +1998,7 @@ function storyboardRows() {
   for (const line of src.split("\n")) {
     if (!/^\s*\|/.test(line)) { if (header && rows.length) break; header = null; continue; }
     const cells = line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
-    if (cells.every((c) => /^:?-+:?$/.test(c))) continue;
+    if (isSepRow(cells)) continue;
     if (!header) { if (/timestamp/i.test(cells.join(" "))) header = cells; continue; }
     rows.push(cells);
   }
