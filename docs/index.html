@@ -1391,6 +1391,17 @@ const isSepRow = (cells) => {
   const filled = cells.filter((c) => String(c).trim() !== "");
   return filled.length > 0 && filled.filter(isSepCell).length * 2 >= filled.length;
 };
+/* Tables come back either as markdown pipes or as tab-separated rows — the
+   model picks one per run. Every reader accepts both, or a whole storyboard
+   silently reads as zero rows. Three columns minimum keeps stray tabs in
+   ordinary prose from being mistaken for a table. */
+const isTableLine = (l) => /^\s*\|/.test(l) || /\t[^\t]*\t/.test(l);
+const splitRow = (l) => {
+  const t = String(l).trim();
+  return /^\|/.test(t)
+    ? t.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim())
+    : t.split("\t").map((c) => c.trim());
+};
 function mdToHtml(md) {
   const lines = md.replace(/\r/g, "").split("\n");
   let html = "", i = 0, list = null;
@@ -1403,11 +1414,15 @@ function mdToHtml(md) {
       while (i < lines.length && !/^```/.test(lines[i])) { code += lines[i] + "\n"; i++; }
       i++; html += `<pre><code>${esc(code)}</code></pre>`; continue;
     }
-    if (/^\s*\|/.test(L) && i + 1 < lines.length && /^\s*\|?[\s:|_–—―-]+\|/.test(lines[i + 1])) {
+    // A table is a run of same-shaped rows: pipe-delimited, or tab-separated
+    const pipeTbl = /^\s*\|/.test(L) && i + 1 < lines.length && /^\s*\|/.test(lines[i + 1]);
+    const tabTbl = /\t[^\t]*\t/.test(L) && i + 1 < lines.length && /\t[^\t]*\t/.test(lines[i + 1]);
+    if (pipeTbl || tabTbl) {
       closeList();
+      const same = pipeTbl ? (l) => /^\s*\|/.test(l) : (l) => /\t[^\t]*\t/.test(l);
       const rows = [];
-      while (i < lines.length && /^\s*\|/.test(lines[i])) {
-        const cells = lines[i].trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+      while (i < lines.length && same(lines[i])) {
+        const cells = splitRow(lines[i]);
         if (!isSepRow(cells)) rows.push(cells);
         i++;
       }
@@ -1518,7 +1533,7 @@ function parseTs(text) {
 }
 function storyboardTs(p2text) {
   if (!p2text) return null;
-  const rows = p2text.split("\n").filter((l) => /^\s*\|/.test(l));
+  const rows = p2text.split("\n").filter(isTableLine);
   if (!rows.length) return null;
   const found = new Set();
   rows.forEach((l) => { for (const m of l.matchAll(tsRe)) found.add((+m[1]) * 60 + (+m[2])); });
@@ -2005,8 +2020,8 @@ function storyboardRows() {
   const rows = [];
   let header = null;
   for (const line of src.split("\n")) {
-    if (!/^\s*\|/.test(line)) { if (header && rows.length) break; header = null; continue; }
-    const cells = line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+    if (!isTableLine(line)) { if (header && rows.length) break; header = null; continue; }
+    const cells = splitRow(line);
     if (isSepRow(cells)) continue;
     if (!header) { if (/timestamp/i.test(cells.join(" "))) header = cells; continue; }
     rows.push(cells);
