@@ -2157,6 +2157,50 @@ function wireSbEdit() {
   $$("#brollbody [data-sbadd]").forEach((b) => b.onclick = () => sbAdd(+b.dataset.sbadd));
   $$("#brollbody [data-sbdel]").forEach((b) => b.onclick = () => sbDel(+b.dataset.sbdel));
 }
+/* ───────── ChatGPT image prompts ─────────
+   GPT Image reads instructions, not comma-separated tags, and it silently adds
+   captions unless told not to. It also keeps the thread's earlier images in
+   context — so a frame after the first in an ANCHOR run is phrased as "change
+   only this", which is the one thing a one-shot generator cannot do and exactly
+   what motif continuity needs. */
+function cgptPrompt(r, cont) {
+  const rules = [
+    "- ห้ามมีตัวอักษร ตัวเลข โลโก้ ซับไตเติล หรือลายน้ำใดๆ ในภาพ",
+    "- ไม่มีใบหน้าที่จดจำได้ — ให้คนเป็นเงาดำหรือหันหลังเท่านั้น",
+    "- เว้นพื้นที่ว่างด้านบนของเฟรมราว 15% ไว้วางคำบรรยาย",
+    "- โทนภาพยนตร์ ดูเป็นภาพถ่าย ไม่ใช่ภาพวาดหรือภาพสีจัด",
+  ].join("\n");
+  if (cont) {
+    return [
+      "ใช้ภาพก่อนหน้าในแชทนี้เป็นต้นแบบ แล้วสร้างเฟรมถัดไปของฉากเดียวกัน",
+      "",
+      "สิ่งที่ต้องเหมือนเดิมทุกอย่าง: วัตถุหลัก ห้อง มุมกล้อง ระยะเลนส์ โทนสี และทิศทางแสง",
+      "ต้องดูเป็นสถานที่เดิมในอีกไม่กี่นาทีถัดมา ไม่ใช่ฉากใหม่",
+      "",
+      "เปลี่ยนเฉพาะสิ่งนี้: " + (r.visual || "ตามคำอธิบายด้านล่าง"),
+      "",
+      "ฉากเต็มสำหรับอ้างอิง:",
+      r.prompt,
+      "",
+      "ข้อกำหนดเดิม: ภาพเดี่ยวแนวนอน 16:9",
+      rules,
+      "",
+      "ส่งกลับมาภาพเดียว",
+    ].join("\n");
+  }
+  return [
+    "สร้างภาพเดี่ยวแนวนอนอัตราส่วน 16:9 (landscape, กรอบแบบภาพยนตร์)",
+    "",
+    "ฉาก:",
+    r.prompt,
+    "",
+    "ข้อกำหนด:",
+    rules,
+    "",
+    "ส่งกลับมาภาพเดียว",
+  ].join("\n");
+}
+
 function renderBroll() {
   const body = $("#brollbody");
   const rows = storyboardRows();
@@ -2183,7 +2227,8 @@ function renderBroll() {
   ${hasModes ? `<div class="hint" style="margin-bottom:2px">
     🎬 <strong>ANCHOR</strong> = ภาพเล่าเรื่องต่อเนื่อง สลับลำดับไม่ได้ (ใช้ที่จุดวิกฤต Retention) ·
     🖼 <strong>SUPPORT</strong> = ภาพประกอบเดี่ยว ยืนได้ด้วยตัวเอง<br />
-    ตอนนี้: <strong>${runId} ซีเควนซ์</strong> · ANCHOR ${anchorCount}/${rows.length} คิว (${Math.round((anchorCount / rows.length) * 100)}%) — เจนภาพในชุด ANCHOR เรียงตามลำดับเพื่อให้โมทีฟต่อเนื่องกัน
+    ตอนนี้: <strong>${runId} ซีเควนซ์</strong> · ANCHOR ${anchorCount}/${rows.length} คิว (${Math.round((anchorCount / rows.length) * 100)}%) — เจนภาพในชุด ANCHOR เรียงตามลำดับเพื่อให้โมทีฟต่อเนื่องกัน<br />
+    🤖 ปุ่ม <strong>ChatGPT</strong> = prompt แบบสั่งงานสำหรับ GPT Image — ชุด ANCHOR ให้เจน<strong>ในแชทเดียวกันเรียงตามเฟรม</strong> เพราะเฟรมที่ 2 เป็นต้นไปสั่งว่า "ใช้ภาพก่อนหน้าเป็นต้นแบบ เปลี่ยนแค่..." ถ้าเปิดแชทใหม่จะขาดต้นแบบและโมทีฟจะหลุด
   </div>` : ""}
   <div class="imggrid">
     ${rows.map((r, i) => `
@@ -2196,6 +2241,7 @@ function renderBroll() {
         <div class="btnrow" style="margin-top:0">
           ${hasGemini() ? `<button class="btn small" data-genbroll="${i}">🖼 เจนภาพ</button>` : ""}
           <button class="btn small" data-copyprompt="${esc(r.prompt)}">📋 Prompt</button>
+          <button class="btn small" data-copyprompt="${esc(cgptPrompt(r, pos[i] > 1))}">🤖 ChatGPT</button>
           ${r.motion ? `<button class="btn small" data-copyprompt="${esc(r.motion)}">🎬 Motion</button>` : ""}
           <button class="btn small" data-sbedit="${i}">✏️ แก้ไข</button>
           ${current.brollImgs[i] ? `<a class="btn small" href="${current.brollImgs[i]}" download="broll-${String(i + 1).padStart(2, "0")}.png">⬇ PNG</a>` : ""}
