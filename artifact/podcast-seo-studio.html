@@ -125,6 +125,8 @@
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
 
+  /* .btn sets display, which would otherwise beat the UA rule for [hidden] */
+  [hidden] { display: none !important; }
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     min-height: 44px; padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line);
@@ -1912,17 +1914,28 @@ $("#ttsbtn").addEventListener("click", async () => {
 });
 
 /* ── image generation (Gemini image model, same key) ── */
-async function generateImage(prompt) {
+async function generateImage(prompt, refImg) {
   if (!hasGemini()) throw new Error("NO_KEY");
   // Safety suffix: keeps frames clean for the image-to-video step
   const fullPrompt = prompt + ", no text, no watermark, no logo, centered composition with headroom";
+  // A reference frame turns generation into continuation — the model holds the
+  // subject, palette and framing instead of inventing a new scene each call,
+  // which is what an ANCHOR run needs.
+  const parts = [];
+  const ref = /^data:image\/[a-z+]+;base64,/i.exec(refImg || "");
+  if (ref) {
+    parts.push({ inlineData: { mimeType: refImg.slice(5, refImg.indexOf(";")), data: refImg.slice(refImg.indexOf(",") + 1) } });
+    parts.push({ text: "Use the supplied image as the reference frame. Keep the same subject, room, camera angle, lens, palette and lighting — this is the same place moments later, not a new scene. Change only what the description below states.\n\n" + fullPrompt });
+  } else {
+    parts.push({ text: fullPrompt });
+  }
   const res = await fetch(
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent",
     {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": keys.gemini.trim() },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+        contents: [{ role: "user", parts }],
         generationConfig: { responseModalities: ["IMAGE", "TEXT"], imageConfig: { aspectRatio: "16:9" } },
       }),
     },
@@ -2187,6 +2200,115 @@ function cgptPrompt(r, cont) {
   ].join("\n");
 }
 
+/* ───────── batch generation + zip ─────────
+   Store-method zip written inline: PNGs are already compressed, a CDN script
+   would be blocked by the page CSP, and one archive beats 48 separate download
+   prompts on a tablet. */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function crc32(u8) {
+  if (!crc32.T) {
+    crc32.T = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      crc32.T[n] = c >>> 0;
+    }
+  }
+  let crc = 0xffffffff;
+  for (let i = 0; i < u8.length; i++) crc = crc32.T[(crc ^ u8[i]) & 0xff] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+}
+function zipStore(files) {
+  const enc = new TextEncoder();
+  const out = [], central = [];
+  let offset = 0;
+  files.forEach((f) => {
+    const name = enc.encode(f.name), crc = crc32(f.data), len = f.data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, len, true); lh.setUint32(22, len, true);
+    lh.setUint16(26, name.length, true);
+    out.push(new Uint8Array(lh.buffer), name, f.data);
+    const cd = new DataView(new ArrayBuffer(46));
+    cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true);
+    cd.setUint32(16, crc, true); cd.setUint32(20, len, true); cd.setUint32(24, len, true);
+    cd.setUint16(28, name.length, true); cd.setUint32(42, offset, true);
+    central.push(new Uint8Array(cd.buffer), name);
+    offset += 30 + name.length + len;
+  });
+  const cdSize = central.reduce((n, c) => n + c.length, 0);
+  const eo = new DataView(new ArrayBuffer(22));
+  eo.setUint32(0, 0x06054b50, true);
+  eo.setUint16(8, files.length, true); eo.setUint16(10, files.length, true);
+  eo.setUint32(12, cdSize, true); eo.setUint32(16, offset, true);
+  return new Blob([...out, ...central, new Uint8Array(eo.buffer)], { type: "application/zip" });
+}
+const dataUrlBytes = (u) => {
+  const b = atob(String(u).slice(String(u).indexOf(",") + 1));
+  const a = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
+  return a;
+};
+function brollName(r, i, seqNo, posNo) {
+  const m = String(r.ts).match(/(\d{1,2}):(\d{2})/);
+  const ts = m ? String(m[1]).padStart(2, "0") + "-" + m[2] : "00-00";
+  const tail = r.mode === "ANCHOR" && seqNo ? "-s" + seqNo + "f" + posNo : "";
+  return String(i + 1).padStart(2, "0") + "_" + ts + "_" + (r.mode || "CUE") + tail + ".png";
+}
+let brollBatch = null;
+async function runBrollBatch(rows, pos) {
+  if (brollBatch) return;
+  const stat = $("#batchstat");
+  const skip = $("#batchskip").checked, chain = $("#batchchain").checked;
+  const delay = Math.max(0, Number($("#batchdelay").value) || 0) * 1000;
+  brollBatch = { stop: false };
+  $("#batchrun").disabled = true;
+  $("#batchstop").hidden = false;
+  let made = 0, skipped = 0;
+  const failed = [];
+  for (let i = 0; i < rows.length; i++) {
+    if (brollBatch.stop) break;
+    if (skip && current.brollImgs[i]) { skipped++; continue; }
+    // chain within an ANCHOR run only — a SUPPORT frame stands on its own
+    const ref = chain && pos[i] > 1 ? current.brollImgs[i - 1] : null;
+    let ok = false;
+    for (let a = 1; a <= 3 && !ok && !brollBatch.stop; a++) {
+      stat.textContent = `กำลังเจน ${i + 1}/${rows.length} · ${rows[i].ts}` +
+        (a > 1 ? ` (ลองใหม่ครั้งที่ ${a})` : "") + ` — สำเร็จ ${made} · ข้าม ${skipped} · ล้มเหลว ${failed.length}`;
+      try {
+        current.brollImgs[i] = await generateImage(rows[i].prompt || rows[i].visual, ref);
+        ok = true; made++;
+      } catch (err) {
+        if (a === 3) failed.push(rows[i].ts + " — " + String(err.message || err).slice(0, 70));
+        else await sleep(2000 * a);
+      }
+    }
+    if (!brollBatch.stop && delay && i < rows.length - 1) await sleep(delay);
+  }
+  const stopped = brollBatch.stop;
+  brollBatch = null;
+  renderBroll();
+  const s2 = $("#batchstat");
+  if (s2) {
+    s2.innerHTML = (stopped ? "⏹ หยุดแล้ว — " : "✅ เจนครบแล้ว — ") +
+      `สำเร็จ ${made} · ข้าม ${skipped} · ล้มเหลว ${failed.length}` +
+      (failed.length ? `<br /><span style="color:var(--crit)">${esc(failed.join(" · "))}</span>` : "");
+  }
+}
+function downloadBrollZip(rows, seq, pos) {
+  const files = [];
+  rows.forEach((r, i) => {
+    if (current.brollImgs[i]) files.push({ name: brollName(r, i, seq[i], pos[i]), data: dataUrlBytes(current.brollImgs[i]) });
+  });
+  if (!files.length) { toast("ยังไม่มีภาพให้ดาวน์โหลด"); return; }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(zipStore(files));
+  a.download = "broll-" + new Date().toISOString().slice(0, 10) + ".zip";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast(`ดาวน์โหลด ${files.length} ภาพเป็น .zip แล้ว ✓`);
+}
+
 function renderBroll() {
   const body = $("#brollbody");
   const rows = storyboardRows();
@@ -2209,7 +2331,21 @@ function renderBroll() {
   const anchorCount = rows.filter((r) => r.mode === "ANCHOR").length;
   const hasModes = rows.some((r) => r.mode);
 
+  const genCount = rows.filter((_, i) => current.brollImgs[i]).length;
   body.innerHTML = `
+  ${hasGemini() ? `<div class="card" style="margin-bottom:10px">
+    <div class="btnrow" style="margin-top:0">
+      <button class="btn primary" id="batchrun">▶️ เจนทั้งหมดตามลำดับ (${rows.length} คิว)</button>
+      <button class="btn small" id="batchstop" hidden>⏹ หยุด</button>
+      <button class="btn small" id="batchzip">⬇ ดาวน์โหลดทั้งชุด .zip (${genCount})</button>
+    </div>
+    <div class="hint" style="margin-top:6px">
+      <label><input type="checkbox" id="batchskip" checked /> ข้ามคิวที่มีภาพแล้ว</label> ·
+      <label><input type="checkbox" id="batchchain" checked /> ต่อเนื่องในชุด ANCHOR (ส่งภาพเฟรมก่อนหน้าเป็นต้นแบบ)</label> ·
+      <label>หน่วงเวลา <input type="number" id="batchdelay" value="3" min="0" max="60" style="width:56px" /> วิ/ภาพ</label>
+    </div>
+    <div class="hint" id="batchstat" style="margin-top:4px">มีภาพแล้ว ${genCount}/${rows.length} คิว · ล้มเหลวจะลองใหม่อัตโนมัติ 3 ครั้ง แล้วข้ามไปคิวถัดไป</div>
+  </div>` : ""}
   ${hasModes ? `<div class="hint" style="margin-bottom:2px">
     🎬 <strong>ANCHOR</strong> = ภาพเล่าเรื่องต่อเนื่อง สลับลำดับไม่ได้ (ใช้ที่จุดวิกฤต Retention) ·
     🖼 <strong>SUPPORT</strong> = ภาพประกอบเดี่ยว ยืนได้ด้วยตัวเอง<br />
@@ -2238,6 +2374,9 @@ function renderBroll() {
   ${hasGemini() ? "" : `<p class="hint" style="margin-top:10px">ใส่ GEMINI_API_KEY ในแท็บ 1 เพื่อเจนภาพในแอป — ตอนนี้คัดลอก Prompt ไปใช้ใน Google Flow / เครื่องมืออื่นได้</p>`}`;
   $$("#brollbody [data-copyprompt]").forEach((b) => b.addEventListener("click", () => copyText(b.dataset.copyprompt, "คัดลอก Prompt แล้ว ✓")));
   wireSbEdit();
+  if ($("#batchrun")) $("#batchrun").onclick = () => runBrollBatch(rows, pos);
+  if ($("#batchstop")) $("#batchstop").onclick = () => { if (brollBatch) { brollBatch.stop = true; $("#batchstat").textContent = "กำลังหยุดหลังภาพปัจจุบัน..."; } };
+  if ($("#batchzip")) $("#batchzip").onclick = () => downloadBrollZip(rows, seq, pos);
   $$("#brollbody [data-genbroll]").forEach((b) => b.addEventListener("click", async () => {
     const i = Number(b.dataset.genbroll);
     b.disabled = true; b.textContent = "⏳ กำลังเจน...";
