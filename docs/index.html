@@ -824,6 +824,20 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem("pss_" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem("pss_" + k, JSON.stringify(v)); } catch {} },
 };
+/* Generated images are far past the localStorage quota (48 base64 PNGs), so
+   they live in IndexedDB. Failures degrade to memory-only, never throw. */
+const idb = {
+  open: () => new Promise((res, rej) => {
+    const r = indexedDB.open("pss", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv");
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }),
+  async set(k, v) { try { const d = await this.open(); await new Promise((res, rej) => { const t = d.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch {} },
+  async get(k) { try { const d = await this.open(); return await new Promise((res, rej) => { const q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); } catch { return undefined; } },
+  async del(k) { try { const d = await this.open(); await new Promise((res, rej) => { const t = d.transaction("kv", "readwrite"); t.objectStore("kv").delete(k); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch {} },
+};
+const saveBrollImgs = () => { if (current) idb.set("brollImgs", current.brollImgs || {}); };
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const toast = (msg) => { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800); };
 async function copyText(text, okMsg) {
@@ -1708,7 +1722,10 @@ function narrationOnly(text) {
   }
   return lines.slice(start, end).join("\n");
 }
-function analyzeResult(md, save) {
+function analyzeResult(md, save, opts) {
+  // An inline edit re-analyses the same document — its generated images must
+  // survive the rebuild of `current`. A genuinely new document starts clean.
+  const keptImgs = (opts && opts.imgs) || (opts && opts.keepImgs && current ? current.brollImgs : null);
   const phases = extractPhases(md);
   const scriptSrc = narrationOnly(phases.p3 || md);
   const words = (scriptSrc.replace(tsRe, "").match(/[A-Za-z][A-Za-z'’-]*/g) || []).length;
@@ -1729,7 +1746,10 @@ function analyzeResult(md, save) {
   const sb = storyboardTs(phases.p2 || md);
   const missing = sb ? ts.filter((t) => !sb.has(t.sec)) : [];
   const coverage = sb && ts.length ? Math.round(((ts.length - missing.length) / ts.length) * 100) : null;
-  current = { md, phases, words, estSec, ts, total, segs, sb, missing, coverage };
+  current = { md, phases, words, estSec, ts, total, segs, sb, missing, coverage, brollImgs: keptImgs || {} };
+  // The working document and its images survive a reload (restoreWorkdoc)
+  store.set("workdoc", md);
+  if (keptImgs) saveBrollImgs(); else idb.del("brollImgs");
   current.qc = computeQC(current);
   renderWorkspace();
   if (save !== false) pushHistory(md);
@@ -2098,6 +2118,19 @@ function storyboardRows() {
    Edits are written straight back into the pasted markdown and re-analysed,
    so QC coverage, the ANCHOR check and the B-Roll grid all update from
    one edit — the source of truth stays the document, not a side copy. */
+/* Images are keyed by row index, so inserting or deleting a row must shift
+   the keys or every image after it drifts onto the wrong cue. */
+function shiftBrollImgs(from, delta, removeAt) {
+  const src = (current && current.brollImgs) || {}, out = {};
+  Object.keys(src).forEach((k) => {
+    const j = +k;
+    if (j === removeAt) return;
+    out[j >= from ? j + delta : j] = src[k];
+  });
+  current.brollImgs = out;
+  saveBrollImgs();
+  renderBroll();
+}
 const sbLine = (cells, sep) => (sep === "|" ? "| " + cells.join(" | ") + " |" : cells.join("\t"));
 function sbCommit(mutate) {
   const lines = current.md.split("\n");
@@ -2106,7 +2139,7 @@ function sbCommit(mutate) {
   const btn = $("#subtabs button[aria-selected='true']");
   const view = btn ? btn.dataset.view : "broll";
   $("#pastebox").value = md;
-  analyzeResult(md, false);
+  analyzeResult(md, false, { keepImgs: true });
   showView(view);
   return true;
 }
@@ -2177,7 +2210,7 @@ function sbAdd(i) {
     if (at < 0) { toast("หาแถวเดิมไม่เจอ — กดวิเคราะห์ใหม่แล้วลองอีกครั้ง"); return false; }
     lines.splice(at + 1, 0, sbLine(cells, r.sep));
   });
-  if (ok) toast("แทรกแถว " + ts.trim() + " แล้ว — กดแก้ไขเพื่อเติมรายละเอียด");
+  if (ok) { shiftBrollImgs(i + 1, +1); toast("แทรกแถว " + ts.trim() + " แล้ว — กดแก้ไขเพื่อเติมรายละเอียด"); }
 }
 function sbDel(i) {
   const r = (storyboardRows() || [])[i];
@@ -2187,7 +2220,7 @@ function sbDel(i) {
     if (at < 0) { toast("หาแถวเดิมไม่เจอ — กดวิเคราะห์ใหม่แล้วลองอีกครั้ง"); return false; }
     lines.splice(at, 1);
   });
-  if (ok) toast("ลบแถวแล้ว ✓");
+  if (ok) { shiftBrollImgs(i + 1, -1, i); toast("ลบแถวแล้ว ✓"); }
 }
 function wireSbEdit() {
   $$("#brollbody [data-sbedit]").forEach((b) => b.onclick = () => sbToggleEdit(+b.dataset.sbedit));
@@ -2295,6 +2328,9 @@ function brollName(r, i, seqNo, posNo) {
   return String(i + 1).padStart(2, "0") + "_" + ts + "_" + (r.mode || "CUE") + tail + ".png";
 }
 let brollBatch = null;
+window.addEventListener("beforeunload", (e) => {
+  if (brollBatch) { e.preventDefault(); e.returnValue = ""; }
+});
 async function runBrollBatch(rows, pos) {
   if (brollBatch) return;
   const stat = $("#batchstat");
@@ -2317,6 +2353,11 @@ async function runBrollBatch(rows, pos) {
       try {
         current.brollImgs[i] = await generateImage(rows[i].prompt || rows[i].visual, ref);
         ok = true; made++;
+        // show the frame as soon as it exists — a wrong style should be
+        // caught on image 2, not after the whole run has spent the quota
+        const slot = $("[data-imgslot='" + i + "']");
+        if (slot) slot.innerHTML = `<img src="${current.brollImgs[i]}" alt="b-roll" />`;
+        saveBrollImgs();
       } catch (err) {
         if (a === 3) failed.push(rows[i].ts + " — " + String(err.message || err).slice(0, 70));
         else await sleep(2000 * a);
@@ -2394,7 +2435,7 @@ function renderBroll() {
   <div class="imggrid">
     ${rows.map((r, i) => `
       <div class="imgcard${r.mode === "ANCHOR" ? " anchor" : ""}">
-        <div>${current.brollImgs[i] ? `<img src="${current.brollImgs[i]}" alt="b-roll" />` : `<div class="ph">ยังไม่ได้เจนภาพ</div>`}</div>
+        <div data-imgslot="${i}">${current.brollImgs[i] ? `<img src="${current.brollImgs[i]}" alt="b-roll" />` : `<div class="ph">ยังไม่ได้เจนภาพ</div>`}</div>
         ${r.mode ? `<div><span class="chip ${r.mode === "ANCHOR" ? "crit" : ""}"${r.mode === "ANCHOR" ? "" : ' style="background:var(--panel2);color:var(--muted)"'}>${r.mode === "ANCHOR" ? `🎬 ANCHOR · ชุด ${seq[i]} · เฟรม ${pos[i]}/${runLen[seq[i]]}` : "🖼 SUPPORT"}</span></div>` : ""}
         <div style="font-size:.8rem"><span class="ts">${esc(r.ts.replace(/[\[\]]/g, ""))}</span> ${esc(r.visual.slice(0, 90))}</div>
         <div class="pr">${esc(r.prompt.slice(0, 200))}</div>
@@ -2421,6 +2462,7 @@ function renderBroll() {
     b.disabled = true; b.textContent = "⏳ กำลังเจน...";
     try {
       current.brollImgs[i] = await generateImage(rows[i].prompt || rows[i].visual);
+      saveBrollImgs();
       renderBroll();
     } catch (err) { alert(aiErrorThai(err)); b.disabled = false; b.textContent = "🖼 เจนภาพ"; }
   }));
@@ -2784,6 +2826,16 @@ function renderHistory() {
 renderHistory();
 $("#clearhist").addEventListener("click", () => { store.set("history", []); renderHistory(); toast("ล้างประวัติแล้ว"); });
 refreshKeyUI();
+/* Restore the working session: the tablet OS reclaims background tabs, and
+   before this the whole analysis and every generated image died with the tab. */
+async function restoreWorkdoc() {
+  const wd = store.get("workdoc", "");
+  if (!wd || current) return;
+  const imgs = (await idb.get("brollImgs")) || {};
+  $("#pastebox").value = wd;
+  analyzeResult(wd, false, { imgs });
+}
+restoreWorkdoc();
 </script>
 </body>
 </html>
