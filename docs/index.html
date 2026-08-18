@@ -1690,9 +1690,27 @@ function computeQC(c) {
 }
 
 let current = null; // { md, phases, analysis }
+/* Phase 3 carries the narration plus the packaging blocks that follow it —
+   description, the timestamp list, CTA, hashtags. Counting those as spoken
+   words inflates the duration estimate, and since the last storyboard segment
+   is measured to the estimated end of audio, the whole surplus lands on it as
+   a phantom "visual freeze". Measure the narration only. */
+const TS_LINE = /\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]/;
+const SCRIPT_END = /^[ \t]*(?:#{1,6}[ \t]*)?(?:\*{1,2}[ \t]*)?(?:youtube[ \t]*)?(?:description|timestamps?|hashtags?|tags|website|cta|call[ \t]*to[ \t]*action|คำอธิบาย|แฮชแท็ก|แท็ก|เว็บไซต์)\b[ \t]*:?[ \t]*\*{0,2}[ \t]*$/i;
+function narrationOnly(text) {
+  const lines = String(text).split("\n");
+  const start = lines.findIndex((l) => TS_LINE.test(l));
+  if (start < 0) return String(text);
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (TS_LINE.test(lines[i])) continue; // a cue line is never the boundary
+    if (SCRIPT_END.test(lines[i])) { end = i; break; }
+  }
+  return lines.slice(start, end).join("\n");
+}
 function analyzeResult(md, save) {
   const phases = extractPhases(md);
-  const scriptSrc = phases.p3 || md;
+  const scriptSrc = narrationOnly(phases.p3 || md);
   const words = (scriptSrc.replace(tsRe, "").match(/[A-Za-z][A-Za-z'’-]*/g) || []).length;
   const estSec = Math.round((words / 150) * 60);
   const ts = parseTs(scriptSrc);
@@ -1700,7 +1718,10 @@ function analyzeResult(md, save) {
   const segs = ts.map((t, i) => {
     const end = i + 1 < ts.length ? ts[i + 1].sec : total;
     const gap = end - t.sec;
-    return { from: t, len: gap, sev: gap > 25 ? "crit" : gap > 18 ? "warn" : "good" };
+    // The tail has no next cue to measure against, so its length comes from the
+    // word-count estimate — flagged, because that is a guess, not a real gap.
+    const est = i + 1 >= ts.length;
+    return { from: t, len: gap, est, sev: gap > 25 ? "crit" : gap > 18 ? "warn" : "good" };
   });
   // Fall back to the whole document like storyboardRows() does — otherwise a
   // heading the phase splitter misses makes the QC Gate report "no table"
@@ -1790,7 +1811,11 @@ function renderQA() {
   let issues = "";
   const freezes = c.segs.filter((s) => s.sev !== "good");
   freezes.forEach((s) => {
-    issues += `<div class="issue"><span class="sev chip ${s.sev}">${s.sev === "crit" ? "ภาพค้าง" : "เริ่มนาน"}</span>
+    issues += s.est
+      ? `<div class="issue"><span class="sev chip warn">ท้ายสคริปต์</span>
+      <span><strong>${s.from.label}</strong> เป็นคิวสุดท้าย แต่ประเมินจากจำนวนคำแล้วยังมีบทพูดต่ออีกราว <strong>${s.len} วินาที</strong> —
+      ถ้าสคริปต์จบที่คิวนี้จริงก็ไม่ต้องแก้ (เป็นการประมาณ ไม่ใช่ช่องว่างจริง) แต่ถ้ายังมีบทพูดต่อ ให้เพิ่ม Timestamp คลุมช่วงท้าย</span></div>`
+      : `<div class="issue"><span class="sev chip ${s.sev}">${s.sev === "crit" ? "ภาพค้าง" : "เริ่มนาน"}</span>
       <span>ช่วง <strong>${s.from.label}</strong> ยาว <strong>${s.len} วินาที</strong> ก่อนถึงคิวถัดไป — ควรซอย Timestamp เพิ่ม</span></div>`;
   });
   if (c.sb === null) {
