@@ -2389,6 +2389,61 @@ function downloadBrollZip(rows, seq, pos) {
   toast(`ดาวน์โหลด ${files.length} ภาพเป็น .zip แล้ว ✓`);
 }
 
+/* Batch prompts for ChatGPT image generation.
+   Continuity is the constraint, not the count: an ANCHOR run's later frames
+   refer back to an earlier image, so a batch must never cut through one.
+   Group first (each ANCHOR run is one indivisible group, each SUPPORT row its
+   own), then pack groups up to the batch size — inside a batch the references
+   become "same scene as image N", which resolves within the single message. */
+function cgptBatches(rows, seq, pos, size) {
+  const groups = [];
+  rows.forEach((r, i) => {
+    if (r.mode === "ANCHOR" && seq[i] && pos[i] > 1 && groups.length) groups[groups.length - 1].push(i);
+    else groups.push([i]);
+  });
+  const out = [];
+  let cur = [];
+  groups.forEach((g) => {
+    if (cur.length && cur.length + g.length > size) { out.push(cur); cur = []; }
+    cur = cur.concat(g);
+  });
+  if (cur.length) out.push(cur);
+  return out;
+}
+function cgptBatchPrompt(rows, idxs, seq, pos, no, total) {
+  const n = idxs.length;
+  const head = [
+    `สร้างภาพทั้งหมด ${n} ภาพจากรายการด้านล่าง — ภาพละ 1 รูป เรียงตามหมายเลข 1 ถึง ${n}`,
+    "ถ้าสร้างครั้งเดียวได้ไม่ครบ ให้ทยอยสร้างต่อจนครบทุกหมายเลข ห้ามข้าม ห้ามรวบหลายฉากไว้ในรูปเดียว",
+    "",
+    "ข้อกำหนดที่ใช้กับทุกภาพ:",
+    "- ภาพแนวนอนอัตราส่วน 16:9 กรอบแบบภาพยนตร์",
+    "- ห้ามมีตัวอักษร ตัวเลข โลโก้ ซับไตเติล หรือลายน้ำใดๆ",
+    "- ไม่มีใบหน้าที่จดจำได้ — ให้คนเป็นเงาดำหรือหันหลังเท่านั้น",
+    "- เว้นพื้นที่ว่างด้านบนของเฟรมราว 15% ไว้วางคำบรรยาย",
+    "- โทนภาพยนตร์ ดูเป็นภาพถ่าย ไม่ใช่ภาพวาดหรือภาพสีจัด",
+    "",
+  ].join("\n");
+  const body = idxs.map((gi, k) => {
+    const r = rows[gi];
+    // a later ANCHOR frame points at its run-mate's position inside THIS batch
+    const cont = r.mode === "ANCHOR" && pos[gi] > 1 && k > 0;
+    const t = String(r.ts).replace(/[\[\]]/g, "");
+    if (cont) {
+      return [
+        `═══ ภาพที่ ${k + 1} — ${t} (ต่อเนื่องจากภาพที่ ${k}) ═══`,
+        `ให้เป็นฉากเดียวกับภาพที่ ${k} ทุกอย่าง: วัตถุหลัก ห้อง มุมกล้อง ระยะเลนส์ โทนสี และทิศทางแสง`,
+        "ต้องดูเป็นสถานที่เดิมในอีกไม่กี่นาทีถัดมา ไม่ใช่ฉากใหม่",
+        `เปลี่ยนเฉพาะสิ่งนี้: ${r.visual || "ตามคำอธิบายด้านล่าง"}`,
+        `ฉากเต็มสำหรับอ้างอิง: ${r.prompt}`,
+      ].join("\n");
+    }
+    return `═══ ภาพที่ ${k + 1} — ${t}${r.mode === "ANCHOR" ? " (เปิดชุด ANCHOR)" : ""} ═══\n${r.prompt}`;
+  }).join("\n\n");
+  const tail = total > 1 ? `\n\n(ชุดที่ ${no}/${total} ของตอนนี้)` : "";
+  return head + body + tail;
+}
+
 function renderBroll() {
   const body = $("#brollbody");
   const rows = storyboardRows();
@@ -2426,6 +2481,17 @@ function renderBroll() {
     </div>
     <div class="hint" id="batchstat" style="margin-top:4px">มีภาพแล้ว ${genCount}/${rows.length} คิว · ล้มเหลวจะลองใหม่อัตโนมัติ 3 ครั้ง แล้วข้ามไปคิวถัดไป</div>
   </div>` : ""}
+  ${(() => {
+    const b = cgptBatches(rows, seq, pos, 8);
+    return `<details class="card" style="margin-bottom:10px">
+      <summary style="cursor:pointer;font-weight:600">🤖 ChatGPT แบบชุด — ${b.length} ชุด (สูงสุด 8 ภาพ/ชุด)</summary>
+      <p class="hint">ก๊อปทีละชุดไปวางในแชท ChatGPT เดียวกัน ชุดหนึ่งสั่งได้ถึง 8 ภาพในข้อความเดียว ถ้ามันสร้างไม่ครบในทีเดียว พิมพ์ว่า "ทำต่อ" ได้ — prompt สั่งไว้แล้วว่าห้ามข้ามหมายเลข<br />
+        ชุดจะไม่ตัดกลางซีเควนซ์ ANCHOR เพราะเฟรมต่อเนื่องต้องอ้างภาพก่อนหน้าในข้อความเดียวกัน</p>
+      <div class="btnrow" style="margin-top:0">
+        ${b.map((idxs, k) => `<button class="btn small" data-copyprompt="${esc(cgptBatchPrompt(rows, idxs, seq, pos, k + 1, b.length))}">📋 ชุด ${k + 1} (${idxs.length} ภาพ · ${esc(String(rows[idxs[0]].ts).replace(/[\[\]]/g, ""))}–${esc(String(rows[idxs[idxs.length - 1]].ts).replace(/[\[\]]/g, ""))})</button>`).join("")}
+      </div>
+    </details>`;
+  })()}
   ${hasModes ? `<div class="hint" style="margin-bottom:2px">
     🎬 <strong>ANCHOR</strong> = ภาพเล่าเรื่องต่อเนื่อง สลับลำดับไม่ได้ (ใช้ที่จุดวิกฤต Retention) ·
     🖼 <strong>SUPPORT</strong> = ภาพประกอบเดี่ยว ยืนได้ด้วยตัวเอง<br />
