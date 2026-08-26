@@ -532,6 +532,7 @@
         <button role="tab" aria-selected="false" data-view="broll">🖼 B-Roll</button>
         <button role="tab" aria-selected="false" data-view="shorts">✂️ Shorts</button>
         <button role="tab" aria-selected="false" data-view="retention">📈 Retention</button>
+        <button role="tab" aria-selected="false" data-view="sponsor">💰 Sponsor / RPM</button>
       </div>
 
       <div class="card md" id="mdview"></div>
@@ -569,6 +570,13 @@
         <h2>เจนภาพประกอบจาก Storyboard</h2>
         <p class="hint">ดึง Prompt จากตาราง Storyboard (Phase 2) มาเจนภาพ 16:9 ในแอปด้วย key เดิมของคุณ — เจนทีละภาพเพื่อประหยัดโควตา แล้วกดดาวน์โหลดไปตัดต่อได้เลย</p>
         <div id="brollbody"></div>
+      </div>
+
+      <div class="card" id="sponsorview" hidden>
+        <div class="eyebrow">Sponsor / RPM Fit</div>
+        <h2>ใครน่าจะจ่ายเงินให้ช่องนี้</h2>
+        <p class="hint">ประเมินหมวดโฆษณาและผู้สนับสนุนที่มีโอกาสเข้าช่องนี้ จากนิช ตลาดผู้ชม และหัวข้อของตอนนี้ — พร้อมหมวดที่ควรปฏิเสธเพื่อรักษาความไว้ใจ</p>
+        <div id="sponsorbody"></div>
       </div>
 
       <div class="card" id="shortsview" hidden>
@@ -1726,6 +1734,11 @@ function analyzeResult(md, save, opts) {
   // An inline edit re-analyses the same document — its generated images must
   // survive the rebuild of `current`. A genuinely new document starts clean.
   const keptImgs = (opts && opts.imgs) || (opts && opts.keepImgs && current ? current.brollImgs : null);
+  // Packaging / Shorts / Sponsor blocks cost an API call each — an inline
+  // storyboard edit must not silently discard them either.
+  const keptGen = opts && opts.keepImgs && current
+    ? { pack: current.pack, shorts: current.shorts, sponsor: current.sponsor, retention: current.retention }
+    : null;
   const phases = extractPhases(md);
   const scriptSrc = narrationOnly(phases.p3 || md);
   const words = (scriptSrc.replace(tsRe, "").match(/[A-Za-z][A-Za-z'’-]*/g) || []).length;
@@ -1746,7 +1759,7 @@ function analyzeResult(md, save, opts) {
   const sb = storyboardTs(phases.p2 || md);
   const missing = sb ? ts.filter((t) => !sb.has(t.sec)) : [];
   const coverage = sb && ts.length ? Math.round(((ts.length - missing.length) / ts.length) * 100) : null;
-  current = { md, phases, words, estSec, ts, total, segs, sb, missing, coverage, brollImgs: keptImgs || {} };
+  current = { md, phases, words, estSec, ts, total, segs, sb, missing, coverage, brollImgs: keptImgs || {}, ...(keptGen || {}) };
   // The working document and its images survive a reload (restoreWorkdoc)
   store.set("workdoc", md);
   if (keptImgs) saveBrollImgs(); else idb.del("brollImgs");
@@ -1781,12 +1794,14 @@ function showView(v) {
   $("#brollview").hidden = v !== "broll";
   $("#shortsview").hidden = v !== "shorts";
   $("#retentionview").hidden = v !== "retention";
+  $("#sponsorview").hidden = v !== "sponsor";
   const isMd = ["all", "p1", "p2", "p3"].includes(v);
   $("#mdview").hidden = !isMd;
   if (v === "pack") renderPack();
   if (v === "broll") renderBroll();
   if (v === "shorts") renderShorts();
   if (v === "retention") renderRetention();
+  if (v === "sponsor") renderSponsor();
   if (!isMd) return;
   const c = current;
   const src = v === "all" ? c.md : (c.phases["p" + v[1]] ?? "ไม่พบส่วนนี้ในผลลัพธ์ — ตรวจว่า AI ใส่หัวข้อ \"Phase " + v[1] + "\" หรือไม่");
@@ -2542,6 +2557,81 @@ const SHORTS_INSTRUCTION = `จากตอนเต็มด้านบน ส
 **Hook:** ...
 **Script:** ...
 **Hashtags:** #...`;
+/* ── Sponsor / RPM fit ──
+   Advertiser categories are reasoned from audience value; specific brands are
+   not. The prompt asks for categories and example types, forbids presenting
+   invented figures or brand interest as fact, and requires a refuse-list —
+   on a single-brand channel one bad sponsor costs more than it pays. */
+const SPONSOR_INSTRUCTION = `จากตอนด้านบนและข้อมูลแบรนด์ ประเมินว่า "ใครน่าจะจ่ายเงินให้ช่องนี้" อย่างตรงไปตรงมา
+
+ข้อบังคับเรื่องความซื่อตรงของข้อมูล (สำคัญที่สุด):
+- ห้ามระบุว่าแบรนด์ใดสนใจหรือเคยสนับสนุนช่องแนวนี้ราวกับเป็นข้อเท็จจริง ให้เสนอเป็น "ประเภทผู้สนับสนุน" และยกตัวอย่างได้ แต่ต้องกำกับว่าเป็นตัวอย่างที่ต้องไปตรวจสอบเอง
+- ตัวเลข RPM ให้เป็น "ช่วง" พร้อมเหตุผลว่าทำไมถึงอยู่ช่วงนั้น ห้ามให้ตัวเลขเดี่ยวที่ดูเหมือนข้อมูลจริง
+- ปิดท้ายด้วยบรรทัดกำกับว่าตัวเลขทั้งหมดเป็นการประเมินเชิงกลยุทธ์ ไม่ใช่ข้อมูลจากแพลตฟอร์มโฆษณา
+
+รูปแบบผลลัพธ์ (Markdown ภาษาไทย):
+
+## 1. หมวดโฆษณาที่มีโอกาสเข้าช่องนี้
+ตารางเรียงจากโอกาสสูงไปต่ำ:
+| หมวดโฆษณา | โอกาส | ทำไมเขายอมจ่ายให้ผู้ชมกลุ่มนี้ | RPM ที่คาด (ช่วง) | ข้อควรระวัง |
+(โอกาส ใช้ค่า สูง / กลาง / ต่ำ · อธิบายจากมูลค่าลูกค้าของผู้ลงโฆษณา ไม่ใช่จากความนิยมของหัวข้อ)
+
+## 2. ประเภทผู้สนับสนุนที่ควรไล่ติดต่อก่อน
+เรียง 3-5 ประเภท พร้อมเหตุผลว่าผู้ชมของช่องนี้ "กำลังมีปัญหาที่เขาแก้ได้" ตอนไหนของคลิป
+
+## 3. ความเหมาะกับตอนนี้โดยเฉพาะ
+หัวข้อของตอนนี้เข้ากับหมวดไหนที่สุด และควรแทรกช่วงไหนโดยไม่ทำลายความไว้ใจ (ระบุ Timestamp โดยประมาณ)
+
+## 4. AdSense เทียบกับดีลตรง เทียบกับการขายของตัวเอง
+เทียบสามทางด้วยตัวเลขคร่าวๆ ที่สมเหตุสมผลกับขนาดช่องระยะเริ่มต้น และบอกว่าทางไหนควรโฟกัสก่อนในปีแรก
+
+## 5. สิ่งที่ต้องมีก่อนติดต่อผู้สนับสนุน
+เช็คลิสต์สั้นๆ ว่าต้องมีอะไรพร้อม (จำนวนตอน ความสม่ำเสมอ ข้อมูลผู้ชม ช่องทางติดต่อ)
+
+## 6. หมวดที่ควรปฏิเสธ
+หมวดที่จ่ายดีแต่ควรปฏิเสธ พร้อมเหตุผล — ช่องนี้เดินโมเดลช่องเดียวสร้างแบรนด์ระยะยาว ความไว้ใจของผู้ฟังมีค่ามากกว่าดีลเดียว`;
+
+function renderSponsor() {
+  const body = $("#sponsorbody");
+  const mk = (brandData.b_market || "").trim();
+  const warn = mk
+    ? `<p class="hint">อิงจากตลาดผู้ชมที่ตั้งไว้: <strong>${esc(mk)}</strong></p>`
+    : `<p class="hint" style="color:var(--warn)">⚠️ ยังไม่ได้กรอก "ตลาดผู้ชมเชิงรายได้" ในแท็บ 1 — ผลจะกว้างและใช้ตัดสินใจไม่ได้ ควรกรอกประเทศ ช่วงอายุ และหมวดโฆษณาก่อน</p>`;
+  if (!current.sponsor) {
+    body.innerHTML = warn + (hasGemini()
+      ? `<div class="btnrow" style="margin-top:0"><div class="btncol"><button class="btn primary" id="sponsorgen">💰 ประเมินผู้สนับสนุน + RPM</button><span class="route">🎯 งานวิเคราะห์ — วางใน Claude (Opus) จะได้เหตุผลที่คมกว่า</span></div></div>`
+      : `<div class="btnrow" style="margin-top:0"><button class="btn" id="sponsorcopy">📋 คัดลอก Prompt (โหมดไม่มี key)</button></div>`);
+    $("#sponsorgen")?.addEventListener("click", genSponsor);
+    $("#sponsorcopy")?.addEventListener("click", () => copyText(sponsorPrompt(), "คัดลอกแล้ว — ไปวางในแอป AI"));
+    return;
+  }
+  body.innerHTML = warn + `<div class="md">${mdToHtml(current.sponsor)}</div>
+    <div class="btnrow"><button class="btn small" id="spdl">⬇ ดาวน์โหลด (.md)</button><button class="btn small" id="spcopy">📋 คัดลอก</button><button class="btn small" id="spregen">🔄 ประเมินใหม่</button></div>`;
+  $("#spdl")?.addEventListener("click", () => download("sponsor_rpm.md", current.sponsor, "text/markdown;charset=utf-8"));
+  $("#spcopy")?.addEventListener("click", () => copyText(current.sponsor, "คัดลอกแล้ว ✓"));
+  $("#spregen")?.addEventListener("click", () => { current.sponsor = null; genSponsor(); });
+}
+function sponsorPrompt() {
+  const b = [];
+  if (brandData.b_market?.trim()) b.push("ตลาดผู้ชมเชิงรายได้: " + brandData.b_market.trim());
+  if (brandData.b_aud?.trim()) b.push("กลุ่มเป้าหมายและปัญหาของเขา: " + brandData.b_aud.trim());
+  if (brandData.b_offer?.trim()) b.push("สินค้า/บริการของช่องเอง: " + brandData.b_offer.trim());
+  if (brandData.b_proof?.trim()) b.push("Proof ที่มี: " + brandData.b_proof.trim());
+  return current.md.slice(0, 12000) + "\n\n---\n\n" +
+    (b.length ? "ข้อมูลแบรนด์:\n" + b.join("\n") + "\n\n" : "") + SPONSOR_INSTRUCTION + dnaSuffix();
+}
+async function genSponsor() {
+  const body = $("#sponsorbody");
+  body.innerHTML = `<p class="hint">⏳ AI กำลังประเมินผู้สนับสนุนและ RPM...</p>`;
+  try {
+    const text = await callGemini(sponsorPrompt(), { temp: 0.6 });
+    if (!text.trim()) throw new Error("ผลลัพธ์ว่างเปล่า ลองใหม่");
+    current.sponsor = text;
+    renderSponsor();
+    toast("ประเมินผู้สนับสนุนเสร็จแล้ว ✓");
+  } catch (err) { alert(aiErrorThai(err)); current.sponsor = null; renderSponsor(); }
+}
+
 function renderShorts() {
   const body = $("#shortsbody");
   if (!current.shorts) {
