@@ -540,7 +540,7 @@
       <div class="card" id="qaview" hidden>
         <div class="eyebrow">QC Gate</div>
         <h2>คะแนนคุณภาพก่อนผลิต</h2>
-        <p class="hint">ระบบตรวจสคริปต์อัตโนมัติ 7 ด้านก่อนคุณลงมืออัดเสียง/เจนภาพ — ผ่านเกณฑ์ที่ 8.5 ขึ้นไป (ข้อที่ตรวจไม่ได้จะถูกข้าม แล้วปรับสัดส่วนคะแนนให้เต็ม 10 เสมอ)</p>
+        <p class="hint">ระบบตรวจสคริปต์อัตโนมัติ 8 ด้านก่อนคุณลงมืออัดเสียง/เจนภาพ — ผ่านเกณฑ์ที่ 8.5 ขึ้นไป (ข้อที่ตรวจไม่ได้จะถูกข้าม แล้วปรับสัดส่วนคะแนนให้เต็ม 10 เสมอ)</p>
         <div class="qcpanel">
           <div class="qcscore" id="qcscore">–</div>
           <div class="hint" id="qcverdict" style="margin:0; max-width:420px"></div>
@@ -1579,6 +1579,34 @@ const AI_PHRASES = [
 ];
 const GREETING = /^\s*(hi|hello|hey|welcome|what'?s up|good (morning|afternoon|evening)|greetings)\b/i;
 
+/* Sentence rhythm. Flat, uniform sentence length is the most reliable
+   machine-writing tell in prose that otherwise avoids every banned phrase.
+   Opener concentration is measured across the whole script, not as runs:
+   three sentences opening "He studied / He rewrote / He practiced" is
+   deliberate anaphora and good writing, whereas "The" opening two thirds of
+   every sentence in the episode is not. */
+function rhythmStats(text) {
+  const clean = String(text).replace(/\[[\d:]+\]/g, " ");
+  const sents = clean.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter((x) => /[A-Za-z]/.test(x));
+  const lens = sents.map((x) => (x.match(/[A-Za-z][A-Za-z0-9'’-]*/g) || []).length).filter((n) => n > 0);
+  if (lens.length < 15) return null;
+  const mean = lens.reduce((a, b) => a + b, 0) / lens.length;
+  const sd = Math.sqrt(lens.reduce((a, b) => a + (b - mean) ** 2, 0) / lens.length);
+  const openers = {};
+  sents.forEach((x) => {
+    const w = (x.match(/[A-Za-z]+/) || [""])[0].toLowerCase();
+    if (w) openers[w] = (openers[w] || 0) + 1;
+  });
+  const top = Object.entries(openers).sort((a, b) => b[1] - a[1])[0] || ["-", 0];
+  return {
+    n: lens.length,
+    mean: Math.round(mean * 10) / 10,
+    cv: mean ? sd / mean : 0,
+    topWord: top[0],
+    topShare: top[1] / sents.length,
+    longShare: lens.filter((n) => n > 30).length / lens.length,
+  };
+}
 function computeQC(c) {
   const script = c.phases.p3 || c.md;
   const low = script.toLowerCase();
@@ -1601,6 +1629,43 @@ function computeQC(c) {
       ? `จากสคริปต์ที่คุณสร้างให้ก่อนหน้านี้ พบคำ/วลีที่ผิดกฎ: ${found.join(", ")}${foundDna.length ? (found.length ? ", " : "") + "คำต้องห้ามตาม Brand DNA: " + foundDna.join(", ") : ""}\n\nกรุณาเขียนประโยคที่มีคำเหล่านี้ใหม่เป็นภาษาพูดธรรมชาติแบบมนุษย์ตามกฎ Brand DNA คงเนื้อหาและ Timestamp เดิมทั้งหมด แสดงเฉพาะย่อหน้าที่แก้ไข`
       : null,
   });
+
+  // 1b) sentence rhythm (1.5 pts)
+  const rh = rhythmStats(narrationOnly(c.phases.p3 || c.md));
+  if (!rh) {
+    checks.push({
+      name: "จังหวะประโยคเหมือนมนุษย์", max: 1.5, score: 0, na: true,
+      detail: "สคริปต์สั้นเกินไป (ต้องมีอย่างน้อย 15 ประโยค) — ยังวัดจังหวะไม่ได้",
+    });
+  } else {
+    const bits = [];
+    let sc = 0;
+    // variation in sentence length
+    if (rh.cv >= 0.45) { sc += 0.7; bits.push(`ความแปรผันความยาวประโยค ${rh.cv.toFixed(2)} ✓`); }
+    else if (rh.cv >= 0.3) { sc += 0.35; bits.push(`ความแปรผัน ${rh.cv.toFixed(2)} — ค่อนข้างสม่ำเสมอ ควรสลับประโยคสั้นยาวให้มากขึ้น`); }
+    else bits.push(`⚠️ ความแปรผัน ${rh.cv.toFixed(2)} — ประโยคยาวเท่ากันเกือบหมด นี่คือจังหวะแบบเครื่องจักร`);
+    // how much one opening word dominates
+    const pct = Math.round(rh.topShare * 100);
+    if (rh.topShare < 0.3) { sc += 0.5; bits.push(`คำขึ้นต้นที่ซ้ำสุด "${rh.topWord}" ${pct}% ✓`); }
+    else if (rh.topShare < 0.45) { sc += 0.25; bits.push(`"${rh.topWord}" ขึ้นต้น ${pct}% ของประโยค — เริ่มซ้ำ`); }
+    else bits.push(`⚠️ "${rh.topWord}" ขึ้นต้นถึง ${pct}% ของประโยค — ซ้ำจนได้ยินเป็นแพตเทิร์น`);
+    // speakability
+    const lp = Math.round(rh.longShare * 100);
+    if (rh.longShare <= 0.05) sc += 0.3;
+    else if (rh.longShare <= 0.15) { sc += 0.15; bits.push(`ประโยคยาวเกิน 30 คำ ${lp}% — อ่านออกเสียงแล้วหอบ`); }
+    else bits.push(`⚠️ ประโยคยาวเกิน 30 คำ ${lp}% — ยาวเกินไปสำหรับสคริปต์พูด`);
+    checks.push({
+      name: "จังหวะประโยคเหมือนมนุษย์", max: 1.5, score: Math.round(sc * 100) / 100,
+      detail: `${rh.n} ประโยค เฉลี่ย ${rh.mean} คำ · ` + bits.join(" · "),
+      fix: sc >= 1.4 ? null : `จากสคริปต์ที่คุณสร้างให้ก่อนหน้านี้ จังหวะประโยคยังฟังเป็นเครื่องจักรเกินไป (ความแปรผันความยาวประโยค ${rh.cv.toFixed(2)} · คำว่า "${rh.topWord}" ขึ้นต้น ${pct}% ของประโยค · ประโยคยาวเกิน 30 คำ ${lp}%)
+
+กรุณาเกลาจังหวะใหม่โดยคงเนื้อหา ความหมาย และ Timestamp เดิมทุกจุด:
+1. สลับประโยคสั้น (3-6 คำ) กับประโยคยาวให้ชัดขึ้น โดยเฉพาะช่วงที่ต้องการเน้น
+2. เปลี่ยนคำขึ้นต้นประโยคให้หลากหลาย ยกเว้นจุดที่ตั้งใจซ้ำเพื่อจังหวะ (anaphora) ซึ่งคงไว้ได้
+3. ซอยประโยคที่ยาวเกิน 30 คำให้พูดออกเสียงได้ในลมหายใจเดียว
+แสดงเฉพาะย่อหน้าที่แก้ไข`,
+    });
+  }
 
   // 2) cold open hook within the first minute (2 pts)
   let cold = 0;
