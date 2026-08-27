@@ -9,7 +9,7 @@ Runs on plain Node 22+ with native type stripping — no build step, no
 `node_modules`, no lockfile.
 
 ```bash
-node --experimental-strip-types --test agent/tests/*.test.ts   # 85 tests
+node --experimental-strip-types --test agent/tests/*.test.ts   # 86 tests
 node --experimental-strip-types agent/cli.ts "summarise this repo"
 ```
 
@@ -181,7 +181,7 @@ exception that ends the run. The transcript is checkpointed after each step.
 node --experimental-strip-types --test agent/tests/*.test.ts
 ```
 
-85 tests, no network and no sleeping: a `ManualClock` drives retry backoff,
+86 tests, no network and no sleeping: a `ManualClock` drives retry backoff,
 hook timeouts and circuit-breaker cooldowns deterministically.
 
 Type checking needs only `tsc`:

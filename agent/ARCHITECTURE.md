@@ -199,4 +199,4 @@ Named so the gaps are deliberate rather than implied:
 | `src/loop/` | transcript and the turn loop |
 | `src/build.ts` | default wiring |
 | `cli.ts` | demo runner |
-| `tests/` | 85 tests, deterministic, offline |
+| `tests/` | 86 tests, deterministic, offline |
