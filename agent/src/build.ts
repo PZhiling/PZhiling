@@ -59,7 +59,10 @@ export function providersFromEnvironment(env: NodeJS.ProcessEnv = process.env): 
   const anthropicKey = env["ANTHROPIC_API_KEY"];
   if (anthropicKey !== undefined && anthropicKey.length > 0) {
     providers.push({
-      provider: new AnthropicProvider({ apiKey: anthropicKey, model: env["ANTHROPIC_MODEL"] ?? "claude-sonnet-4-5" }),
+      provider: new AnthropicProvider({
+        apiKey: anthropicKey,
+        ...(env["ANTHROPIC_MODEL"] === undefined ? {} : { model: env["ANTHROPIC_MODEL"] }),
+      }),
       priority: 10,
     });
   }

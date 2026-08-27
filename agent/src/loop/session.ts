@@ -6,7 +6,7 @@ import { HookBus } from "../hooks/bus.ts";
 import type { AgentStore } from "../kv/agent-store.ts";
 import type { InferenceCall } from "../inference/middleware.ts";
 import type { PermissionBroker } from "../permission/broker.ts";
-import type { ChatRequest, ToolCall } from "../router/provider.ts";
+import type { ChatRequest, Effort, ToolCall } from "../router/provider.ts";
 import type { ToolRegistry } from "../tools/registry.ts";
 import { Transcript } from "./transcript.ts";
 
@@ -47,7 +47,7 @@ export interface SessionOptions {
   readonly maxIdleSteps?: number;
   readonly maxOutputTokens?: number;
   readonly temperature?: number;
-  readonly effort?: "low" | "medium" | "high";
+  readonly effort?: Effort;
   /** Per-tool-call wall clock budget. Defaults to 120s. */
   readonly toolTimeoutMs?: number;
 }

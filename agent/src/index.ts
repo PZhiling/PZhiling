@@ -59,8 +59,10 @@ export { HOOK_STEPS, type HookOutcome, type HookPayloads, type HookStep } from "
 export { HookBus, type HookHandler, type HookRegistration, type HookResult } from "./hooks/bus.ts";
 
 export {
+  EFFORT_LEVELS,
   estimateRequestTokens,
   estimateTokens,
+  type Effort,
   type ChatMessage,
   type ChatProvider,
   type ChatRequest,
@@ -83,7 +85,12 @@ export {
 } from "./router/router.ts";
 export { MockProvider, type MockProviderOptions, type ScriptedTurn } from "./router/providers/mock.ts";
 export { OpenAiCompatibleProvider, type OpenAiCompatibleOptions } from "./router/providers/openai-compatible.ts";
-export { AnthropicProvider, type AnthropicProviderOptions } from "./router/providers/anthropic.ts";
+export {
+  AnthropicProvider,
+  DEFAULT_ANTHROPIC_COST,
+  DEFAULT_ANTHROPIC_MODEL,
+  type AnthropicProviderOptions,
+} from "./router/providers/anthropic.ts";
 
 export {
   chain,

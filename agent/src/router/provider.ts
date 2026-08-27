@@ -38,13 +38,17 @@ export const EMPTY_USAGE: Usage = {
   cacheWriteTokens: 0,
 };
 
+/** Reasoning depth, lowest to highest. */
+export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
+export type Effort = (typeof EFFORT_LEVELS)[number];
+
 export interface ChatRequest {
   readonly messages: readonly ChatMessage[];
   readonly tools?: readonly ToolSchema[];
   readonly maxOutputTokens?: number;
   readonly temperature?: number;
   /** Requested reasoning depth; adapters map this onto their own knob. */
-  readonly effort?: "low" | "medium" | "high";
+  readonly effort?: Effort;
   /** Model override; otherwise the provider's configured default is used. */
   readonly model?: string;
 }

@@ -5,6 +5,7 @@ import { ManualClock } from "../src/core/clock.ts";
 import { createRootContext } from "../src/core/context.ts";
 import { AgentError } from "../src/core/errors.ts";
 import { CircuitBreaker } from "../src/router/breaker.ts";
+import { AnthropicProvider } from "../src/router/providers/anthropic.ts";
 import { MockProvider } from "../src/router/providers/mock.ts";
 import { InferenceRouter } from "../src/router/router.ts";
 import { priceOf, UsageLedger } from "../src/router/usage.ts";
@@ -186,4 +187,39 @@ test("a budget ceiling is enforced before a request is routed", async () => {
     (error: unknown) => (error as AgentError).kind === "budget_exceeded",
   );
   assert.equal(provider.seen.length, 1);
+});
+
+test("the anthropic adapter sends the current thinking shape, not a token budget", async () => {
+  const { ctx } = harness();
+  const provider = new AnthropicProvider({ apiKey: "test-key" });
+
+  // Intercept the wire request rather than calling the API.
+  let sent: Record<string, unknown> | undefined;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (_url: string, init: RequestInit) => {
+    sent = JSON.parse(String(init.body)) as Record<string, unknown>;
+    return new Response(
+      JSON.stringify({
+        type: "message",
+        model: "claude-opus-5",
+        stop_reason: "end_turn",
+        content: [{ type: "text", text: "hi" }],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  }) as typeof globalThis.fetch;
+
+  try {
+    await provider.complete(ctx, { ...request, effort: "xhigh" });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.ok(sent);
+  assert.deepEqual(sent["thinking"], { type: "adaptive" });
+  assert.deepEqual(sent["output_config"], { effort: "xhigh" });
+  // `budget_tokens` is rejected with a 400 on current models.
+  assert.equal(JSON.stringify(sent).includes("budget_tokens"), false);
+  assert.equal(provider.model, "claude-opus-5");
 });

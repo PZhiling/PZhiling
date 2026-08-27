@@ -19,6 +19,10 @@ import { postJson, readArray, readNumber, readRecord, readString } from "./http.
  * field, and tool results are `user` messages carrying `tool_result` blocks.
  */
 
+/** Claude Opus 5, at its list price of $5 / $25 per million tokens. */
+export const DEFAULT_ANTHROPIC_MODEL = "claude-opus-5";
+export const DEFAULT_ANTHROPIC_COST: ProviderCost = { inputPerMillion: 5, outputPerMillion: 25 };
+
 export interface AnthropicProviderOptions {
   readonly id?: string;
   readonly apiKey: string;
@@ -46,7 +50,7 @@ export class AnthropicProvider implements ChatProvider {
       throw new AgentError("invalid_input", "anthropic provider needs an API key");
     }
     this.id = options.id ?? "anthropic";
-    this.model = options.model ?? "claude-sonnet-4-5";
+    this.model = options.model ?? DEFAULT_ANTHROPIC_MODEL;
     this.apiKey = options.apiKey;
     this.baseUrl = (options.baseUrl ?? "https://api.anthropic.com/v1").replace(/\/+$/, "");
     this.timeoutMs = options.timeoutMs ?? 120_000;
@@ -55,10 +59,10 @@ export class AnthropicProvider implements ChatProvider {
       tools: true,
       streaming: true,
       vision: true,
-      maxContextTokens: 200_000,
+      maxContextTokens: 1_000_000,
       ...options.capabilities,
     };
-    this.cost = options.cost ?? { inputPerMillion: 3, outputPerMillion: 15 };
+    this.cost = options.cost ?? DEFAULT_ANTHROPIC_COST;
   }
 
   async complete(ctx: RequestContext, request: ChatRequest): Promise<ChatResponse> {
@@ -67,7 +71,7 @@ export class AnthropicProvider implements ChatProvider {
 
     const body: Record<string, unknown> = {
       model: request.model ?? this.model,
-      max_tokens: request.maxOutputTokens ?? 4096,
+      max_tokens: request.maxOutputTokens ?? 16_000,
       messages,
     };
     if (system.length > 0) body["system"] = system;
@@ -79,11 +83,12 @@ export class AnthropicProvider implements ChatProvider {
         input_schema: tool.parameters,
       }));
     }
-    if (request.effort !== undefined && request.effort !== "low") {
-      const budget = request.effort === "high" ? 8192 : 2048;
-      body["thinking"] = { type: "enabled", budget_tokens: budget };
-      // Extended thinking needs headroom for the thinking tokens themselves.
-      body["max_tokens"] = Math.max(Number(body["max_tokens"]), budget + 1024);
+    if (request.effort !== undefined) {
+      // Current models take adaptive thinking plus an effort level. The older
+      // fixed `{type: "enabled", budget_tokens: N}` form is rejected with a
+      // 400 on Opus 5 / Sonnet 5 and the 4.7+ family.
+      body["thinking"] = { type: "adaptive" };
+      body["output_config"] = { effort: request.effort };
     }
 
     const timeoutMs = Math.min(this.timeoutMs, Math.max(1_000, ctx.remainingMs()));

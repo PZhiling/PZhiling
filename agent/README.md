@@ -83,8 +83,12 @@ console.log(result.stopReason, result.steps, result.estimatedCostUsd);
 ```
 
 Providers are picked up from the environment — `ANTHROPIC_API_KEY`,
-`OPENROUTER_API_KEY`, `OPENAI_API_KEY`. With none set, a scripted provider runs
-the whole loop offline.
+`OPENROUTER_API_KEY`, `OPENAI_API_KEY` (override the model with
+`ANTHROPIC_MODEL` / `OPENROUTER_MODEL` / `OPENAI_MODEL`). With none set, a
+scripted provider runs the whole loop offline.
+
+The Anthropic adapter defaults to `claude-opus-5` and maps `effort`
+(`low` … `max`) onto adaptive thinking plus `output_config.effort`.
 
 ## The parts
 
