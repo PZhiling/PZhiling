@@ -158,7 +158,7 @@
   <div class="card" id="editor" hidden>
     <div class="eyebrow">Step 2 · Mark</div>
     <h2>วาดกรอบทับลายน้ำ</h2>
-    <p class="hint">ลากนิ้ว/เมาส์บนวิดีโอเพื่อวาดกรอบ — ลากกลางกรอบเพื่อย้าย ลากมุมขวาล่างเพื่อปรับขนาด · เพิ่มได้หลายกรอบ (ลายน้ำที่ย้ายตำแหน่ง ให้สร้าง 2 กรอบแล้วตั้งช่วงเวลาของแต่ละกรอบ)</p>
+    <p class="hint">ลากกรอบให้<strong>เผื่อขอบลายน้ำเล็กน้อย</strong> ระบบจะเกลี่ยเลยกรอบออกไปอีกนิดเพื่อไม่ให้เห็นรอยต่อ · <strong>Smart Fill</strong> ดีที่สุดกับพื้นเรียบหรือไล่เฉดสี · <strong>Inpaint</strong> ดีกว่าเมื่อมีเส้นขอบหรือรอยต่อพาดผ่านกรอบ</p>
 
     <div class="stagewrap"><canvas id="stage"></canvas></div>
 
@@ -257,7 +257,7 @@ const patch = document.createElement("canvas"), pctx = patch.getContext("2d");  
 const patch2 = document.createElement("canvas"), p2ctx = patch2.getContext("2d");
 const tiny = document.createElement("canvas"), tctx = tiny.getContext("2d");       // mosaic
 
-const MODES = { blur: "🌫 เบลอ", mosaic: "🟦 โมเสก", fill: "🪄 Smart Fill (เกลี่ยพื้นหลัง)", cover: "⬛ ปิดทับสีทึบ" };
+const MODES = { fill: "🪄 Smart Fill — พื้นเรียบ/ไล่เฉดสี", inpaint: "🩹 Inpaint — พื้นมีเส้นขอบ/รอยต่อ", blur: "🌫 เบลอ", mosaic: "🟦 โมเสก", cover: "⬛ ปิดทับสีทึบ" };
 
 /* ── file load ─────────────────────────────────── */
 const drop = $("drop");
@@ -322,7 +322,7 @@ function updateTC() {
 function addRegion(r) {
   const reg = Object.assign({
     id: nextId++, x: .35, y: .4, w: .3, h: .2,
-    mode: "blur", strength: 60, t0: 0, t1: Math.ceil((video.duration || 60) * 10) / 10, color: "#000000",
+    mode: "fill", strength: 60, t0: 0, t1: Math.ceil((video.duration || 60) * 10) / 10, color: "#000000",
   }, r);
   regions.push(reg); selId = reg.id;
   renderRegionList(); draw(true);
@@ -355,7 +355,7 @@ function renderRegionList() {
         <button class="btn small danger del" data-act="del">✕ ลบ</button>
       </div>
       <div class="ctrl">
-        <div ${r.mode === "cover" ? "hidden" : ""}><label class="f">ความแรง</label><input type="range" data-k="strength" min="10" max="100" value="${r.strength}"></div>
+        <div ${r.mode === "cover" ? "hidden" : ""}><label class="f">${r.mode === "inpaint" ? "ความละเอียดการเกลี่ย" : "ความแรง"}</label><input type="range" data-k="strength" min="10" max="100" value="${r.strength}"></div>
         <div><label class="f">เริ่ม (วินาที)</label><input type="number" data-k="t0" min="0" step="0.1" value="${r.t0}"></div>
         <div><label class="f">ถึง (วินาที)</label><input type="number" data-k="t1" min="0" step="0.1" value="${r.t1}"></div>
       </div>`;
@@ -432,6 +432,92 @@ function clampRect(x, y, w, h, W, H) {
   w = Math.max(1, Math.min(w, W - x)); h = Math.max(1, Math.min(h, H - y));
   return [x, y, w, h];
 }
+/* ── diffusion inpaint ─────────────────────────────
+   Smart Fill stretches the neighbouring strips inward and blurs the result,
+   which flattens any gradient crossing the box and leaves a soft blob.
+   Diffusion instead holds the true boundary pixels fixed and relaxes the
+   interior toward the average of its neighbours, so colour and gradient
+   propagate inward from every side at once. Solved on a downscaled grid and
+   scaled back up: the result is smooth by nature, so the detail lost to the
+   downscale is detail the method could not have invented anyway. */
+function inpaintRegion(srcCanvas, x, y, w, h, W, H, iterations) {
+  const R = Math.max(1, Math.round(Math.min(w, h) * 0.25));
+  const [ex, ey, ew, eh] = clampRect(x - R, y - R, w + R * 2, h + R * 2, W, H);
+  const SCALE = Math.min(1, 132 / Math.max(ew, eh));
+  const sw = Math.max(8, Math.round(ew * SCALE)), sh = Math.max(8, Math.round(eh * SCALE));
+  tiny.width = sw; tiny.height = sh;
+  tctx.imageSmoothingEnabled = true;
+  tctx.clearRect(0, 0, sw, sh);
+  tctx.drawImage(srcCanvas, ex, ey, ew, eh, 0, 0, sw, sh);
+  const img = tctx.getImageData(0, 0, sw, sh);
+  const d = img.data;
+  // mark the hole (the region itself) inside the padded box
+  const hx0 = Math.round((x - ex) * SCALE), hy0 = Math.round((y - ey) * SCALE);
+  const hx1 = Math.round((x + w - ex) * SCALE), hy1 = Math.round((y + h - ey) * SCALE);
+  const hole = new Uint8Array(sw * sh);
+  for (let j = hy0; j < hy1; j++) for (let i = hx0; i < hx1; i++) if (i >= 0 && j >= 0 && i < sw && j < sh) hole[j * sw + i] = 1;
+  // seed the hole with the mean of the ring so relaxation starts near the answer
+  let rs = [0, 0, 0], rn = 0;
+  for (let k = 0; k < sw * sh; k++) if (!hole[k]) { rs[0] += d[k * 4]; rs[1] += d[k * 4 + 1]; rs[2] += d[k * 4 + 2]; rn++; }
+  if (rn) for (let c = 0; c < 3; c++) rs[c] = rs[c] / rn;
+  for (let k = 0; k < sw * sh; k++) if (hole[k]) { d[k * 4] = rs[0]; d[k * 4 + 1] = rs[1]; d[k * 4 + 2] = rs[2]; d[k * 4 + 3] = 255; }
+  // Gauss-Seidel relaxation: boundary fixed, interior averaged from neighbours
+  const it = iterations || 220;
+  for (let pass = 0; pass < it; pass++) {
+    for (let j = 1; j < sh - 1; j++) {
+      for (let i = 1; i < sw - 1; i++) {
+        const k = j * sw + i;
+        if (!hole[k]) continue;
+        const a = (k - 1) * 4, b = (k + 1) * 4, u = (k - sw) * 4, v = (k + sw) * 4, o = k * 4;
+        d[o] = (d[a] + d[b] + d[u] + d[v]) >> 2;
+        d[o + 1] = (d[a + 1] + d[b + 1] + d[u + 1] + d[v + 1]) >> 2;
+        d[o + 2] = (d[a + 2] + d[b + 2] + d[u + 2] + d[v + 2]) >> 2;
+      }
+    }
+  }
+  tctx.putImageData(img, 0, 0);
+  // scale the solved patch back to full size
+  const outc = document.createElement("canvas");
+  outc.width = w; outc.height = h;
+  const oc = outc.getContext("2d");
+  oc.imageSmoothingEnabled = true;
+  oc.drawImage(tiny, hx0, hy0, Math.max(1, hx1 - hx0), Math.max(1, hy1 - hy0), 0, 0, w, h);
+  return outc;
+}
+
+/* The feather fades the patch into whatever is underneath, and underneath the
+   box edge is still the watermark — so the worked rect is grown by the feather
+   width first, putting the fade over real background instead. */
+const FEATHER = (w, h) => Math.max(2, Math.round(Math.min(w, h) * 0.14));
+function growForFeather(x, y, w, h, W, H) {
+  const f = FEATHER(w, h);
+  return clampRect(x - f, y - f, w + f * 2, h + f * 2, W, H);
+}
+/* Feathered edges: a hard rectangle of replacement pixels reads as a patch even
+   when the pixels are right, so fade the border into the untouched frame. */
+function drawFeathered(ctx, src, x, y, w, h) {
+  const f = FEATHER(w, h);
+  patch2.width = w; patch2.height = h;
+  p2ctx.clearRect(0, 0, w, h);
+  p2ctx.globalCompositeOperation = "source-over";
+  p2ctx.drawImage(src, 0, 0, w, h);
+  p2ctx.globalCompositeOperation = "destination-out";
+  const edges = [
+    [0, 0, f, h, 0, 0, f, 0], [w - f, 0, f, h, w - f, 0, w, 0],
+    [0, 0, w, f, 0, 0, 0, f], [0, h - f, w, f, 0, h - f, 0, h],
+  ];
+  edges.forEach(([rx, ry, rw, rh, gx0, gy0, gx1, gy1]) => {
+    const g = p2ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+    const outward = (rx === 0 && rw === f) || (ry === 0 && rh === f);
+    g.addColorStop(0, outward ? "rgba(0,0,0,1)" : "rgba(0,0,0,0)");
+    g.addColorStop(1, outward ? "rgba(0,0,0,0)" : "rgba(0,0,0,1)");
+    p2ctx.fillStyle = g;
+    p2ctx.fillRect(rx, ry, rw, rh);
+  });
+  p2ctx.globalCompositeOperation = "source-over";
+  ctx.drawImage(patch2, x, y, w, h);
+}
+
 function applyRegion(ctx, r, W, H, t) {
   if (t < r.t0 - 0.001 || t > r.t1 + 0.001) return;
   let [x, y, w, h] = clampRect(Math.round(r.x * W), Math.round(r.y * H), Math.round(r.w * W), Math.round(r.h * H), W, H);
@@ -440,6 +526,12 @@ function applyRegion(ctx, r, W, H, t) {
   if (r.mode === "cover") {
     ctx.fillStyle = r.color;
     ctx.fillRect(x, y, w, h);
+    return;
+  }
+  if (r.mode === "inpaint") {
+    const it = Math.max(60, Math.round(r.strength * 3.2));
+    const [gx, gy, gw, gh] = growForFeather(x, y, w, h, W, H);
+    drawFeathered(ctx, inpaintRegion(base, gx, gy, gw, gh, W, H, it), gx, gy, gw, gh);
     return;
   }
   if (r.mode === "mosaic") {
@@ -464,6 +556,7 @@ function applyRegion(ctx, r, W, H, t) {
     return;
   }
   // smart fill: stretch surrounding strips into the region, then blur the patch
+  [x, y, w, h] = growForFeather(x, y, w, h, W, H);
   const s = Math.max(4, Math.round(Math.min(w, h) * 0.2));
   patch.width = w; patch.height = h;
   pctx.clearRect(0, 0, w, h);
@@ -488,7 +581,10 @@ function applyRegion(ctx, r, W, H, t) {
   const b = bpx * 2;
   p2ctx.drawImage(patch, -b, -b, w + b * 2, h + b * 2);
   p2ctx.filter = "none";
-  ctx.drawImage(patch2, x, y, w, h);
+  const soft = document.createElement("canvas");
+  soft.width = w; soft.height = h;
+  soft.getContext("2d").drawImage(patch2, 0, 0);
+  drawFeathered(ctx, soft, x, y, w, h);
 }
 
 /* ── main render ───────────────────────────────── */
