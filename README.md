@@ -108,6 +108,29 @@ as the build type, and set `GEMINI_API_KEY` (and optionally
 `package.json` has a `gcp-build` script. Step-by-step tablet instructions:
 [TABLET-SETUP.md](TABLET-SETUP.md).
 
+## Zhiling Agent Core (`agent/`)
+
+A separate, self-contained agent runtime that lives alongside the web app: a
+routed inference layer with automatic failover and a cost budget, a typed
+lifecycle hook bus, a permission broker with rule matching and scoped grants,
+content-addressed session state, and a tool loop that always reports why it
+stopped.
+
+It has **no runtime dependencies** and needs no build step — Node 22+ runs the
+TypeScript directly:
+
+```bash
+npm run agent:test                       # 85 tests, offline and deterministic
+npm run agent:demo -- "summarise this repo"
+```
+
+Set `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY` or `OPENAI_API_KEY` to route to a
+real provider; with none set it runs against a scripted offline provider.
+
+See [agent/README.md](agent/README.md) for the API and
+[agent/ARCHITECTURE.md](agent/ARCHITECTURE.md) for the layer map and the design
+rationale.
+
 ## Scripts
 
 | Script          | Description                                 |

@@ -10,7 +10,9 @@
     "gcp-build": "npm run build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "agent:test": "node --experimental-strip-types --test agent/tests/*.test.ts",
+    "agent:demo": "node --experimental-strip-types agent/cli.ts"
   },
   "dependencies": {
     "@google-cloud/text-to-speech": "^6.4.1",

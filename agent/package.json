@@ -1,0 +1,16 @@
+{
+  "name": "@pzhiling/agent-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Zhiling Agent Core - a dependency-free TypeScript agent runtime: routed inference, hook bus, permission broker, content-addressed state, and a tool loop.",
+  "engines": { "node": ">=22.6" },
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "demo": "node --experimental-strip-types cli.ts",
+    "typecheck": "tsc --project tsconfig.json"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
