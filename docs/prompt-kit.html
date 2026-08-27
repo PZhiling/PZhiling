@@ -1,0 +1,1438 @@
+<title>คลังพรอมป์ตำนานนักสู้</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Trirong:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    /* Lacquer and gold leaf: the game's own material world.
+       Neutrals carry a violet bias so they sit with the accent instead of
+       reading as unconsidered grey. */
+    --ground: #eceaf0;
+    --surface: #f8f7fb;
+    --surface-2: #f1eff5;
+    --line: #dcd7e4;
+    --line-strong: #c6bfd2;
+    --ink: #241f2e;
+    --ink-2: #4a4359;
+    --muted: #6f6880;
+    --accent: #9a6f1c;
+    --accent-bright: #b8862b;
+    --accent-soft: #f0e4c6;
+    --vermilion: #b0362a;
+    --jade: #2b7565;
+    --jade-soft: #dcefe9;
+    --shadow: 0 1px 2px rgba(36, 31, 46, .06), 0 8px 24px -12px rgba(36, 31, 46, .18);
+    --radius: 10px;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "IBM Plex Sans Thai", "Noto Sans Thai", system-ui, -apple-system, sans-serif;
+    --display: "Trirong", "Noto Serif Thai", Georgia, serif;
+  }
+
+  /* The un-stamped default: only prefers-color-scheme separates the themes,
+     and an explicit light choice still wins over a dark OS. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #141018;
+      --surface: #1c1724;
+      --surface-2: #241e2e;
+      --line: #332b42;
+      --line-strong: #453a58;
+      --ink: #ece8f2;
+      --ink-2: #c3bbd2;
+      --muted: #948ca6;
+      --accent: #e0b455;
+      --accent-bright: #f0cd7d;
+      --accent-soft: #3a2f18;
+      --vermilion: #e07a6a;
+      --jade: #6ecfb4;
+      --jade-soft: #17332c;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -14px rgba(0, 0, 0, .7);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #141018;
+    --surface: #1c1724;
+    --surface-2: #241e2e;
+    --line: #332b42;
+    --line-strong: #453a58;
+    --ink: #ece8f2;
+    --ink-2: #c3bbd2;
+    --muted: #948ca6;
+    --accent: #e0b455;
+    --accent-bright: #f0cd7d;
+    --accent-soft: #3a2f18;
+    --vermilion: #e07a6a;
+    --jade: #6ecfb4;
+    --jade-soft: #17332c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -14px rgba(0, 0, 0, .7);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); }
+
+  /* ---- shell ---- */
+
+  .wrap {
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 0 20px 96px;
+  }
+
+  header.masthead {
+    padding: 52px 0 28px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(34px, 6vw, 52px);
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+
+  .lede {
+    max-width: 62ch;
+    color: var(--ink-2);
+    margin: 0;
+  }
+
+  /* The workflow really is ordered — each step needs the previous step's
+     output — so numbering here encodes something true. */
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1px;
+    margin: 30px 0 0;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .flow > div {
+    background: var(--surface);
+    padding: 16px 18px;
+  }
+
+  .flow b {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: .1em;
+    margin-bottom: 6px;
+  }
+
+  .flow p { margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+
+  /* ---- controls ---- */
+
+  .controls {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--ground) 92%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+    margin: 0 -20px 0;
+    padding: 12px 20px;
+  }
+
+  .controls-inner {
+    max-width: 1160px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .search {
+    flex: 1 1 220px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    padding: 0 12px;
+  }
+
+  .search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 14px;
+    padding: 9px 0;
+    outline: none;
+  }
+
+  .search svg { flex: none; opacity: .5; }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .chip {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--ink-2);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .chip:hover { border-color: var(--accent); color: var(--ink); }
+  .chip[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--ground);
+  }
+
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-2);
+    cursor: pointer;
+    user-select: none;
+    padding: 6px 12px 6px 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: var(--surface);
+    white-space: nowrap;
+  }
+
+  .toggle input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+
+  /* ---- sections ---- */
+
+  section { margin-top: 52px; scroll-margin-top: 76px; }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 20px;
+  }
+
+  .sec-head h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 26px;
+    margin: 0;
+    letter-spacing: -.005em;
+  }
+
+  .sec-head .count {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .sec-note {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: -12px 0 20px;
+    max-width: 68ch;
+  }
+
+  .progress {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .progress .bar {
+    width: 62px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--line);
+    overflow: hidden;
+  }
+
+  .progress .bar i {
+    display: block;
+    height: 100%;
+    background: var(--jade);
+    transition: width .3s ease;
+  }
+
+  /* ---- cards ---- */
+
+  .grid { display: grid; gap: 12px; }
+  .grid.two { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    /* Each character card takes its fighter's aura as a local accent. */
+    --local: var(--accent);
+  }
+
+  .card.done { opacity: .58; }
+  .card.done .card-head { background: var(--jade-soft); }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+
+  .swatch-rail {
+    width: 4px;
+    align-self: stretch;
+    border-radius: 2px;
+    background: var(--local);
+    flex: none;
+  }
+
+  .card-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .card-title small {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  .card-sub { font-size: 12.5px; color: var(--muted); width: 100%; margin: -2px 0 0; }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .04em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    white-space: nowrap;
+  }
+
+  .tag.super { background: color-mix(in srgb, var(--vermilion) 14%, transparent); color: var(--vermilion); border-color: color-mix(in srgb, var(--vermilion) 32%, transparent); }
+
+  .card-actions { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+  .btn {
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 7px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: background .12s, border-color .12s, color .12s;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--ground); }
+  .btn.primary:hover { background: var(--accent-bright); border-color: var(--accent-bright); color: var(--ground); }
+  .btn.copied, .btn.primary.copied { background: var(--jade); border-color: var(--jade); color: var(--ground); }
+
+  .btn:focus-visible, .chip:focus-visible, .toggle:focus-within, input:focus-visible {
+    outline: 2px solid var(--accent-bright);
+    outline-offset: 2px;
+  }
+
+  .check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .check input { accent-color: var(--jade); width: 15px; height: 15px; margin: 0; }
+
+  pre.prompt {
+    margin: 0;
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.62;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--ink-2);
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--surface);
+  }
+
+  pre.prompt.tall { max-height: 320px; }
+
+  .swatches { display: flex; gap: 0; width: 100%; margin-top: 8px; border-radius: 4px; overflow: hidden; }
+  .swatches i { flex: 1; height: 14px; }
+
+  /* ---- stage / effect / icon rows ---- */
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    flex-wrap: wrap;
+  }
+
+  .row.done { opacity: .55; }
+
+  .row .n {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    width: 22px;
+    flex: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .row .name { font-weight: 600; font-size: 14px; }
+  .row .name small { display: block; font-family: var(--mono); font-size: 10.5px; font-weight: 400; color: var(--muted); }
+  .row .desc { flex: 1 1 200px; font-size: 12.5px; color: var(--muted); min-width: 0; }
+
+  .empty {
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius);
+  }
+
+  /* ---- callout ---- */
+
+  .callout {
+    border: 1px solid var(--line-strong);
+    border-left: 3px solid var(--vermilion);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 16px 18px;
+    margin: 26px 0 0;
+  }
+
+  .callout h3 { margin: 0 0 6px; font-size: 14.5px; font-weight: 700; }
+  .callout p { margin: 0 0 8px; font-size: 13.5px; color: var(--ink-2); max-width: 68ch; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: var(--mono);
+    font-size: .9em;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translate(-50%, 14px);
+    background: var(--ink);
+    color: var(--ground);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+    z-index: 60;
+  }
+
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 0 14px 80px; }
+    header.masthead { padding: 34px 0 20px; }
+    .controls { margin: 0 -14px; padding: 9px 14px; }
+    .controls-inner { gap: 8px; }
+    /* A wrapping filter bar ate half a phone screen. One scrolling line
+       keeps every category reachable without pushing the content down. */
+    .chips {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -14px;
+      padding: 0 14px;
+      flex: 1 1 100%;
+    }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip { padding: 6px 11px; font-size: 12.5px; }
+    .toggle { font-size: 12px; padding: 5px 10px 5px 7px; }
+    #reset { font-size: 12px; padding: 5px 10px; }
+    .card-actions { margin-left: 0; width: 100%; }
+    .progress { margin-left: 0; }
+    .row { gap: 8px; }
+    .row .desc { flex-basis: 100%; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">ตำนานนักสู้ · Legend Fighters</p>
+    <h1>คลังพรอมป์สร้างงานภาพ</h1>
+    <p class="lede">
+      พรอมป์พร้อมวางลง ChatGPT ทุกชิ้นของเกม — ตัวละคร 15 ตัว ท่าทาง 22 ท่า
+      ฉาก 10 ด่าน เอฟเฟกต์ 24 แบบ และไอคอนสกิล 64 อัน
+      กดปุ่มคัดลอกแล้ววางได้เลย ระบบต่อ Style Lock ให้อัตโนมัติ
+      และจำไว้ให้ว่าทำอันไหนไปแล้ว
+    </p>
+
+    <div class="flow">
+      <div>
+        <b>ขั้น 1</b>
+        <p>เจน Character Sheet 1 ภาพต่อตัวละคร เก็บไว้เป็นภาพอ้างอิง</p>
+      </div>
+      <div>
+        <b>ขั้น 2</b>
+        <p>แนบภาพขั้น 1 แล้วเจน Portrait — ใช้ได้ทันทีในเกม</p>
+      </div>
+      <div>
+        <b>ขั้น 3</b>
+        <p>แนบภาพขั้น 1 ทุกครั้ง แล้วเจนท่าทีละท่า</p>
+      </div>
+      <div>
+        <b>ขั้น 4</b>
+        <p>ตัดพื้นหลัง ประกอบเป็นตาราง แล้วใส่ชื่อลง manifest.json</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <h3>ChatGPT เจน sprite sheet ทั้งแผ่นให้เหมือนกันทุกเฟรมไม่ได้</h3>
+      <p>
+        สั่งว่า “ทำ sprite sheet 12 ท่า” จะได้ตารางที่หน้าตา สัดส่วน และสีเพี้ยนไปคนละทาง
+        เวลาเล่นจะเห็นตัวละครสั่นทุกครั้งที่เปลี่ยนท่า — ต้องทำทีละภาพแล้วล็อกด้วยภาพอ้างอิงตามขั้นตอนด้านบน
+      </p>
+      <p>
+        <strong>ทางลัดที่คุ้มที่สุด:</strong> ทำแค่ Portrait + ฉาก + เอฟเฟกต์ ก่อน
+        เกมจะดูดีขึ้นทันทีโดยที่ตัวละครในสนามยังใช้ตัวที่วาดด้วยโค้ด
+        ซึ่งขยับครบทุกท่าและไม่มีปัญหาความไม่สม่ำเสมอเลย
+        ส่วน sprite เต็ม 22 ท่า × 15 ตัว = 330 ภาพ เก็บไว้ทำทีหลังได้
+      </p>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="controls-inner">
+      <label class="search">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"></circle>
+          <path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+        </svg>
+        <input id="q" type="search" placeholder="ค้นหาชื่อตัวละคร ท่า ฉาก สกิล…" aria-label="ค้นหาพรอมป์">
+      </label>
+      <div class="chips" id="chips" role="group" aria-label="กรองตามหมวด"></div>
+      <label class="toggle">
+        <input type="checkbox" id="lock" checked>
+        ต่อ Style Lock อัตโนมัติ
+      </label>
+      <button class="btn" id="reset" type="button">ล้างที่ทำแล้ว</button>
+    </div>
+  </div>
+
+  <main id="main"></main>
+
+  <footer>
+    <p>
+      พรอมป์ชุดเดียวกันนี้อยู่ในรีโปที่ <code>docs/GAME-ASSETS.md</code>
+      พร้อมสเปกไฟล์และ schema ของ <code>manifest.json</code> ฉบับเต็ม
+      · สีทั้งหมดในพรอมป์ตัวละครดึงมาจากพาเลตจริงใน <code>game/src/data/characters.ts</code>
+      · เครื่องหมายถูก “ทำแล้ว” เก็บอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น
+    </p>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---- shared prompt fragments ------------------------------------------
+
+  const STYLE_LOCK = `STYLE LOCK — stylised 2D game art, Thai fantasy, semi-realistic proportions,
+bold readable silhouette, clean crisp edges (not sketchy, not blurry),
+painterly cel shading with 3 tonal steps, strong rim light from behind,
+saturated but not neon, deep contrast, subtle warm-cool colour split.
+Rendered as flat 2D artwork viewed straight on — no perspective distortion,
+no camera tilt, no ground shadow, no floor, no scenery.
+Transparent background (PNG alpha). No text, no letters, no watermark,
+no logo, no signature, no border, no frame, no UI, no colour swatches.`;
+
+  const ICON_STYLE = `Style: bold flat-shaded fantasy game icon, thick clean silhouette that reads
+clearly at 50 pixels, strong inner glow, no outer ring, no border, no frame,
+no background plate. Viewed straight on.
+Transparent background. Square 1:1. No text, no numbers, no watermark.`;
+
+  // ---- roster ------------------------------------------------------------
+  // Palettes are the engine's real values, so a generated character drops
+  // straight in beside the code-drawn one without a colour clash.
+
+  const CHARS = [
+    { id: 'kraisorn', th: 'ไกรสร', title: 'อัศวินสิงห์เพลิง', arch: 'สายบาลานซ์', aura: '#ff7a2e',
+      sw: ['#b8342c', '#3a2a20', '#f0c66a', '#ff7a2e', '#e8b98c'],
+      block: `Kraisorn, a Thai lion-knight swordsman and disgraced royal guard.
+Athletic warrior build, mid-twenties, tanned skin #e8b98c.
+Dark brown hair #3a2418 pulled into a high samurai-style topknot.
+Crimson lacquered plate armour #b8342c over dark brown leather #3a2a20,
+gold filigree trim #f0c66a on the pauldrons and belt, crimson half-cape
+#8f2620 hanging from the left shoulder.
+Carries a straight single-edged longsword; the blade is wreathed in a thin
+skin of orange flame and drifting embers #ff7a2e.
+Expression: proud, steady, jaw set. Reads as the reliable hero of the roster.` },
+
+    { id: 'adisorn', th: 'อดิศร', title: 'ดาบคู่สายลม', arch: 'สายบุกเร็ว', aura: '#5fd0ff',
+      sw: ['#2f8fd8', '#183a5e', '#e8f4ff', '#5fd0ff', '#e6b489'],
+      block: `Adisorn, a young dual-blade duellist who believes speed beats strength.
+Lean and wiry, early twenties, warm skin #e6b489.
+Short windswept navy hair #2b4a7a.
+Azure blue fitted tunic #2f8fd8 over dark navy underlayer #183a5e,
+near-white trim #e8f4ff along the collar, cuffs and sash.
+Twin short swords, one held forward in a reverse grip, one back.
+Pale cyan speed streaks #5fd0ff trailing off the blades and heels.
+Expression: cocky half-smile, eyes sharp and amused. Light on his feet.` },
+
+    { id: 'nilrat', th: 'นิลรัตน์', title: 'เงามีดสั้น', arch: 'สายลอบสังหาร', aura: '#a855f7',
+      sw: ['#241f38', '#12101c', '#8b5cf6', '#a855f7', '#d9a87f'],
+      block: `Nilrat, a faceless shadow assassin nobody has seen twice.
+Slight and dangerous, wrapped rather than armoured, skin #d9a87f.
+Near-black hair #1b1a24 in a high ponytail; lower face covered by a wrap.
+Deep indigo layered cloth #241f38 over black underwrap #12101c,
+violet glowing seams and buckles #8b5cf6.
+A single curved dagger held in a reverse grip, close to the body.
+Violet shadow wisps #a855f7 curling off the shoulders and trailing hem,
+edges of the silhouette dissolving into smoke.
+Expression: unreadable, only the eyes visible and glowing faintly violet.` },
+
+    { id: 'krutthep', th: 'ครุฑเทพ', title: 'พญาครุฑเวหา', arch: 'สายบุกทางอากาศ', aura: '#57e6b0',
+      sw: ['#d4432f', '#7a2118', '#ffd166', '#57e6b0', '#e9c07a'],
+      block: `Krutthep, a Garuda demigod — a winged eagle-warrior of the sky.
+Powerful V-taper build, bronze skin #e9c07a with fine feather detailing
+on the forearms and calves.
+Spiky crimson feather crest #c9302c instead of hair, sharp avian brow and
+golden raptor eyes.
+Vermilion red feathered mantle and chest guard #d4432f over dark oxblood
+underlayer #7a2118, heavy gold ornament #ffd166 at the collar and belt,
+orange-red feathered half-cape #e0673f.
+Bronze taloned gauntlets, claws extended.
+Emerald wind currents #57e6b0 spiralling around both arms, loose feathers
+suspended mid-air around him.
+Expression: fierce, predatory, chin lowered.` },
+
+    { id: 'ramasoon', th: 'รามสูร', title: 'ยักษ์ขว้างขวาน', arch: 'สายถึก', aura: '#9fd8ff',
+      sw: ['#4a3a2a', '#2b2018', '#c9a227', '#9fd8ff', '#7fa86e'],
+      block: `Ramasoon, a giant thunder-ogre from Thai myth whose thrown axe makes thunder.
+Enormous and heavy — 1.3x the width of a normal fighter, huge shoulders and
+forearms, short thick neck. Olive-green skin #7fa86e, tusked lower jaw.
+Wild black hair #241a12 in coarse spikes.
+Dark brown hide armour #4a3a2a over near-black leather #2b2018, heavy antique
+gold studs and arm bands #c9a227.
+Wields a massive double-headed axe, far too big for a normal person, its edge
+crackling with pale blue lightning #9fd8ff. Bronze knuckle gauntlets.
+Expression: roaring, brows down, all aggression and no finesse.` },
+
+    { id: 'mekhala', th: 'เมขลา', title: 'เทพีล่อแก้ว', arch: 'สายคุมระยะไกล', aura: '#7cc4ff',
+      sw: ['#2f6bd8', '#12224a', '#ffe066', '#7cc4ff', '#f2d3ae'],
+      block: `Mekhala, the Thai goddess of lightning who carries the celestial crystal orb.
+Graceful divine figure, floating slightly, fair skin #f2d3ae.
+Long flowing white-silver hair #f4f7ff lifted as if underwater.
+Royal blue celestial robes #2f6bd8 with deep navy underlayer #12224a,
+heavy gold ornament #ffe066 at the crown, collar and wrists,
+a long blue mantle #3b7fe0 trailing behind.
+Holds a glowing crystal orb in one open palm.
+Arcs of pale blue lightning #7cc4ff crawling between her fingers and around
+the orb; a faint halo of sparks around the whole figure.
+Expression: serene, distant, utterly unbothered — divine calm.` },
+
+    { id: 'himawan', th: 'หิมวัน', title: 'นักเวทหิมะ', arch: 'สายคุมระยะไกล', aura: '#79c9ff',
+      sw: ['#2b5f9e', '#14304f', '#d9f2ff', '#79c9ff', '#f0dcc4'],
+      block: `Himawan, a snow mage from a frozen peak nobody returns from.
+Tall and still, pale skin #f0dcc4, frost forming on the eyelashes.
+Long ice-blue hair #bfe6ff drifting slowly.
+Deep blue mage robes #2b5f9e over dark navy #14304f, pale ice-white fur
+collar and trim #d9f2ff, a long pale blue cloak #cfe8ff.
+Carries a tall wooden staff crusted with jagged ice at the head.
+Suspended snowflakes and drifting frost motes #79c9ff hanging motionless in
+the air around him; a faint cold vapour off the shoulders.
+Expression: calm, remote, faintly sad.` },
+
+    { id: 'phailin', th: 'ไพลิน', title: 'มือปืนแก้วมณี', arch: 'สายคุมระยะไกล', aura: '#c33bd6',
+      sw: ['#7b3fb0', '#331452', '#ffd9f2', '#c33bd6', '#eec7a4'],
+      block: `Phailin, a gem-sorceress who shoots crystal shards with a rifleman's accuracy.
+Poised and precise, warm skin #eec7a4.
+Violet hair #7a3fa0 in a high, tight ponytail.
+Violet-purple long coat #7b3fb0 over dark plum #331452, pale pink trim
+#ffd9f2 on the lapels and cuffs, one gloved hand and one bare.
+Holds a crystal-tipped staff braced across the body like a marksman's rifle.
+Faceted amethyst shards #c33bd6 floating in a slow orbit around her,
+each catching a hard specular highlight.
+Expression: sharp, focused, one eye slightly narrowed as if sighting.` },
+
+    { id: 'suriya', th: 'สุริยา', title: 'พระอาทิตย์ทรงกลด', arch: 'สายบาลานซ์', aura: '#ffd15c',
+      sw: ['#f2a33c', '#c8642a', '#fff0c2', '#ffd15c', '#e3b183'],
+      block: `Suriya, a shaven-headed sun monk who turned light into a martial art.
+Grounded and centred, medium build, weathered skin #e3b183, clean-shaven head.
+Saffron-orange monk's robes #f2a33c over deeper burnt orange #c8642a,
+cream-gold sash and trim #fff0c2 wrapped across one shoulder, chest bare
+on the right side. Barefoot.
+Carries a plain wooden staff, held loosely, not aggressively.
+A golden mandala halo #ffd15c behind his head, warm light motes rising
+around him, one open palm radiating soft light.
+Expression: peaceful, eyes half closed, completely unhurried.` },
+
+    { id: 'sroithong', th: 'สร้อยทอง', title: 'นางรำพัดทอง', arch: 'สายเทคนิค', aura: '#ff7fb0',
+      sw: ['#d9407a', '#6d1f3f', '#ffd76a', '#ff7fb0', '#f0c9a0'],
+      block: `Sroithong, a royal Thai court dancer who turned dance figures into kill moves.
+Elegant, poised on the balls of the feet, fair skin #f0c9a0.
+Very long black hair #241a20 in a single thick braid that trails behind her.
+Magenta-pink Thai silk costume #d9407a over deep wine #6d1f3f, elaborate gold
+Thai dance ornament #ffd76a — a pointed chada headdress, shoulder pieces and
+long pointed golden fingernails. Pink silk sabai sash #f06a9a across the chest.
+Holds a golden folding fan open, gripped like a blade.
+Pink blossom petals #ff7fb0 swirling in a slow spiral around her.
+Expression: composed, chin lifted, a dancer's controlled poise.` },
+
+    { id: 'nakarin', th: 'นาคินทร์', title: 'พญานาคเจ็ดเศียร', arch: 'สายเทคนิค', aura: '#33e0b8',
+      sw: ['#0e7a68', '#073b3a', '#7ef0d0', '#33e0b8', '#7fd4c0'],
+      block: `Nakarin, the Naga king of the underworld waters in humanoid warrior form.
+Tall and serpentine, teal-green scaled skin #7fd4c0 with finer scales on the
+neck, forearms and cheekbones. Slit pupils.
+Dark jade hooded mantle #073b3a raised over the head; behind him a fanned
+crest of seven small serpent heads.
+Deep teal scaled armour #0e7a68, luminous mint-green trim #7ef0d0 tracing the
+plate edges, dark green cloak #0b5f56.
+Carries a long water-blue spear with a leaf-shaped head.
+Luminous green venom mist #33e0b8 rolling off the spear tip and the shoulders.
+Expression: cold, regal, contemptuous.` },
+
+    { id: 'wayu', th: 'วายุ', title: 'หอกอสนีบาต', arch: 'สายเทคนิค', aura: '#8f6bff',
+      sw: ['#5b5fd6', '#26295e', '#cfd4ff', '#8f6bff', '#dfae82'],
+      block: `Wayu, a storm lancer who lost his horse but kept the spear.
+Disciplined soldier's build, weathered skin #dfae82.
+Short cropped grey hair #4a4a58, a scar across one brow.
+Indigo-violet plate over mail #5b5fd6 with dark navy underlayer #26295e,
+pale lavender-white trim #cfd4ff on the pauldrons and greaves,
+a violet-blue cavalry cloak #4a4fbf pinned at one shoulder.
+Holds a long cavalry spear angled across the body, ready to lunge.
+Violet lightning #8f6bff crackling along the spear shaft and leaping to the
+gauntlets.
+Expression: level, professional, entirely unimpressed.` },
+
+    { id: 'bunlue', th: 'บุญเหลือ', title: 'ยอดมวยหินผา', arch: 'สายจับทุ่ม', aura: '#e0b070',
+      sw: ['#8c5a2b', '#4a2f18', '#e8d6a8', '#e0b070', '#c98a52'],
+      block: `Bunlue, a muay boran stone-wrestler who trained by punching boulders.
+Bare-chested, thick and heavy, 1.24x the width of a normal fighter, huge
+shoulders and a low centre of gravity. Deep tanned skin #c98a52, old scars.
+Short black hair #191410 under a traditional mongkhon head band.
+Rope-bound fists in the kaad chuek style, ochre and brown wraps #8c5a2b over
+dark brown shorts #4a2f18, cream-gold prajioud arm bands #e8d6a8.
+No weapon — hands are the weapon.
+Cracked stone dust and grit #e0b070 falling from the forearms and knuckles.
+Expression: quiet, unbothered, absolutely immovable.` },
+
+    { id: 'thoranee', th: 'ธรณี', title: 'ผู้พิทักษ์ปฐพี', arch: 'สายถึก', aura: '#a8d06a',
+      sw: ['#6b7f3a', '#3a4520', '#d8c98a', '#a8d06a', '#c9955f'],
+      block: `Thoranee, the earth-mother goddess of Thai myth in the form of a shield
+guardian. Broad and rooted, 1.2x the width of a normal fighter, tanned skin
+#c9955f. Very long dark brown hair #3c2a16 loose down the back, with a
+single braid, moss and small leaves caught in it.
+Olive-green armour #6b7f3a over dark forest green #3a4520, cream-gold stone
+trim #d8c98a, moss-green cloak #5c6f30, vines growing along the plate seams.
+Carries an enormous round stone shield covering most of her body, and
+stone-plated gauntlets.
+Warm green earth aura #a8d06a rising from the ground at her feet, drifting
+leaves.
+Expression: patient, maternal, immovable.` },
+
+    { id: 'ratree', th: 'ราตรี', title: 'เคียวรัตติกาล', arch: 'สายลอบสังหาร', aura: '#b57bff',
+      sw: ['#3a1a4a', '#170820', '#b57bff', '#b57bff', '#cbb6c9'],
+      block: `Ratree, a night reaper who only works after dark.
+Tall and thin, unnaturally pale skin #cbb6c9, dark circles under the eyes.
+Near-black violet hair #2a1030 under a deep hood.
+Deep purple hooded cloak #3a1a4a over near-black robes #170820, glowing
+violet sigils #b57bff burning along the hem, cuffs and hood edge,
+darker violet inner cape #2a1038.
+Carries a long curved scythe, the blade thin and wickedly hooked, trailing
+dark violet mist.
+Violet soul-wisps #b57bff drifting up from the ground around her, the lower
+edge of the cloak dissolving into shadow.
+Expression: unsettlingly calm, a faint knowing smile.` },
+  ];
+
+  const sheetPrompt = (c) => `Full-body character reference sheet for a 2D fighting game.
+
+${c.block}
+
+Layout: one single figure, standing in a neutral A-pose, facing three-quarter
+to the RIGHT, full body from head to feet, weight even on both legs, arms
+slightly away from the body so the costume silhouette is fully visible.
+Head is 1/7 of total body height. Centred, full figure fits inside the frame
+with a small margin.`;
+
+  const portraitPrompt = (c) => `Bust portrait (head, shoulders and upper chest) of this character for a
+game character-select screen. Same character as the reference image —
+identical face, hair, palette and costume.
+
+${c.block}
+
+Framing: head fills the upper two thirds, shoulders squared to the viewer,
+face turned slightly to the RIGHT, chin up, confident and intense.
+Dramatic rim light from behind-right in the character's signature aura colour
+${c.aura}. Soft inner glow, deep shadow on the opposite side.
+Square 1:1.`;
+
+  // ---- poses -------------------------------------------------------------
+
+  const POSES = [
+    ['stand', 'ยืนพัก', 1, 'relaxed combat idle, weight on the back leg, guard low, chest open, chin level'],
+    ['walk1', 'เดิน 1', 1, 'mid-stride walking forward, right leg forward and planted, left arm swung forward'],
+    ['walk3', 'เดิน 3', 1, 'mid-stride walking forward, mirrored — left leg forward, right arm swung forward'],
+    ['jumpRise', 'กระโดดขึ้น', 1, 'rising through a jump, both arms swept back and down, knees tucked slightly, body stretched vertically'],
+    ['jumpFall', 'ตกลง', 1, 'falling from a jump, arms forward for balance, trailing leg bent behind, body leaning forward'],
+    ['punch2', 'ต่อยตรง', 1, 'committed straight punch at full extension, lead fist thrust forward, shoulder rotated in, back leg driving'],
+    ['guard', 'กัน', 1, 'defensive guard, crouched slightly, both forearms raised and crossed in front of the face and chest'],
+    ['hurt1', 'โดนตี', 1, 'recoiling from a hit, head snapped back, torso arched backward, arms flung loose, off balance'],
+    ['stand2', 'ยืนพัก 2', 0, 'same idle, one frame later — chest lifted on an inhale, shoulders a touch higher'],
+    ['walk2', 'เดิน 2', 0, 'passing position of a walk, both legs close together, body at its highest point'],
+    ['walk4', 'เดิน 4', 0, 'passing position of a walk, mirrored'],
+    ['run1', 'วิ่ง 1', 0, 'full sprint, deep forward lean, front knee driving high, opposite arm pumped forward'],
+    ['run3', 'วิ่ง 3', 0, 'full sprint, mirrored'],
+    ['punch1', 'จิ้ม', 0, 'quick jab, lead fist snapping out, body barely committed, back hand still guarding'],
+    ['punch3', 'หมัดปิดจบ', 0, 'finishing power blow, whole body rotated behind the strike, back foot pivoted, huge extension'],
+    ['kick', 'เตะ', 0, 'straight front kick at full extension, kicking leg horizontal, arms flared for balance'],
+    ['slash1', 'ฟันลง', 0, 'weapon swung downward through the diagonal, blade at the bottom of the arc, body rotated forward'],
+    ['slash2', 'ฟันขึ้น', 0, 'weapon swung upward through the reverse diagonal, blade high, body counter-rotated'],
+    ['castWind', 'รวบพลัง', 0, 'gathering power — both hands drawn back to the chest, elbows tucked, slight crouch, head lowered'],
+    ['castPush', 'ปล่อยพลัง', 0, 'releasing power — both palms thrust forward at full extension, body driving after them'],
+    ['lying', 'ล้มนอน', 0, 'knocked flat on the back on the ground, limbs sprawled, seen from the side'],
+    ['victory', 'ชนะ', 0, 'victory pose, one arm raised high, chin up, weight on the back leg, triumphant'],
+  ];
+
+  const posePrompt = (desc) => `Same character as the reference image. Identical proportions, palette, hair,
+costume and weapon. Only the pose changes.
+
+Pose: ${desc}
+
+Full body, facing RIGHT (character's right side toward the viewer's right),
+side-scrolling fighting game sprite. Feet near the bottom edge of the frame,
+figure centred horizontally, small margin all round. Square 1:1.`;
+
+  // ---- stages ------------------------------------------------------------
+
+  const LAYERS = [
+    { key: 'sky', th: 'ท้องฟ้า', role: 'far sky', ratio: '16:5',
+      note: 'Sky and clouds only, filling the whole frame. Opaque background — no transparency. Nothing below the horizon.' },
+    { key: 'far', th: 'ไกล', role: 'distant silhouette', ratio: '32:5',
+      note: 'Only the most distant landforms, rendered as flat low-contrast silhouettes fading into the atmosphere. Everything above the bottom edge; the bottom 20% empty and transparent. Strong aerial haze.' },
+    { key: 'mid', th: 'กลาง', role: 'midground', ratio: '32:5',
+      note: 'Midground structures and vegetation as clear silhouettes with a little interior detail. Fully transparent above and below the shapes. Moderate haze.' },
+    { key: 'near', th: 'ใกล้', role: 'foreground', ratio: '32:4',
+      note: 'Low foreground elements no taller than the bottom third of the frame — nothing tall enough to block a fighter. Dark, high-contrast, almost fully unlit silhouettes. Fully transparent everywhere else.' },
+  ];
+
+  const STAGES = [
+    ['village', 'หมู่บ้านรุ่งอรุณ', 'A rural Thai village at sunrise. Steep tiered temple roofs with upturned gold finials, stilt houses, coconut palms, rice paddies. Deep blue upper sky #1b2a4a burning down into warm orange #f0a45c at the horizon, pale gold sun #ffd9a0. Warm hazy air, fireflies.'],
+    ['bamboo', 'ป่าไผ่ยามวิกาล', 'A dense bamboo forest at night. Tall straight bamboo stalks in receding ranks, thin ground mist, teal moonlight cutting between the stalks. Near-black sky #08121e into deep teal #123a3a, pale mint moon #bfe8d0. Cold, still, tense.'],
+    ['market', 'ตลาดน้ำคลองใหญ่', 'A Thai floating market on a wide canal at midday. Long-tail boats piled with fruit, striped awnings, weathered wooden shophouses on stilts, hanging lanterns. Deep blue sky #2a4a7a into bright pale blue #8fc4e8, white sun. Bright, busy, cheerful.'],
+    ['snowpeak', 'ยอดเขาหิมพานต์', 'A frozen Himalayan-style mountain range at twilight. Jagged snow-capped peaks in receding ranks, snow-laden pines, wind-blown drifts. Dark blue-violet sky #14213d into cold slate blue #6f9ecb, pale white sun #e8f4ff. Vast, silent, freezing.'],
+    ['desert', 'ซากเมืองทะเลทราย', 'Sun-bleached desert ruins under a hard midday sun. Broken sandstone columns and collapsed archways half-swallowed by dunes, blowing sand. Steel blue sky #3d5a8a into hot gold #f2c46a at the horizon, white-hot sun #fff3c4. Dry, hazy, oppressive heat.'],
+    ['lava', 'ถ้ำลาวาใต้พิภพ', 'An underground volcanic cavern. Cracked black basalt formations glowing with molten orange seams, lava pools, rising embers, dead petrified trees. Near-black red sky #180608 into deep ember red #7a1c0a, glowing orange light source #ff9a3c. Dangerous, hot, close.'],
+    ['temple', 'วัดร้างกลางสายฝน', 'An abandoned Thai temple complex in heavy rain. Moss-covered prangs and crumbling stupas, broken naga staircase balustrades, standing water, sheets of rain. Cold dark blue-grey sky #141c2c into slate #3a4a63, diffuse pale light #c8d8ea. Melancholy, soaked, grey.'],
+    ['skycity', 'นครลอยฟ้า', 'A floating city high above the clouds at midday. Slender golden spires and white stone towers on floating islands, arched stone bridges, banners. Rich blue sky #1e2f66 into pale sky blue #8fb8f0, brilliant white sun. Bright cumulus below. Airy, heroic, weightless.'],
+    ['fortress', 'ป้อมปราการเงา', 'A dark obsidian fortress at night. Jagged black spires and buttresses, violet witch-light burning in the arrow slits, iron chains, falling ash. Near-black sky #0d0716 into deep violet #3a1a52, sickly violet light #c88bff. Oppressive, ceremonial, wrong.'],
+    ['astral', 'วิหารดวงดาว', 'A cosmic star sanctum floating in a nebula. Vast broken stone pillars and platforms suspended in space, scattered starlight, slow-drifting rubble. Near-black #05030f into deep indigo-violet #1a1246, pale gold light #ffe9a8. Silent, enormous, final.'],
+  ];
+
+  const stagePrompt = (stage, layer) => `Horizontally seamless tileable background layer for a 2D side-scrolling
+fighting game. This is the ${layer.role} layer.
+
+Scene: ${stage[2]}
+
+${layer.note}
+
+The left and right edges must match perfectly so the image can repeat
+side by side with no visible seam. Flat 2D artwork, no perspective
+distortion, no characters, no creatures, no text.
+Aspect ratio ${layer.ratio}, very wide panorama.`;
+
+  // ---- effects -----------------------------------------------------------
+
+  const EFFECTS = [
+    ['impact', 'ต่อยโดนทุกครั้ง', 70, '4x2', 8, 'A sharp white-hot impact flash — a compact starburst with 4 long spikes and a shockwave ring, cream-white core #ffe9c4', 1],
+    ['fireBurst', 'ธาตุไฟโดน', 110, '4x3', 12, 'A billowing fire explosion, orange-gold core #ffca6a into deep red #ff3a00, rising ember trails and black smoke curls at the end', 1],
+    ['crossSlash', 'ท่าใหญ่ ฟันไขว้', 180, '3x2', 6, 'Two enormous crossing slash arcs forming an X, brilliant white cores with coloured outer glow, motion blur streaks', 1],
+    ['shockring', 'ทุบพื้น / ท่าไม้ตาย', 200, '4x2', 8, 'A ground shockwave — a flat expanding ring seen at a low angle, a dust rim kicking up along the leading edge', 1],
+    ['koBurst', 'ศัตรูตาย', 220, '4x3', 12, 'A massive white flash-out — a blinding core, a wide shockwave ring, and long radiating light spikes', 1],
+    ['hitSpark', 'โจมตีธรรมดาโดน', 60, '4x2', 8, 'A tight burst of white-hot sparks flying outward, short trails, no smoke', 0],
+    ['frostBurst', 'ธาตุน้ำแข็งโดน', 100, '4x2', 8, 'An ice shatter burst — pale cyan #dff6ff and deep blue #4aa8ff crystal shards flying outward with a frozen vapour puff', 0],
+    ['shockBurst', 'ธาตุไฟฟ้าโดน', 100, '4x2', 8, 'An electric discharge burst, jagged white-blue lightning forks #eaf6ff radiating from a bright core, crackling arcs', 0],
+    ['darkBurst', 'ธาตุมืดโดน', 100, '4x2', 8, 'A dark magic implosion-then-burst, violet #8b5cf6 energy with black smoke tendrils curling inward and outward', 0],
+    ['poisonBurst', 'ธาตุพิษโดน', 90, '4x2', 8, 'A toxic gas burst, sickly green #8fdc5a bubbling cloud with dripping globules', 0],
+    ['guardSpark', 'กันโดน', 60, '4x2', 8, 'A hard deflection spark — a curved pale blue shield-shaped flash #9fc8ff with sparks skidding off it', 0],
+    ['guardbreak', 'การ์ดแตก', 90, '4x2', 8, 'A shattering golden barrier — an amber #ffd166 hexagonal shield breaking into glass shards', 0],
+    ['slash', 'ฟันธรรมดา', 90, '4x2', 8, 'A single curved slash arc, a crescent blade of white-hot light with a thin sharp leading edge and a soft fading tail', 0],
+    ['charge', 'เริ่มร่ายสกิล', 90, '4x2', 8, 'Energy motes streaming INWARD to a central point, converging trails, a small bright core building up', 0],
+    ['chargeBig', 'เริ่มท่าไม้ตาย', 200, '4x3', 12, 'A huge power-up aura — a vertical column of energy rising, converging motes, a rotating magic circle at the base, ground debris lifting', 0],
+    ['muzzle', 'ปล่อยกระสุน', 50, '4x2', 8, 'A small directional muzzle flash pointing RIGHT, cone-shaped, bright core with short sparks', 0],
+    ['clash', 'กระสุนชนกัน', 90, '4x2', 8, 'Two energies colliding — a compressed white core with sparks and shockwave rings thrown out sideways', 0],
+    ['healRing', 'ฟื้นเลือด', 90, '4x2', 8, 'A gentle rising ring of green-gold light #6fe08a with soft motes floating upward, calm and clean', 0],
+    ['dust', 'ลงพื้น / วิ่ง', 60, '4x2', 8, 'A small puff of tan dust #d8c9ac kicking up and dissipating — soft, opaque, NOT glowing', 0],
+    ['vanish', 'วาร์ป', 90, '4x2', 8, 'A teleport-out — the shape collapsing into a vertical violet #a855f7 streak, then a ring of smoke where it stood', 0],
+    ['firePillar', 'อัปเปอร์คัตไฟ', 160, '4x2', 8, 'A tall vertical column of fire erupting upward, gold core into deep red, rising embers, narrow at the base', 0],
+    ['frostRing', 'ระเบิดน้ำแข็ง', 160, '4x2', 8, 'An expanding ring of ice spikes growing outward along the ground, pale cyan crystal, frost vapour', 0],
+    ['petalSwirl', 'ท่านางรำ', 130, '4x3', 12, 'A spiralling vortex of pink #ff7fb0 cherry blossom petals, soft and layered', 0],
+    ['featherBurst', 'ท่าครุฑ', 130, '4x3', 12, 'An explosion of white and gold feathers scattering outward, drifting and rotating', 0],
+  ];
+
+  const effectPrompt = (e) => {
+    const [cols, rows] = e[3].split('x');
+    return `A ${e[3]} sprite sheet grid of an explosion effect animation for a
+2D fighting game, ${e[4]} frames total, read left to right then top to
+bottom. Each cell is exactly the same size and the effect is centred in
+every cell.
+
+Effect: ${e[5]}
+
+Animation arc: frame 1 is a tiny bright core, the middle frames are the
+full violent expansion, the last frames dissipate into thinning wisps and
+sparks. The effect grows then fades — it must NOT be the same size in
+every frame.
+
+Pure black background. Bright saturated glowing energy, additive-friendly —
+the light should read clearly against black. No characters, no ground,
+no text, no frame borders, no grid lines, no numbers.` + `\n\n(grid: ${cols} columns × ${rows} rows)`;
+  };
+
+  // ---- icons -------------------------------------------------------------
+
+  const ICONS = [
+    ['kraisorn', 'ไกรสร', [
+      ['flameSlash', 'ฟันเพลิง', 0, 'a crescent sword slash of orange fire'],
+      ['risingLion', 'สิงห์ทะยาน', 0, 'a roaring lion head made of flame rising upward'],
+      ['emberDash', 'พุ่งอังคาร', 0, 'a forward-rushing arrow made of fire streaks'],
+      ['solarCross', 'กากบาทสุริยะ', 1, 'a burning cross-shaped slash inside a sun disc'],
+    ]],
+    ['adisorn', 'อดิศร', [
+      ['bladeRush', 'ดาบทะยาน', 0, 'two crossed cyan swords with speed lines'],
+      ['riseSlash', 'ฟันเสยฟ้า', 0, 'an upward cyan slash arc with a rising blade'],
+      ['whirlBlade', 'วนดาบพายุ', 0, 'a circular ring of spinning blades'],
+      ['stormOfBlades', 'พายุดาบพัน', 1, 'a storm of cyan swords converging to a point'],
+    ]],
+    ['nilrat', 'นิลรัตน์', [
+      ['shadowStep', 'ก้าวเงา', 0, 'a violet footprint dissolving into smoke'],
+      ['crossCut', 'กรีดไขว้', 0, 'two crossed daggers with violet trails'],
+      ['shadowBolt', 'ลูกธนูมืด', 0, 'a violet arrow of dark energy with a skull-like core'],
+      ['thousandCuts', 'พันคมมีด', 1, 'a fan of many violet dagger slashes'],
+    ]],
+    ['krutthep', 'ครุฑเทพ', [
+      ['windBlade', 'ใบมีดวายุ', 0, 'two crescent green wind blades'],
+      ['skyDive', 'ดิ่งพสุธา', 0, 'a diving eagle silhouette with speed lines'],
+      ['talonRush', 'กรงเล็บพายุ', 0, 'three green claw slash marks'],
+      ['garudaStorm', 'พายุครุฑ', 1, 'a garuda wing spread inside a green cyclone'],
+    ]],
+    ['ramasoon', 'รามสูร', [
+      ['axeThrow', 'ขว้างขวานฟ้า', 0, 'a spinning double-headed axe with a lightning arc'],
+      ['quake', 'ทุบแผ่นดิน', 0, 'a fist striking the ground with cracks spreading'],
+      ['thunderGrip', 'กำหมัดอสนี', 0, 'a clenched gauntlet fist wrapped in blue lightning'],
+      ['stormFury', 'อสนีบาตคลั่ง', 1, 'a whirling axe inside a lightning storm'],
+    ]],
+    ['mekhala', 'เมขลา', [
+      ['boltOrb', 'แก้ววิเศษ', 0, 'a glowing crystal orb with lightning inside'],
+      ['chainBolt', 'สายฟ้าลูกโซ่', 0, 'a forked blue lightning bolt splitting three ways'],
+      ['staticField', 'ม่านไฟฟ้า', 0, 'a circular field of radiating electric arcs'],
+      ['skyJudgement', 'ฟ้าผ่าพิพากษา', 1, 'a huge lightning bolt striking down from a cloud'],
+    ]],
+    ['himawan', 'หิมวัน', [
+      ['iceShard', 'เกล็ดน้ำแข็ง', 0, 'three pale blue ice shards in a fan'],
+      ['iceSpike', 'แท่งน้ำแข็ง', 0, 'a jagged ice spike erupting from the ground'],
+      ['frostNova', 'ระเบิดเยือกแข็ง', 0, 'a snowflake bursting outward into a ring'],
+      ['absoluteZero', 'ศูนย์สัมบูรณ์', 1, 'a blizzard vortex around a frozen core'],
+    ]],
+    ['phailin', 'ไพลิน', [
+      ['crystalShot', 'ยิงผลึก', 0, 'a single magenta crystal bolt with a trail'],
+      ['prismSpread', 'ผลึกกระจาย', 0, 'five magenta crystal shards in a fan'],
+      ['crystalTrap', 'กับดักผลึก', 0, 'a magenta crystal mine on the ground with warning glow'],
+      ['prismCannon', 'ปืนใหญ่ปริซึม', 1, 'a wide magenta prism beam firing right'],
+    ]],
+    ['suriya', 'สุริยา', [
+      ['sunDisc', 'จักรสุริยะ', 0, 'a spinning golden sun chakram'],
+      ['palmStrike', 'ฝ่ามือทอง', 0, 'an open golden palm with a light shockwave'],
+      ['mantra', 'สวดมนต์', 0, 'two hands pressed together in prayer with a golden halo'],
+      ['radiance', 'รัศมีเบิกฟ้า', 1, 'a blinding golden beam from a mandala'],
+    ]],
+    ['sroithong', 'สร้อยทอง', [
+      ['petalStorm', 'กลีบทองร่วง', 0, 'pink petals spiralling upward'],
+      ['fanSlash', 'พัดคมทอง', 0, 'a golden folding fan with a pink slash arc'],
+      ['dancerSpin', 'รำหมุนกลีบ', 0, 'a spiral of pink petals around a dancing silhouette'],
+      ['blossomFinale', 'บุปผาอวสาน', 1, 'a golden fan inside a burst of pink blossoms'],
+    ]],
+    ['nakarin', 'นาคินทร์', [
+      ['poisonSpit', 'พ่นพิษ', 0, 'three green venom globules in an arc'],
+      ['waterLance', 'หอกวารี', 0, 'a blue water spear thrust forward'],
+      ['coilStrike', 'รัดพญานาค', 0, 'a serpent coiled around and constricting'],
+      ['tidalRage', 'คลื่นบาดาล', 1, 'a giant curling tidal wave'],
+    ]],
+    ['wayu', 'วายุ', [
+      ['spearBolt', 'หอกสายฟ้า', 0, 'a violet spear of lightning flying right'],
+      ['lungeStab', 'พุ่งแทง', 0, 'a spear thrusting forward with a violet impact'],
+      ['spearVault', 'ค้ำหอกกระโดด', 0, 'a spear planted in the ground with a leaping arc over it'],
+      ['thousandSpears', 'หอกพันเล่ม', 1, 'many violet spears converging to a point'],
+    ]],
+    ['bunlue', 'บุญเหลือ', [
+      ['stoneGrab', 'จับทุ่มหิน', 0, 'a rope-bound fist gripping and slamming'],
+      ['boulderThrow', 'ยกหินขว้าง', 0, 'a heavy boulder held overhead'],
+      ['ironBody', 'กายเหล็ก', 0, 'a torso silhouette turning to cracked stone'],
+      ['mountainBreaker', 'ภูผาแตก', 1, 'a fist splitting a mountain in half'],
+    ]],
+    ['thoranee', 'ธรณี', [
+      ['stoneWall', 'กำแพงหิน', 0, 'a stone wall rising out of the ground'],
+      ['shieldBash', 'กระแทกโล่', 0, 'a round stone shield driving forward with impact lines'],
+      ['rootGrasp', 'รากพันธนาการ', 0, 'gnarled roots erupting and grasping upward'],
+      ['gaiaJudgement', 'ปฐพีพิโรธ', 1, 'the earth splitting open in a glowing green fissure'],
+    ]],
+    ['ratree', 'ราตรี', [
+      ['scytheWave', 'คลื่นเคียว', 0, 'a violet crescent scythe wave'],
+      ['soulDrain', 'ดูดวิญญาณ', 0, 'a violet soul wisp being pulled into a hand'],
+      ['voidMine', 'หลุมมืด', 0, 'a black void sphere with a violet event horizon'],
+      ['nightHarvest', 'เก็บเกี่ยวราตรี', 1, 'a scythe sweeping through a ring of violet souls'],
+    ]],
+  ];
+
+  const PICKUPS = [
+    ['pickup-heal', 'ขวดเลือด', 'A glowing green healing orb with a soft cross of light inside'],
+    ['pickup-mana', 'ขวดพลัง', 'A glowing blue mana orb with a spiral of energy inside'],
+    ['pickup-knife', 'มีด', 'A simple steel throwing knife, blade up'],
+    ['pickup-stick', 'ไม้พลอง', 'A sturdy wooden fighting staff, angled'],
+  ];
+
+  const iconPrompt = (desc) => `A single game skill icon, centred, filling most of the frame.
+
+Icon: ${desc}
+
+${ICON_STYLE}`;
+
+  // ---- music -------------------------------------------------------------
+
+  const MUSIC = [
+    ['village', 'อรุณรุ่งเหนือทุ่งข้าว', 'Warm sunrise adventure theme, Thai folk fusion — khim and ranat ek over soft taiko and acoustic bass, 96 BPM, hopeful and open, light strings pad, no vocals, loopable 90 seconds.'],
+    ['bamboo', 'เงาไผ่', 'Nocturnal stealth theme — bamboo flute and pizzicato guzheng over a sparse hand-drum groove, 88 BPM, tense and airy, wide reverb, no vocals, loopable 90 seconds.'],
+    ['market', 'ตลาดเช้าริมคลอง', 'Bright market bustle theme — plucked phin and marimba over a shuffling 6/8 groove, 112 BPM, playful and busy, hand percussion and finger cymbals, no vocals, loopable 90 seconds.'],
+    ['snowpeak', 'ลมเหนือ', 'Frozen summit theme — glassy bells and sustained strings over a slow half-time drum, 76 BPM, vast and cold, distant choir pad, no vocals, loopable 90 seconds.'],
+    ['desert', 'ลมทรายกลบเมือง', 'Sunbaked ruins theme — oud and duduk over deep frame drums, 100 BPM, weary and grand, brass swells on the turnaround, no vocals, loopable 90 seconds.'],
+    ['lava', 'หัวใจภูเขาไฟ', 'Molten depths theme — distorted low brass and industrial taiko, 128 BPM, driving and dangerous, metallic percussion hits, no vocals, loopable 90 seconds.'],
+    ['temple', 'ฝนบนหลังคาโบสถ์', 'Rain-soaked temple theme — solo erhu over muted piano and rolling toms, 84 BPM, melancholy turning resolute, temple bell accents, no vocals, loopable 90 seconds.'],
+    ['skycity', 'เหนือเมฆ', 'Sky fortress theme — soaring synth strings and arpeggiated bells over a driving four-on-the-floor, 132 BPM, heroic and weightless, big cinematic snare, no vocals, loopable 90 seconds.'],
+    ['fortress', 'ประตูเงา', 'Dark fortress theme — detuned choir and low brass over a relentless 3/4 ostinato, 92 BPM, oppressive and ceremonial, chain and anvil percussion, no vocals, loopable 90 seconds.'],
+    ['astral', 'บัลลังก์ดวงดาว', 'Final confrontation theme — full orchestra with wordless choir and taiko, 140 BPM, two-part structure: solemn 30-second intro then relentless main section, no vocals, loopable 120 seconds.'],
+  ];
+
+  // ---- state -------------------------------------------------------------
+
+  const KEY = 'lf-prompt-kit:done:v1';
+  let done = new Set();
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) done = new Set(JSON.parse(raw));
+  } catch (e) { /* private mode: run without persistence */ }
+
+  const save = () => {
+    try { localStorage.setItem(KEY, JSON.stringify([...done])); } catch (e) { /* ignore */ }
+  };
+
+  let filter = 'all';
+  let query = '';
+  const appendLock = () => document.getElementById('lock').checked;
+
+  // ---- helpers -----------------------------------------------------------
+
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  const toastEl = document.getElementById('toast');
+  let toastTimer;
+  const toast = (msg) => {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
+  };
+
+  async function copy(text, btn, label) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      // Older browsers and insecure contexts: fall back to a hidden textarea.
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e2) { /* ignore */ }
+      ta.remove();
+    }
+    const old = btn.textContent;
+    btn.textContent = 'คัดลอกแล้ว';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = old; btn.classList.remove('copied'); }, 1300);
+    toast('คัดลอก' + (label ? ' ' + label : '') + ' แล้ว — วางใน ChatGPT ได้เลย');
+  }
+
+  const withLock = (body, useLock) => (useLock && appendLock() ? body + '\n\n' + STYLE_LOCK : body);
+
+  // ---- render ------------------------------------------------------------
+
+  const SECTIONS = [
+    { id: 'lock', th: 'Style Lock' },
+    { id: 'chars', th: 'ตัวละคร' },
+    { id: 'poses', th: 'ท่าทาง' },
+    { id: 'stages', th: 'ฉาก' },
+    { id: 'effects', th: 'เอฟเฟกต์' },
+    { id: 'icons', th: 'ไอคอน' },
+    { id: 'music', th: 'เพลง' },
+  ];
+
+  function chipsRow() {
+    const el = document.getElementById('chips');
+    el.innerHTML = '';
+    const mk = (id, label) => {
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.type = 'button';
+      b.textContent = label;
+      b.setAttribute('aria-pressed', String(filter === id));
+      b.addEventListener('click', () => { filter = id; chipsRow(); render(); });
+      el.appendChild(b);
+    };
+    mk('all', 'ทั้งหมด');
+    SECTIONS.forEach((s) => mk(s.id, s.th));
+  }
+
+  const match = (...parts) => !query || parts.join(' ').toLowerCase().includes(query);
+
+  function progressFor(ids) {
+    const n = ids.filter((i) => done.has(i)).length;
+    const pct = ids.length ? Math.round((n / ids.length) * 100) : 0;
+    return `<div class="progress"><span>${n}/${ids.length}</span><span class="bar"><i style="width:${pct}%"></i></span></div>`;
+  }
+
+  function sectionHead(id, title, count, note, ids) {
+    return `<div class="sec-head">
+      <h2>${esc(title)}</h2>
+      <span class="count">${count}</span>
+      ${ids ? progressFor(ids) : ''}
+    </div>
+    ${note ? `<p class="sec-note">${note}</p>` : ''}`;
+  }
+
+  const checkbox = (id) =>
+    `<label class="check"><input type="checkbox" data-done="${esc(id)}" ${done.has(id) ? 'checked' : ''}>ทำแล้ว</label>`;
+
+  const copyBtn = (key, label, cls) =>
+    `<button class="btn ${cls || ''}" type="button" data-copy="${esc(key)}">${esc(label)}</button>`;
+
+  // Every copyable prompt is registered here so a button only carries a key.
+  const REG = new Map();
+  const reg = (key, text, lock, label) => { REG.set(key, { text, lock, label }); return key; };
+
+  function render() {
+    REG.clear();
+    const main = document.getElementById('main');
+    const out = [];
+    const show = (id) => filter === 'all' || filter === id;
+
+    // -- style lock --
+    if (show('lock') && match('style lock', 'สไตล์')) {
+      reg('lock', STYLE_LOCK, false, 'Style Lock');
+      out.push(`<section id="lock">
+        ${sectionHead('lock', 'Style Lock', '1 บล็อก', 'บล็อกนี้คือสิ่งที่ทำให้ของทั้ง 300 ชิ้นดูเป็นเกมเดียวกัน เปิดสวิตช์ “ต่อ Style Lock อัตโนมัติ” ไว้ ระบบจะต่อให้ทุกครั้งที่คัดลอกพรอมป์ตัวละคร ท่า ฉาก และไอคอน (เอฟเฟกต์ไม่ต้องใช้ เพราะระบุพื้นหลังดำไปแล้ว)')}
+        <div class="card">
+          <div class="card-head">
+            <span class="swatch-rail"></span>
+            <h3 class="card-title">Style Lock <small>ต่อท้ายทุกพรอมป์</small></h3>
+            <div class="card-actions">${copyBtn('lock', 'คัดลอกบล็อกนี้')}</div>
+          </div>
+          <pre class="prompt tall">${esc(STYLE_LOCK)}</pre>
+        </div>
+      </section>`);
+    }
+
+    // -- characters --
+    if (show('chars')) {
+      const hits = CHARS.filter((c) => match(c.th, c.id, c.title, c.arch, c.block));
+      const ids = [];
+      CHARS.forEach((c) => { ids.push('sheet:' + c.id, 'portrait:' + c.id); });
+      const cards = hits.map((c) => {
+        const kSheet = reg('sheet:' + c.id, sheetPrompt(c), true, 'Character Sheet ' + c.th);
+        const kPort = reg('portrait:' + c.id, portraitPrompt(c), true, 'Portrait ' + c.th);
+        const isDone = done.has(kSheet) && done.has(kPort);
+        return `<article class="card ${isDone ? 'done' : ''}" style="--local:${c.aura}">
+          <div class="card-head">
+            <span class="swatch-rail"></span>
+            <h3 class="card-title">${esc(c.th)} <small>${esc(c.id)}</small></h3>
+            <div class="card-actions">
+              ${copyBtn(kSheet, 'Character Sheet', 'primary')}
+              ${copyBtn(kPort, 'Portrait')}
+              ${checkbox(kPort)}
+            </div>
+            <p class="card-sub">${esc(c.title)} · ${esc(c.arch)}</p>
+            <div class="swatches">${c.sw.map((s) => `<i style="background:${s}"></i>`).join('')}</div>
+          </div>
+          <pre class="prompt">${esc(c.block)}</pre>
+        </article>`;
+      });
+      out.push(`<section id="chars">
+        ${sectionHead('chars', 'ตัวละคร', '15 ตัว · 30 พรอมป์', 'ปุ่ม Character Sheet ให้พรอมป์ภาพอ้างอิงเต็มตัว ปุ่ม Portrait ให้พรอมป์รูปครึ่งตัวสำหรับหน้าเลือกตัวละคร — ทั้งคู่ประกอบเสร็จพร้อมวาง ไม่ต้องต่ออะไรเอง แถบสีคือพาเลตจริงที่เอนจิ้นใช้อยู่', ids)}
+        ${cards.length ? `<div class="grid two">${cards.join('')}</div>` : `<p class="empty">ไม่พบตัวละครที่ตรงกับคำค้น</p>`}
+      </section>`);
+    }
+
+    // -- poses --
+    if (show('poses')) {
+      const hits = POSES.filter((p) => match(p[0], p[1], p[3]));
+      const ids = POSES.map((p) => 'pose:' + p[0]);
+      const rows = hits.map((p) => {
+        const k = reg('pose:' + p[0], posePrompt(p[3]), true, 'ท่า ' + p[1]);
+        return `<div class="row ${done.has(k) ? 'done' : ''}">
+          <span class="name">${esc(p[1])}<small>${esc(p[0])}</small></span>
+          ${p[2] ? '<span class="tag">8 ท่าหลัก</span>' : ''}
+          <span class="desc">${esc(p[3])}</span>
+          ${copyBtn(k, 'คัดลอก', p[2] ? 'primary' : '')}
+          ${checkbox(k)}
+        </div>`;
+      });
+      out.push(`<section id="poses">
+        ${sectionHead('poses', 'ท่าทาง', '22 ท่า', 'แนบภาพ Character Sheet ทุกครั้งก่อนวางพรอมป์ท่า ทำแค่ 8 ท่าหลักก่อนก็เล่นได้แล้ว — ท่าที่ไม่ได้ทำ เกมจะกลับไปใช้ท่ายืนเอง ไม่พัง', ids)}
+        ${rows.length ? `<div class="grid">${rows.join('')}</div>` : `<p class="empty">ไม่พบท่าที่ตรงกับคำค้น</p>`}
+      </section>`);
+    }
+
+    // -- stages --
+    if (show('stages')) {
+      const hits = STAGES.filter((s) => match(s[0], s[1], s[2]));
+      const ids = [];
+      STAGES.forEach((s) => LAYERS.forEach((l) => ids.push('stage:' + s[0] + ':' + l.key)));
+      const rows = hits.map((s, i) => {
+        const btns = LAYERS.map((l) => {
+          const k = reg('stage:' + s[0] + ':' + l.key, stagePrompt(s, l), true, `${s[1]} · ${l.th}`);
+          return copyBtn(k, l.th, l.key === 'sky' ? 'primary' : '');
+        }).join('');
+        const allDone = LAYERS.every((l) => done.has('stage:' + s[0] + ':' + l.key));
+        return `<div class="row ${allDone ? 'done' : ''}">
+          <span class="n">${String(STAGES.indexOf(s) + 1).padStart(2, '0')}</span>
+          <span class="name">${esc(s[1])}<small>${esc(s[0])}</small></span>
+          <span class="desc">${esc(s[2].split('.')[0])}.</span>
+          ${btns}
+        </div>`;
+      });
+      out.push(`<section id="stages">
+        ${sectionHead('stages', 'ฉาก', '10 ด่าน · 40 เลเยอร์', 'หนึ่งด่านใช้ 4 เลเยอร์ — ฟ้า / ไกล / กลาง / ใกล้ ทุกเลเยอร์ต้องต่อขอบซ้าย-ขวาได้เนียน และเลเยอร์ “ใกล้” ต้องเตี้ยพอที่จะไม่บังตัวละคร', ids)}
+        ${rows.length ? `<div class="grid">${rows.join('')}</div>` : `<p class="empty">ไม่พบด่านที่ตรงกับคำค้น</p>`}
+      </section>`);
+    }
+
+    // -- effects --
+    if (show('effects')) {
+      const hits = EFFECTS.filter((e) => match(e[0], e[1], e[5]));
+      const ids = EFFECTS.map((e) => 'fx:' + e[0]);
+      const rows = hits.map((e) => {
+        const k = reg('fx:' + e[0], effectPrompt(e), false, e[0]);
+        return `<div class="row ${done.has(k) ? 'done' : ''}">
+          <span class="name">${esc(e[0])}<small>size ${e[2]} · ${e[3]} · ${e[4]} เฟรม</small></span>
+          ${e[6] ? '<span class="tag">คุ้มสุด</span>' : ''}
+          <span class="desc">${esc(e[1])} — ${esc(e[5])}</span>
+          ${copyBtn(k, 'คัดลอก', e[6] ? 'primary' : '')}
+          ${checkbox(k)}
+        </div>`;
+      });
+      out.push(`<section id="effects">
+        ${sectionHead('effects', 'เอฟเฟกต์', '24 แบบ', 'อันนี้ ChatGPT ทำได้ดีกว่าตัวละครมาก เพราะแต่ละเฟรมไม่ต้องเหมือนกันเป๊ะอยู่แล้ว พื้นหลังดำได้เลยถ้าตั้ง additive:true ในไฟล์ manifest — ห้าอันที่ติดป้าย “คุ้มสุด” เห็นบ่อยที่สุดในเกม', ids)}
+        ${rows.length ? `<div class="grid">${rows.join('')}</div>` : `<p class="empty">ไม่พบเอฟเฟกต์ที่ตรงกับคำค้น</p>`}
+      </section>`);
+    }
+
+    // -- icons --
+    if (show('icons')) {
+      const ids = [];
+      ICONS.forEach(([, , list]) => list.forEach((s) => ids.push('icon:' + s[0])));
+      PICKUPS.forEach((p) => ids.push('icon:' + p[0]));
+
+      const groups = ICONS.map(([cid, cth, list]) => {
+        const hits = list.filter((s) => match(s[0], s[1], s[3], cth, cid));
+        if (!hits.length) return '';
+        const rows = hits.map((s) => {
+          const k = reg('icon:' + s[0], iconPrompt(s[3]), false, s[1]);
+          return `<div class="row ${done.has(k) ? 'done' : ''}">
+            <span class="name">${esc(s[1])}<small>${esc(s[0])}</small></span>
+            ${s[2] ? '<span class="tag super">ท่าไม้ตาย</span>' : ''}
+            <span class="desc">${esc(s[3])}</span>
+            ${copyBtn(k, 'คัดลอก')}
+            ${checkbox(k)}
+          </div>`;
+        }).join('');
+        const c = CHARS.find((x) => x.id === cid);
+        return `<div style="margin-top:16px">
+          <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:var(--muted)">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${c ? c.aura : 'var(--accent)'};margin-right:7px;vertical-align:middle"></span>
+            ${esc(cth)} <span style="font-family:var(--mono);font-size:11px;font-weight:400">${esc(cid)}</span>
+          </p>
+          <div class="grid">${rows}</div>
+        </div>`;
+      }).join('');
+
+      const pickHits = PICKUPS.filter((p) => match(p[0], p[1], p[2]));
+      const pickRows = pickHits.map((p) => {
+        const k = reg('icon:' + p[0], iconPrompt(p[2]), false, p[1]);
+        return `<div class="row ${done.has(k) ? 'done' : ''}">
+          <span class="name">${esc(p[1])}<small>${esc(p[0])}</small></span>
+          <span class="desc">${esc(p[2])}</span>
+          ${copyBtn(k, 'คัดลอก')}
+          ${checkbox(k)}
+        </div>`;
+      }).join('');
+
+      out.push(`<section id="icons">
+        ${sectionHead('icons', 'ไอคอน', '60 สกิล + 4 ไอเทม', 'ไอคอนขึ้นบนปุ่มสกิลกลม 4 ปุ่มด้านขวาของจอ แทนตัวหนังสือไทยที่ตอนนี้ถูกตัดสั้น ชื่อไฟล์ต้องตรงกับ id ของท่า เช่น flameSlash.png', ids)}
+        ${groups || (pickHits.length ? '' : `<p class="empty">ไม่พบไอคอนที่ตรงกับคำค้น</p>`)}
+        ${pickRows ? `<div style="margin-top:16px"><p style="margin:0 0 8px;font-size:13px;font-weight:600;color:var(--muted)">ไอเทมที่ดรอปในสนาม</p><div class="grid">${pickRows}</div></div>` : ''}
+      </section>`);
+    }
+
+    // -- music --
+    if (show('music')) {
+      const hits = MUSIC.filter((m) => match(m[0], m[1], m[2]));
+      const ids = MUSIC.map((m) => 'bgm:' + m[0]);
+      const rows = hits.map((m, i) => {
+        const k = reg('bgm:' + m[0], m[2], false, m[1]);
+        return `<div class="row ${done.has(k) ? 'done' : ''}">
+          <span class="n">${String(MUSIC.indexOf(m) + 1).padStart(2, '0')}</span>
+          <span class="name">${esc(m[1])}<small>${esc(m[0])}</small></span>
+          <span class="desc">${esc(m[2])}</span>
+          ${copyBtn(k, 'คัดลอก')}
+          ${checkbox(k)}
+        </div>`;
+      });
+      out.push(`<section id="music">
+        ${sectionHead('music', 'เพลงประจำด่าน', '10 เพลง', 'วางใน Google Flow Music ได้เลย ทุกเพลงต้องวนลูปได้เนียน ยาว 90–120 วินาที', ids)}
+        ${rows.length ? `<div class="grid">${rows.join('')}</div>` : `<p class="empty">ไม่พบเพลงที่ตรงกับคำค้น</p>`}
+      </section>`);
+    }
+
+    main.innerHTML = out.join('') || `<p class="empty" style="margin-top:40px">ไม่พบอะไรที่ตรงกับ “${esc(query)}”</p>`;
+  }
+
+  // ---- events ------------------------------------------------------------
+
+  document.getElementById('main').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-copy]');
+    if (!btn) return;
+    const entry = REG.get(btn.dataset.copy);
+    if (!entry) return;
+    copy(withLock(entry.text, entry.lock), btn, entry.label);
+  });
+
+  document.getElementById('main').addEventListener('change', (e) => {
+    const cb = e.target.closest('[data-done]');
+    if (!cb) return;
+    const id = cb.dataset.done;
+    if (cb.checked) done.add(id); else done.delete(id);
+    save();
+    render();
+  });
+
+  document.getElementById('q').addEventListener('input', (e) => {
+    query = e.target.value.trim().toLowerCase();
+    render();
+  });
+
+  document.getElementById('reset').addEventListener('click', () => {
+    if (!done.size) { toast('ยังไม่มีรายการที่ทำแล้ว'); return; }
+    done.clear();
+    save();
+    render();
+    toast('ล้างเครื่องหมายทั้งหมดแล้ว');
+  });
+
+  chipsRow();
+  render();
+})();
+</script>
