@@ -763,6 +763,13 @@ export class Renderer {
     ctx.fill();
     ctx.restore();
 
+    const icon = assets.icon(`pickup-${it.kind}`);
+    if (icon) {
+      const r = 26 * scale;
+      ctx.drawImage(icon, sx - r / 2, sy - 10 + bob - r / 2, r, r);
+      return;
+    }
+
     ctx.fillStyle = color;
     ctx.strokeStyle = 'rgba(10,10,16,0.7)';
     ctx.lineWidth = 2;

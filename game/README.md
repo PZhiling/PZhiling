@@ -77,8 +77,20 @@ serialize ได้) แล้วเดินด้วย fixed timestep 60 Hz �
 
 ## ใส่ภาพ/เสียงที่เจนมา
 
-ดู [`docs/GAME-ASSETS.md`](../docs/GAME-ASSETS.md) — มี prompt สำหรับ ChatGPT
-ครบทั้ง 15 ตัวละคร 10 ฉาก และ prompt เพลงของทั้ง 10 ด่านสำหรับ Google Flow
+ทุกอย่างสลับผ่าน `public/game/assets/manifest.json` ทีละชิ้นได้:
+
+| ช่อง | แทนที่อะไร |
+|---|---|
+| `portraits` | รูปตัวละครในหน้าเลือกตัว |
+| `characters` | sprite sheet ตัวละครในสนาม (แทนตัวที่วาดด้วยโครงกระดูก) |
+| `stages` | ฉากพื้นหลัง parallax |
+| `effects` | เอฟเฟกต์เป็น sprite animation (แทน particle ที่วาดด้วยโค้ด) |
+| `icons` | ไอคอนบนปุ่มสกิลและไอเทม |
+| `music` / `sfx` | เพลงและเสียง |
+
+ดู [`docs/GAME-ASSETS.md`](../docs/GAME-ASSETS.md) — มี prompt พร้อมวางสำหรับ
+ChatGPT ครบทั้ง 15 ตัวละคร 10 ฉาก 24 เอฟเฟกต์ 60 ไอคอนสกิล
+และ prompt เพลงของทั้ง 10 ด่านสำหรับ Google Flow
 
 ---
 

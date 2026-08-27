@@ -41,11 +41,40 @@ export interface StageLayerDef {
   additive?: boolean;
 }
 
+/**
+ * A frame-by-frame effect animation that replaces one procedural effect
+ * wholesale — list `impact` here and every punch that lands plays your sheet
+ * instead of the code-drawn spark burst.
+ */
+export interface EffectSheetDef {
+  src: string;
+  frameW: number;
+  frameH: number;
+  cols: number;
+  /** Frames to play. Defaults to every cell in the sheet. */
+  frames?: number;
+  /** Ticks each frame is held. 2 gives 30 fps playback. */
+  hold?: number;
+  /** World units the sheet spans at scale 1. */
+  size?: number;
+  /** Additive suits fire and light; leave off for smoke, dust and debris. */
+  additive?: boolean;
+  /** Mirror the sheet to match the direction the attacker faces. */
+  flip?: boolean;
+}
+
 export interface AssetManifest {
   characters?: Record<string, SpriteSheetDef>;
   /** Optional portraits for the character-select screen. */
   portraits?: Record<string, string>;
   stages?: Record<string, { layers: StageLayerDef[] }>;
+  /** Keyed by the effect ids the simulation emits (impact, fireBurst, …). */
+  effects?: Record<string, EffectSheetDef>;
+  /**
+   * Single images keyed by id. Skill icons use the action id (`flameSlash`),
+   * pickups use `pickup-heal` / `pickup-mana` / `pickup-knife` / `pickup-stick`.
+   */
+  icons?: Record<string, string>;
   music?: Record<string, string>;
   sfx?: Record<string, string>;
 }
@@ -75,6 +104,8 @@ export class AssetStore {
     const urls: string[] = [];
     for (const c of Object.values(this.manifest.characters ?? {})) urls.push(c.src);
     for (const p of Object.values(this.manifest.portraits ?? {})) urls.push(p);
+    for (const e of Object.values(this.manifest.effects ?? {})) urls.push(e.src);
+    for (const i of Object.values(this.manifest.icons ?? {})) urls.push(i);
     for (const s of Object.values(this.manifest.stages ?? {})) {
       for (const l of s.layers) urls.push(l.src);
     }
@@ -99,6 +130,16 @@ export class AssetStore {
 
   portrait(charId: string): HTMLImageElement | null {
     const src = this.manifest.portraits?.[charId];
+    return src ? this.image(src) : null;
+  }
+
+  /** The atlas for an effect id, or null to keep the procedural version. */
+  effectSheet(kind: string): EffectSheetDef | null {
+    return this.manifest.effects?.[kind] ?? null;
+  }
+
+  icon(id: string): HTMLImageElement | null {
+    const src = this.manifest.icons?.[id];
     return src ? this.image(src) : null;
   }
 

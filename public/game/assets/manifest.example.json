@@ -49,6 +49,47 @@
     }
   },
 
+  "effects": {
+    "impact": {
+      "src": "effects/impact.png",
+      "frameW": 256,
+      "frameH": 256,
+      "cols": 4,
+      "frames": 8,
+      "hold": 2,
+      "size": 70,
+      "additive": true
+    },
+    "fireBurst": {
+      "src": "effects/fire-burst.png",
+      "frameW": 256,
+      "frameH": 256,
+      "cols": 4,
+      "frames": 12,
+      "hold": 2,
+      "size": 110,
+      "additive": true
+    },
+    "crossSlash": {
+      "src": "effects/cross-slash.png",
+      "frameW": 512,
+      "frameH": 256,
+      "cols": 3,
+      "frames": 6,
+      "hold": 2,
+      "size": 180,
+      "additive": true,
+      "flip": true
+    }
+  },
+
+  "icons": {
+    "flameSlash": "icons/flame-slash.png",
+    "risingLion": "icons/rising-lion.png",
+    "pickup-heal": "icons/pickup-heal.png",
+    "pickup-mana": "icons/pickup-mana.png"
+  },
+
   "music": {
     "village": "music/village.mp3",
     "bamboo": "music/bamboo.mp3"

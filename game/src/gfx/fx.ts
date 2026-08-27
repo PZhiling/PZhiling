@@ -10,11 +10,13 @@
  * order as fighters instead of always floating on top.
  */
 
+import { assets, type EffectSheetDef } from '../core/assets';
 import { clamp } from '../core/math';
 import { fxRng as rng } from '../core/rng';
 import { hexA } from './rig';
 
 type Shape =
+  | 'sheet'
   | 'spark'
   | 'ember'
   | 'smoke'
@@ -52,6 +54,8 @@ interface Particle {
   /** Shape-specific scratch (arc sweep, line length, …). */
   a: number;
   b: number;
+  /** Set only on `sheet` particles: the generated animation to play. */
+  sheet?: EffectSheetDef;
 }
 
 const MAX_PARTICLES = 520;
@@ -158,9 +162,41 @@ export class FxSystem {
     } as Particle);
   }
 
+  /**
+   * Play a generated animation in place of a procedural effect.
+   *
+   * This is the seam that makes hand-made effect art usable: the simulation
+   * still emits `impact` or `fireBurst` by name, and if the manifest has a
+   * sheet under that name it plays instead of the particle recipe.
+   */
+  private pushSheet(sheet: EffectSheetDef, x: number, y: number, z: number, s: number, facing: number): void {
+    const rows = Math.max(1, Math.ceil((sheet.frames ?? 0) / sheet.cols) || 1);
+    const total = sheet.frames ?? sheet.cols * rows;
+    const hold = sheet.hold ?? 2;
+    this.push({
+      shape: 'sheet',
+      x, y, z,
+      life: total * hold,
+      size: (sheet.size ?? 60) * s,
+      additive: sheet.additive ?? true,
+      // `a` is the frame count, `b` the ticks per frame; `rot` carries facing
+      // so a directional effect (a slash arc) mirrors with the attacker.
+      a: total,
+      b: hold,
+      rot: sheet.flip === false ? 1 : facing >= 0 ? 1 : -1,
+      drag: 1,
+      sheet,
+    });
+  }
+
   /** Translate a simulation FX event into particles. */
   emit(kind: string, x: number, y: number, z: number, scale: number, color: string, count: number, facing: number): void {
     const s = scale || 1;
+    const sheet = assets.effectSheet(kind);
+    if (sheet) {
+      this.pushSheet(sheet, x, y, z, s, facing);
+      return;
+    }
     // Every burst honours the quality scale, but never drops below one
     // particle — a hit with no feedback at all is worse than a sparse one.
     count = Math.max(1, Math.round(count * this.quality));
@@ -703,6 +739,24 @@ function drawParticle(
 ): void {
   const size = p.size * scale;
   switch (p.shape) {
+    case 'sheet': {
+      const sheet = p.sheet;
+      if (!sheet) break;
+      const img = assets.image(sheet.src);
+      if (!img) break;
+      // Elapsed frames, clamped so the last cell never overruns the sheet.
+      const played = Math.min(p.a - 1, Math.floor((p.maxLife - p.life) / p.b));
+      const sx0 = (played % sheet.cols) * sheet.frameW;
+      const sy0 = Math.floor(played / sheet.cols) * sheet.frameH;
+      const w = p.size * scale;
+      const h = (w * sheet.frameH) / sheet.frameW;
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.scale(p.rot >= 0 ? 1 : -1, 1);
+      ctx.drawImage(img, sx0, sy0, sheet.frameW, sheet.frameH, -w / 2, -h / 2, w, h);
+      ctx.restore();
+      break;
+    }
     case 'flash':
       blit(ctx, softFlare('#ffffff', p.color), sx, sy, p.size * scale * (1.2 - t * 0.4), t);
       break;

@@ -6,6 +6,7 @@
  * changes and the letterbox transform without a second layout system.
  */
 
+import { assets } from '../core/assets';
 import { clamp } from '../core/math';
 import type { TouchSource } from '../core/input';
 import type { Fighter } from '../sim/types';
@@ -326,15 +327,24 @@ function drawSkillButton(
     ctx.fill();
   }
 
-  // Short label: the move name is too long for a 54px circle, so use the
-  // first syllable plus the slot number.
-  const name = act?.name ?? `สกิล ${idx + 1}`;
-  ctx.fillStyle = ready ? '#0d1020' : 'rgba(220,228,244,0.65)';
-  ctx.font = `700 ${isSuper ? 12 : 11}px ${FONT}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(name.length > 6 ? name.slice(0, 6) : name, b.x, b.y);
-  ctx.textBaseline = 'alphabetic';
+  // A generated icon if the manifest has one, otherwise a clipped move name —
+  // the full name never fits a 54px circle.
+  const icon = skillId ? assets.icon(skillId) : null;
+  if (icon) {
+    const r = b.r * 1.32;
+    ctx.save();
+    ctx.globalAlpha = ready ? 1 : 0.45;
+    ctx.drawImage(icon, b.x - r / 2, b.y - r / 2, r, r);
+    ctx.restore();
+  } else {
+    const name = act?.name ?? `สกิล ${idx + 1}`;
+    ctx.fillStyle = ready ? '#0d1020' : 'rgba(220,228,244,0.65)';
+    ctx.font = `700 ${isSuper ? 12 : 11}px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name.length > 6 ? name.slice(0, 6) : name, b.x, b.y);
+    ctx.textBaseline = 'alphabetic';
+  }
 
   if (isSuper && ready) {
     // Pulsing ring so the finisher is obviously available.

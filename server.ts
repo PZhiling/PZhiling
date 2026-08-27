@@ -149,6 +149,16 @@ async function startServer() {
     // Serve static files in production
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
+
+    // A request for a file that does not exist must 404. Without this the SPA
+    // fallback below answers every missing asset with index.html and a 200,
+    // so a mistyped path in the game's asset manifest looks like a working
+    // request that returns HTML — the hardest kind of mistake to trace.
+    app.get('*', (req, res, next) => {
+      if (!path.extname(req.path)) return next();
+      res.status(404).json({ error: 'Not found', path: req.path });
+    });
+
     // SPA fallback
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
