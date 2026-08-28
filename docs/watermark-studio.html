@@ -357,6 +357,7 @@ function renderRegionList() {
       ${r.mode === "logo" ? `<div class="ctrl" style="grid-template-columns:1fr">
         <div>
           <button class="btn small" data-act="scan">${logoOk(r) ? "🔄 สแกนรูปทรงใหม่" : "✦ สแกนหารูปทรงลายน้ำ"}</button>
+          <label class="f" style="display:block;margin-top:8px"><input type="checkbox" data-k="smooth" ${r.smooth === false ? "" : "checked"}> กันภาพกะพริบระหว่างเฟรม (แนะนำให้เปิด)</label>
           <div class="f" data-scan-status style="margin-top:6px">${
             logoOk(r)
               ? "✓ เจอรูปทรงแล้ว — ซ่อมเฉพาะเส้นลายน้ำ " + r.logoCover + "% ของกรอบ (ที่เหลือคงพื้นหลังจริงไว้)"
@@ -388,8 +389,9 @@ function renderRegionList() {
     });
     el.querySelectorAll("[data-k]").forEach(inp => inp.addEventListener("input", () => {
       const k = inp.dataset.k;
-      r[k] = (k === "mode" || k === "color") ? inp.value : parseFloat(inp.value) || 0;
+      r[k] = k === "smooth" ? inp.checked : (k === "mode" || k === "color") ? inp.value : parseFloat(inp.value) || 0;
       if (r.logoMask && !logoOk(r)) r.logoMask = null;
+      r.tsPrev = null;
       if (k === "mode") renderRegionList();
       draw(true);
     }));
@@ -577,12 +579,39 @@ async function buildLogoMask(r, onProgress) {
     if (mask[k]) { dil[k] = 1; continue; }
     if ((i && mask[k - 1]) || (i < w - 1 && mask[k + 1]) || (j && mask[k - w]) || (j < h - 1 && mask[k + w])) dil[k] = 1;
   }
-  r.logoMask = dil; r.logoRect = [x, y, w, h];
+  r.logoMask = dil; r.logoRect = [x, y, w, h]; r.tsPrev = null;
   r.logoKey = [r.x, r.y, r.w, r.h, r.t0, r.t1, r.strength].map((n) => (+n).toFixed(4)).join("|");
   r.logoCover = Math.round((dil.reduce((a, b) => a + b, 0) / (w * h)) * 100);
   return true;
 }
 const logoOk = (r) => r.logoMask && r.logoKey === [r.x, r.y, r.w, r.h, r.t0, r.t1, r.strength].map((n) => (+n).toFixed(4)).join("|");
+
+/* ── temporal smoothing ────────────────────────────
+   Each frame is repaired independently, so the patched area shimmers against a
+   surround that is stable. The eye reads that flicker as fake even when every
+   individual frame is correct. Blend each repair toward the previous one, with
+   the strength set by how much the footage itself moved: on near-static shots
+   smooth hard, because flicker is the only fault available; on moving shots
+   smooth lightly, because there ghosting would be the worse one. */
+function temporalSmooth(r, img, raw, w, h, t) {
+  const p = r.tsPrev;
+  const reset = !p || p.w !== w || p.h !== h || !isFinite(t) || t < p.t - 0.001 || t - p.t > 0.4;
+  if (!reset) {
+    let diff = 0, n = 0;
+    for (let k = 0; k < raw.length; k += 28) { diff += Math.abs(raw[k] - p.raw[k]); n++; }
+    const motion = n ? diff / n : 0;
+    const a = Math.max(0.28, Math.min(1, motion / 4));
+    if (a < 1) {
+      const d = img.data, q = p.out;
+      for (let k = 0; k < d.length; k += 4) {
+        d[k] = a * d[k] + (1 - a) * q[k];
+        d[k + 1] = a * d[k + 1] + (1 - a) * q[k + 1];
+        d[k + 2] = a * d[k + 2] + (1 - a) * q[k + 2];
+      }
+    }
+  }
+  r.tsPrev = { raw: new Uint8ClampedArray(raw), out: new Uint8ClampedArray(img.data), w, h, t };
+}
 
 /* Repair only the masked pixels, at full resolution. Holes this narrow are
    solved accurately by relaxing them against their own untouched edges. */
@@ -592,6 +621,7 @@ function eraseLogo(ctx, r) {
   patch.width = w; patch.height = h;
   pctx.drawImage(base, x, y, w, h, 0, 0, w, h);
   const img = pctx.getImageData(0, 0, w, h), d = img.data;
+  const raw = new Uint8ClampedArray(d);
   // seed each hole from the nearest unmasked pixels so relaxation starts close
   for (let k = 0; k < w * h; k++) if (mask[k]) { d[k * 4] = d[k * 4 + 1] = d[k * 4 + 2] = 0; }
   for (let pass = 0; pass < 60; pass++) {
@@ -608,6 +638,7 @@ function eraseLogo(ctx, r) {
       }
     }
   }
+  if (r.smooth !== false) temporalSmooth(r, img, raw, w, h, video.currentTime);
   pctx.putImageData(img, 0, 0);
   ctx.drawImage(patch, x, y);
 }
