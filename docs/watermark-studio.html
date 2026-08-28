@@ -360,7 +360,9 @@ function renderRegionList() {
           <label class="f" style="display:block;margin-top:8px"><input type="checkbox" data-k="smooth" ${r.smooth === false ? "" : "checked"}> กันภาพกะพริบระหว่างเฟรม (แนะนำให้เปิด)</label>
           <div class="f" data-scan-status style="margin-top:6px">${
             logoOk(r)
-              ? "✓ เจอรูปทรงแล้ว — ซ่อมเฉพาะเส้นลายน้ำ " + r.logoCover + "% ของกรอบ (ที่เหลือคงพื้นหลังจริงไว้)"
+              ? (r.logoEdge
+                ? "⚠️ ลายน้ำยังแผ่ถึงขอบกรอบ — <strong>ขยายกรอบให้ใหญ่กว่านี้</strong> แล้วสแกนใหม่ ดาว Gemini มีแสงฟุ้งรอบตัวที่กว้างกว่าตัวดาวมาก ถ้ากรอบตัดแสงฟุ้ง จะเหลือเงาจางๆ ที่ลบไม่ได้"
+                : "✓ เจอรูปทรงแล้ว — ซ่อมเฉพาะเส้นลายน้ำ " + r.logoCover + "% ของกรอบ (ที่เหลือคงพื้นหลังจริงไว้)")
               : "ยังไม่ได้สแกน — ตอนนี้พรีวิวใช้ Smart Fill ไปก่อน · ลากกรอบให้พอดีดาวแล้วกดสแกน"
           }</div>
         </div>
@@ -524,6 +526,12 @@ async function buildLogoMask(r, onProgress) {
   const W = base.width, H = base.height;
   const [x, y, w, h] = clampRect(Math.round(r.x * W), Math.round(r.y * H), Math.round(r.w * W), Math.round(r.h * H), W, H);
   if (w < 4 || h < 4) return false;
+  // also sample a ring outside the box: a soft glow is a smooth gradient, and
+  // the high-pass below cannot see it, so overflow is measured by comparing
+  // brightness just inside the border against just outside it
+  const pad = Math.max(4, Math.round(Math.min(w, h) * 0.35));
+  const [px_, py_, pw_, ph_] = clampRect(x - pad, y - pad, w + pad * 2, h + pad * 2, W, H);
+  const padAcc = new Float32Array(pw_ * ph_);
   const t0 = Math.max(0, r.t0), t1 = Math.min(video.duration || r.t1, r.t1);
   const N = 12, was = video.currentTime, wasPaused = video.paused;
   video.pause();
@@ -538,6 +546,8 @@ async function buildLogoMask(r, onProgress) {
     bctx.drawImage(video, 0, 0, W, H);
     const d = bctx.getImageData(x, y, w, h).data;
     for (let k = 0; k < w * h; k++) { acc[k * 3] += d[k * 4]; acc[k * 3 + 1] += d[k * 4 + 1]; acc[k * 3 + 2] += d[k * 4 + 2]; }
+    const pd = bctx.getImageData(px_, py_, pw_, ph_).data;
+    for (let k = 0; k < pw_ * ph_; k++) padAcc[k] += 0.299 * pd[k * 4] + 0.587 * pd[k * 4 + 1] + 0.114 * pd[k * 4 + 2];
     if (onProgress) onProgress(Math.round(((i + 1) / N) * 100));
   }
   await new Promise((res) => {
@@ -567,7 +577,7 @@ async function buildLogoMask(r, onProgress) {
   let mx = 0;
   for (let k = 0; k < w * h; k++) { diff[k] = Math.max(0, lum(mean.data, k) - lum(bg, k)); if (diff[k] > mx) mx = diff[k]; }
   if (mx < 3) return false; // nothing stands out — not a light logo
-  const thr = mx * Math.max(0.12, Math.min(0.6, 1 - r.strength / 100));
+  const thr = mx * Math.max(0.03, Math.min(0.35, (1 - r.strength / 100) * 0.35));
   let mask = new Uint8Array(w * h);
   let hits = 0;
   for (let k = 0; k < w * h; k++) if (diff[k] >= thr) { mask[k] = 1; hits++; }
@@ -579,6 +589,22 @@ async function buildLogoMask(r, onProgress) {
     if (mask[k]) { dil[k] = 1; continue; }
     if ((i && mask[k - 1]) || (i < w - 1 && mask[k + 1]) || (j && mask[k - w]) || (j < h - 1 && mask[k + w])) dil[k] = 1;
   }
+  // inner ring (just inside the box border) vs outer ring (just outside it)
+  const ix0 = x - px_, iy0 = y - py_;
+  let inSum = 0, inN = 0, outSum = 0, outN = 0;
+  for (let j = 0; j < ph_; j++) for (let i = 0; i < pw_; i++) {
+    const insideBox = i >= ix0 && j >= iy0 && i < ix0 + w && j < iy0 + h;
+    const v = padAcc[j * pw_ + i] / N;
+    if (insideBox) {
+      const di = Math.min(i - ix0, j - iy0, ix0 + w - 1 - i, iy0 + h - 1 - j);
+      if (di < 3) { inSum += v; inN++; }
+    } else {
+      const dx = i < ix0 ? ix0 - i : i - (ix0 + w - 1), dy = j < iy0 ? iy0 - j : j - (iy0 + h - 1);
+      const dd = Math.max(dx > 0 ? dx : 0, dy > 0 ? dy : 0);
+      if (dd <= 3) { outSum += v; outN++; }
+    }
+  }
+  r.logoEdge = inN && outN ? (inSum / inN) - (outSum / outN) > 1.1 : false;
   r.logoMask = dil; r.logoRect = [x, y, w, h]; r.tsPrev = null;
   r.logoKey = [r.x, r.y, r.w, r.h, r.t0, r.t1, r.strength].map((n) => (+n).toFixed(4)).join("|");
   r.logoCover = Math.round((dil.reduce((a, b) => a + b, 0) / (w * h)) * 100);
@@ -593,7 +619,7 @@ const logoOk = (r) => r.logoMask && r.logoKey === [r.x, r.y, r.w, r.h, r.t0, r.t
    the strength set by how much the footage itself moved: on near-static shots
    smooth hard, because flicker is the only fault available; on moving shots
    smooth lightly, because there ghosting would be the worse one. */
-function temporalSmooth(r, img, raw, w, h, t) {
+function temporalSmooth(r, img, raw, w, h, t, mask) {
   const p = r.tsPrev;
   const reset = !p || p.w !== w || p.h !== h || !isFinite(t) || t < p.t - 0.001 || t - p.t > 0.4;
   if (!reset) {
@@ -603,7 +629,10 @@ function temporalSmooth(r, img, raw, w, h, t) {
     const a = Math.max(0.28, Math.min(1, motion / 4));
     if (a < 1) {
       const d = img.data, q = p.out;
-      for (let k = 0; k < d.length; k += 4) {
+      // only pixels we invented may be smoothed; real background that is
+      // moving must never be blended with its own past, or it trails
+      for (let k = 0, px = 0; k < d.length; k += 4, px++) {
+        if (mask && !mask[px]) continue;
         d[k] = a * d[k] + (1 - a) * q[k];
         d[k + 1] = a * d[k + 1] + (1 - a) * q[k + 1];
         d[k + 2] = a * d[k + 2] + (1 - a) * q[k + 2];
@@ -622,13 +651,13 @@ function eraseLogo(ctx, r) {
   pctx.drawImage(base, x, y, w, h, 0, 0, w, h);
   const img = pctx.getImageData(0, 0, w, h), d = img.data;
   const raw = new Uint8ClampedArray(d);
-  // seed each hole from the nearest unmasked pixels so relaxation starts close
+  const hard = mask;
   for (let k = 0; k < w * h; k++) if (mask[k]) { d[k * 4] = d[k * 4 + 1] = d[k * 4 + 2] = 0; }
   for (let pass = 0; pass < 60; pass++) {
     for (let j = 0; j < h; j++) {
       for (let i = 0; i < w; i++) {
         const k = j * w + i;
-        if (!mask[k]) continue;
+        if (!hard[k]) continue;
         let sr = 0, sg = 0, sb = 0, n = 0;
         const add = (kk) => { sr += d[kk * 4]; sg += d[kk * 4 + 1]; sb += d[kk * 4 + 2]; n++; };
         if (i) add(k - 1); if (i < w - 1) add(k + 1);
@@ -638,7 +667,7 @@ function eraseLogo(ctx, r) {
       }
     }
   }
-  if (r.smooth !== false) temporalSmooth(r, img, raw, w, h, video.currentTime);
+  if (r.smooth !== false) temporalSmooth(r, img, raw, w, h, video.currentTime, mask);
   pctx.putImageData(img, 0, 0);
   ctx.drawImage(patch, x, y);
 }
