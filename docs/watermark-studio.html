@@ -536,6 +536,7 @@ async function buildLogoMask(r, onProgress) {
   const N = 12, was = video.currentTime, wasPaused = video.paused;
   video.pause();
   const acc = new Float32Array(w * h * 3);
+  const lSum = new Float32Array(w * h), lSq = new Float32Array(w * h);
   for (let i = 0; i < N; i++) {
     const t = t1 > t0 ? t0 + ((t1 - t0) * i) / (N - 1) : t0;
     await new Promise((res) => {
@@ -545,7 +546,11 @@ async function buildLogoMask(r, onProgress) {
     });
     bctx.drawImage(video, 0, 0, W, H);
     const d = bctx.getImageData(x, y, w, h).data;
-    for (let k = 0; k < w * h; k++) { acc[k * 3] += d[k * 4]; acc[k * 3 + 1] += d[k * 4 + 1]; acc[k * 3 + 2] += d[k * 4 + 2]; }
+    for (let k = 0; k < w * h; k++) {
+      acc[k * 3] += d[k * 4]; acc[k * 3 + 1] += d[k * 4 + 1]; acc[k * 3 + 2] += d[k * 4 + 2];
+      const L = 0.299 * d[k * 4] + 0.587 * d[k * 4 + 1] + 0.114 * d[k * 4 + 2];
+      lSum[k] += L; lSq[k] += L * L;
+    }
     const pd = bctx.getImageData(px_, py_, pw_, ph_).data;
     for (let k = 0; k < pw_ * ph_; k++) padAcc[k] += 0.299 * pd[k * 4] + 0.587 * pd[k * 4 + 1] + 0.114 * pd[k * 4 + 2];
     if (onProgress) onProgress(Math.round(((i + 1) / N) * 100));
@@ -577,17 +582,38 @@ async function buildLogoMask(r, onProgress) {
   let mx = 0;
   for (let k = 0; k < w * h; k++) { diff[k] = Math.max(0, lum(mean.data, k) - lum(bg, k)); if (diff[k] > mx) mx = diff[k]; }
   if (mx < 3) return false; // nothing stands out — not a light logo
-  const thr = mx * Math.max(0.03, Math.min(0.35, (1 - r.strength / 100) * 0.35));
+  const thr = mx * Math.max(0.01, Math.min(0.2, (1 - r.strength / 100) * 0.06));
+  /* The high-pass above finds edges, so it is blind to the soft outer glow by
+     construction. A second, independent test catches what it cannot: the mark
+     is fixed while the footage moves, so every pixel it covers varies less over
+     time than its neighbours. That only means anything when the shot actually
+     moves, so it is used solely when the box shows real variance overall. */
+  const varr = new Float32Array(w * h);
+  for (let k = 0; k < w * h; k++) {
+    const m = lSum[k] / N;
+    varr[k] = Math.max(0, lSq[k] / N - m * m);
+  }
+  const sortedVar = Array.prototype.slice.call(varr).sort((a, b) => a - b);
+  const medVar = sortedVar[sortedVar.length >> 1];
+  const useVar = medVar > 6;
+  const varThr = medVar * 0.8;
   let mask = new Uint8Array(w * h);
   let hits = 0;
-  for (let k = 0; k < w * h; k++) if (diff[k] >= thr) { mask[k] = 1; hits++; }
+  for (let k = 0; k < w * h; k++) {
+    if (diff[k] >= thr || (useVar && varr[k] < varThr)) { mask[k] = 1; hits++; }
+  }
   if (!hits) return false;
   // dilate once so the anti-aliased rim of the mark is included
-  const dil = new Uint8Array(w * h);
-  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
-    const k = j * w + i;
-    if (mask[k]) { dil[k] = 1; continue; }
-    if ((i && mask[k - 1]) || (i < w - 1 && mask[k + 1]) || (j && mask[k - w]) || (j < h - 1 && mask[k + w])) dil[k] = 1;
+  let dil = mask;
+  const DILN = 3;
+  for (let d0 = 0; d0 < DILN; d0++) {
+    const nx = new Uint8Array(w * h), src = dil;
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const k = j * w + i;
+      if (src[k]) { nx[k] = 1; continue; }
+      if ((i && src[k - 1]) || (i < w - 1 && src[k + 1]) || (j && src[k - w]) || (j < h - 1 && src[k + w])) nx[k] = 1;
+    }
+    dil = nx;
   }
   // inner ring (just inside the box border) vs outer ring (just outside it)
   const ix0 = x - px_, iy0 = y - py_;
