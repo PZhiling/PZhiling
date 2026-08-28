@@ -644,6 +644,65 @@ function temporalSmooth(r, img, raw, w, h, t, mask) {
 
 /* Repair only the masked pixels, at full resolution. Holes this narrow are
    solved accurately by relaxing them against their own untouched edges. */
+/* Relaxation reaches the middle of a hole only after roughly (width squared)
+   passes, so a thick mark solved with a fixed small pass count keeps its seed
+   value in the centre — seeded black, that is a dark shape exactly the size of
+   the watermark. Seed from the surrounding mean instead, and solve coarse to
+   fine so the centre is only ever a few pixels from a known value. */
+function solvePlane(P, mask, w, h) {
+  if (Math.max(w, h) > 20) {
+    const nw = (w + 1) >> 1, nh = (h + 1) >> 1;
+    const cp = new Float32Array(nw * nh), cm = new Uint8Array(nw * nh);
+    for (let j = 0; j < nh; j++) for (let i = 0; i < nw; i++) {
+      let sum = 0, n = 0, known = 0;
+      for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+        const si = i * 2 + dx, sj = j * 2 + dy;
+        if (si >= w || sj >= h) continue;
+        const k = sj * w + si;
+        sum += P[k]; n++;
+        if (!mask[k]) known++;
+      }
+      cp[j * nw + i] = n ? sum / n : 0;
+      cm[j * nw + i] = known ? 0 : 1;
+    }
+    solvePlane(cp, cm, nw, nh);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const k = j * w + i;
+      if (mask[k]) P[k] = cp[Math.min(nh - 1, j >> 1) * nw + Math.min(nw - 1, i >> 1)];
+    }
+  }
+  // a level seeded from a coarser solve only needs its boundary cleaning up;
+  // the full pass count is for the base level, which has nothing to start from
+  const seeded = Math.max(w, h) > 20;
+  const passes = seeded ? 32 : Math.max(24, Math.min(90, Math.round(Math.max(w, h) * 1.6)));
+  for (let pass = 0; pass < passes; pass++) {
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const k = j * w + i;
+      if (!mask[k]) continue;
+      let sum = 0, n = 0;
+      if (i) { sum += P[k - 1]; n++; }
+      if (i < w - 1) { sum += P[k + 1]; n++; }
+      if (j) { sum += P[k - w]; n++; }
+      if (j < h - 1) { sum += P[k + w]; n++; }
+      if (n) P[k] = sum / n;
+    }
+  }
+}
+function solveMasked(d, mask, w, h) {
+  let sr = 0, sg = 0, sb = 0, n = 0;
+  for (let k = 0; k < w * h; k++) if (!mask[k]) { sr += d[k * 4]; sg += d[k * 4 + 1]; sb += d[k * 4 + 2]; n++; }
+  if (!n) return;
+  sr /= n; sg /= n; sb /= n;
+  const R = new Float32Array(w * h), G = new Float32Array(w * h), B = new Float32Array(w * h);
+  for (let k = 0; k < w * h; k++) {
+    R[k] = mask[k] ? sr : d[k * 4];
+    G[k] = mask[k] ? sg : d[k * 4 + 1];
+    B[k] = mask[k] ? sb : d[k * 4 + 2];
+  }
+  solvePlane(R, mask, w, h); solvePlane(G, mask, w, h); solvePlane(B, mask, w, h);
+  for (let k = 0; k < w * h; k++) if (mask[k]) { d[k * 4] = R[k]; d[k * 4 + 1] = G[k]; d[k * 4 + 2] = B[k]; }
+}
+
 function eraseLogo(ctx, r) {
   const [x, y, w, h] = r.logoRect;
   const mask = r.logoMask;
@@ -651,22 +710,7 @@ function eraseLogo(ctx, r) {
   pctx.drawImage(base, x, y, w, h, 0, 0, w, h);
   const img = pctx.getImageData(0, 0, w, h), d = img.data;
   const raw = new Uint8ClampedArray(d);
-  const hard = mask;
-  for (let k = 0; k < w * h; k++) if (mask[k]) { d[k * 4] = d[k * 4 + 1] = d[k * 4 + 2] = 0; }
-  for (let pass = 0; pass < 60; pass++) {
-    for (let j = 0; j < h; j++) {
-      for (let i = 0; i < w; i++) {
-        const k = j * w + i;
-        if (!hard[k]) continue;
-        let sr = 0, sg = 0, sb = 0, n = 0;
-        const add = (kk) => { sr += d[kk * 4]; sg += d[kk * 4 + 1]; sb += d[kk * 4 + 2]; n++; };
-        if (i) add(k - 1); if (i < w - 1) add(k + 1);
-        if (j) add(k - w); if (j < h - 1) add(k + w);
-        if (!n) continue;
-        d[k * 4] = sr / n; d[k * 4 + 1] = sg / n; d[k * 4 + 2] = sb / n;
-      }
-    }
-  }
+  solveMasked(d, mask, w, h);
   if (r.smooth !== false) temporalSmooth(r, img, raw, w, h, video.currentTime, mask);
   pctx.putImageData(img, 0, 0);
   ctx.drawImage(patch, x, y);
