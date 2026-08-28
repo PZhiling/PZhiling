@@ -158,7 +158,7 @@
   <div class="card" id="editor" hidden>
     <div class="eyebrow">Step 2 · Mark</div>
     <h2>วาดกรอบทับลายน้ำ</h2>
-    <p class="hint">ลากกรอบให้<strong>เผื่อขอบลายน้ำเล็กน้อย</strong> ระบบจะเกลี่ยเลยกรอบออกไปอีกนิดเพื่อไม่ให้เห็นรอยต่อ · <strong>Smart Fill</strong> ดีที่สุดกับพื้นเรียบหรือไล่เฉดสี · <strong>Inpaint</strong> ดีกว่าเมื่อมีเส้นขอบหรือรอยต่อพาดผ่านกรอบ</p>
+    <p class="hint">ลากกรอบให้<strong>เผื่อขอบลายน้ำเล็กน้อย</strong> ระบบจะเกลี่ยเลยกรอบออกไปอีกนิดเพื่อไม่ให้เห็นรอยต่อ<br /><strong>✦ ลบโลโก้</strong> — สำหรับลายน้ำรูปทรงบางๆ เช่นดาว Gemini ซ่อมเฉพาะเส้น เก็บพื้นหลังจริงไว้ ใช้ได้ดีทั้งพื้นเรียบและพื้นมีลาย (แนะนำเป็นค่าเริ่มต้น)<br /><strong>🩹 Inpaint</strong> — ดีที่สุดบนพื้นเรียบล้วน แต่จะลบลวดลายทิ้งถ้าพื้นมีเท็กซ์เจอร์<br /><strong>🪄 Smart Fill</strong> — เหมาะกับกรอบใหญ่บนพื้นไล่เฉด ไม่เหมาะกับโลโก้เล็กใกล้ขอบเฟรม</p>
 
     <div class="stagewrap"><canvas id="stage"></canvas></div>
 
@@ -257,7 +257,7 @@ const patch = document.createElement("canvas"), pctx = patch.getContext("2d");  
 const patch2 = document.createElement("canvas"), p2ctx = patch2.getContext("2d");
 const tiny = document.createElement("canvas"), tctx = tiny.getContext("2d");       // mosaic
 
-const MODES = { fill: "🪄 Smart Fill — พื้นเรียบ/ไล่เฉดสี", inpaint: "🩹 Inpaint — พื้นมีเส้นขอบ/รอยต่อ", blur: "🌫 เบลอ", mosaic: "🟦 โมเสก", cover: "⬛ ปิดทับสีทึบ" };
+const MODES = { logo: "✦ ลบโลโก้ — ตรวจจับรูปทรง (Gemini/ดาว/ไอคอน)", fill: "🪄 Smart Fill — พื้นเรียบ/ไล่เฉดสี", inpaint: "🩹 Inpaint — พื้นมีเส้นขอบ/รอยต่อ", blur: "🌫 เบลอ", mosaic: "🟦 โมเสก", cover: "⬛ ปิดทับสีทึบ" };
 
 /* ── file load ─────────────────────────────────── */
 const drop = $("drop");
@@ -322,7 +322,7 @@ function updateTC() {
 function addRegion(r) {
   const reg = Object.assign({
     id: nextId++, x: .35, y: .4, w: .3, h: .2,
-    mode: "fill", strength: 60, t0: 0, t1: Math.ceil((video.duration || 60) * 10) / 10, color: "#000000",
+    mode: "logo", strength: 60, t0: 0, t1: Math.ceil((video.duration || 60) * 10) / 10, color: "#000000",
   }, r);
   regions.push(reg); selId = reg.id;
   renderRegionList(); draw(true);
@@ -354,19 +354,42 @@ function renderRegionList() {
         <input type="color" data-k="color" value="${r.color}" aria-label="สีปิดทับ" ${r.mode === "cover" ? "" : "hidden"}>
         <button class="btn small danger del" data-act="del">✕ ลบ</button>
       </div>
+      ${r.mode === "logo" ? `<div class="ctrl" style="grid-template-columns:1fr">
+        <div>
+          <button class="btn small" data-act="scan">${logoOk(r) ? "🔄 สแกนรูปทรงใหม่" : "✦ สแกนหารูปทรงลายน้ำ"}</button>
+          <div class="f" data-scan-status style="margin-top:6px">${
+            logoOk(r)
+              ? "✓ เจอรูปทรงแล้ว — ซ่อมเฉพาะเส้นลายน้ำ " + r.logoCover + "% ของกรอบ (ที่เหลือคงพื้นหลังจริงไว้)"
+              : "ยังไม่ได้สแกน — ตอนนี้พรีวิวใช้ Smart Fill ไปก่อน · ลากกรอบให้พอดีดาวแล้วกดสแกน"
+          }</div>
+        </div>
+      </div>` : ""}
       <div class="ctrl">
-        <div ${r.mode === "cover" ? "hidden" : ""}><label class="f">${r.mode === "inpaint" ? "ความละเอียดการเกลี่ย" : "ความแรง"}</label><input type="range" data-k="strength" min="10" max="100" value="${r.strength}"></div>
+        <div ${r.mode === "cover" ? "hidden" : ""}><label class="f">${r.mode === "inpaint" ? "ความละเอียดการเกลี่ย" : r.mode === "logo" ? "ความไวการตรวจจับ" : "ความแรง"}</label><input type="range" data-k="strength" min="10" max="100" value="${r.strength}"></div>
         <div><label class="f">เริ่ม (วินาที)</label><input type="number" data-k="t0" min="0" step="0.1" value="${r.t0}"></div>
         <div><label class="f">ถึง (วินาที)</label><input type="number" data-k="t1" min="0" step="0.1" value="${r.t1}"></div>
       </div>`;
     el.addEventListener("click", (e) => {
       const act = e.target.dataset && e.target.dataset.act;
+      if (act === "scan") {
+        const btn = e.target, st = el.querySelector("[data-scan-status]");
+        if (btn.disabled) return;
+        btn.disabled = true;
+        buildLogoMask(r, (pct) => { if (st) st.textContent = `⏳ กำลังสแกนหลายเฟรม… ${pct}%`; })
+          .then((okd) => {
+            renderRegionList(); draw(true);
+            toast(okd ? "เจอรูปทรงลายน้ำแล้ว ✓" : "ไม่พบรูปทรงที่สว่างกว่าพื้นหลัง — ลายน้ำอาจเข้มหรือกรอบกว้างไป ลองใช้ Smart Fill");
+          })
+          .catch(() => { btn.disabled = false; toast("สแกนไม่สำเร็จ ลองใหม่"); });
+        return;
+      }
       if (act === "del") { regions = regions.filter(x => x.id !== r.id); if (selId === r.id) selId = null; renderRegionList(); draw(true); return; }
       if (selId !== r.id) { selId = r.id; renderRegionList(); draw(true); }
     });
     el.querySelectorAll("[data-k]").forEach(inp => inp.addEventListener("input", () => {
       const k = inp.dataset.k;
       r[k] = (k === "mode" || k === "color") ? inp.value : parseFloat(inp.value) || 0;
+      if (r.logoMask && !logoOk(r)) r.logoMask = null;
       if (k === "mode") renderRegionList();
       draw(true);
     }));
@@ -485,6 +508,110 @@ function inpaintRegion(srcCanvas, x, y, w, h, W, H, iterations) {
   return outc;
 }
 
+/* ── logo erase ────────────────────────────────────
+   A Gemini sparkle is a thin, light, semi-transparent shape, not a solid
+   block. Filling its whole bounding box throws away the real background
+   between and around the strokes, which is exactly the part that looks
+   pasted. Instead detect the strokes themselves and repair only those: the
+   holes are then a few pixels wide, and narrow holes reconstruct almost
+   exactly from their own edges.
+   Detection uses a temporal mean (the mark is static, the footage is not, so
+   averaging frames strengthens the mark and washes out the background) and
+   keeps pixels meaningfully brighter than a blurred copy of that mean. */
+async function buildLogoMask(r, onProgress) {
+  const W = base.width, H = base.height;
+  const [x, y, w, h] = clampRect(Math.round(r.x * W), Math.round(r.y * H), Math.round(r.w * W), Math.round(r.h * H), W, H);
+  if (w < 4 || h < 4) return false;
+  const t0 = Math.max(0, r.t0), t1 = Math.min(video.duration || r.t1, r.t1);
+  const N = 12, was = video.currentTime, wasPaused = video.paused;
+  video.pause();
+  const acc = new Float32Array(w * h * 3);
+  for (let i = 0; i < N; i++) {
+    const t = t1 > t0 ? t0 + ((t1 - t0) * i) / (N - 1) : t0;
+    await new Promise((res) => {
+      const f = () => { video.removeEventListener("seeked", f); res(); };
+      video.addEventListener("seeked", f);
+      video.currentTime = Math.max(0, Math.min(video.duration || 0, t));
+    });
+    bctx.drawImage(video, 0, 0, W, H);
+    const d = bctx.getImageData(x, y, w, h).data;
+    for (let k = 0; k < w * h; k++) { acc[k * 3] += d[k * 4]; acc[k * 3 + 1] += d[k * 4 + 1]; acc[k * 3 + 2] += d[k * 4 + 2]; }
+    if (onProgress) onProgress(Math.round(((i + 1) / N) * 100));
+  }
+  await new Promise((res) => {
+    const f = () => { video.removeEventListener("seeked", f); res(); };
+    video.addEventListener("seeked", f);
+    video.currentTime = was;
+  });
+  if (!wasPaused) video.play().catch(() => {});
+
+  // temporal mean, then a blurred copy of it as the "background without the mark"
+  patch.width = w; patch.height = h;
+  const mean = pctx.createImageData(w, h);
+  for (let k = 0; k < w * h; k++) {
+    mean.data[k * 4] = acc[k * 3] / N; mean.data[k * 4 + 1] = acc[k * 3 + 1] / N;
+    mean.data[k * 4 + 2] = acc[k * 3 + 2] / N; mean.data[k * 4 + 3] = 255;
+  }
+  pctx.putImageData(mean, 0, 0);
+  patch2.width = w; patch2.height = h;
+  p2ctx.clearRect(0, 0, w, h);
+  p2ctx.filter = `blur(${Math.max(2, Math.round(Math.min(w, h) / 6))}px)`;
+  p2ctx.drawImage(patch, 0, 0);
+  p2ctx.filter = "none";
+  const bg = p2ctx.getImageData(0, 0, w, h).data;
+
+  const lum = (d, k) => 0.299 * d[k * 4] + 0.587 * d[k * 4 + 1] + 0.114 * d[k * 4 + 2];
+  const diff = new Float32Array(w * h);
+  let mx = 0;
+  for (let k = 0; k < w * h; k++) { diff[k] = Math.max(0, lum(mean.data, k) - lum(bg, k)); if (diff[k] > mx) mx = diff[k]; }
+  if (mx < 3) return false; // nothing stands out — not a light logo
+  const thr = mx * Math.max(0.12, Math.min(0.6, 1 - r.strength / 100));
+  let mask = new Uint8Array(w * h);
+  let hits = 0;
+  for (let k = 0; k < w * h; k++) if (diff[k] >= thr) { mask[k] = 1; hits++; }
+  if (!hits) return false;
+  // dilate once so the anti-aliased rim of the mark is included
+  const dil = new Uint8Array(w * h);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const k = j * w + i;
+    if (mask[k]) { dil[k] = 1; continue; }
+    if ((i && mask[k - 1]) || (i < w - 1 && mask[k + 1]) || (j && mask[k - w]) || (j < h - 1 && mask[k + w])) dil[k] = 1;
+  }
+  r.logoMask = dil; r.logoRect = [x, y, w, h];
+  r.logoKey = [r.x, r.y, r.w, r.h, r.t0, r.t1, r.strength].map((n) => (+n).toFixed(4)).join("|");
+  r.logoCover = Math.round((dil.reduce((a, b) => a + b, 0) / (w * h)) * 100);
+  return true;
+}
+const logoOk = (r) => r.logoMask && r.logoKey === [r.x, r.y, r.w, r.h, r.t0, r.t1, r.strength].map((n) => (+n).toFixed(4)).join("|");
+
+/* Repair only the masked pixels, at full resolution. Holes this narrow are
+   solved accurately by relaxing them against their own untouched edges. */
+function eraseLogo(ctx, r) {
+  const [x, y, w, h] = r.logoRect;
+  const mask = r.logoMask;
+  patch.width = w; patch.height = h;
+  pctx.drawImage(base, x, y, w, h, 0, 0, w, h);
+  const img = pctx.getImageData(0, 0, w, h), d = img.data;
+  // seed each hole from the nearest unmasked pixels so relaxation starts close
+  for (let k = 0; k < w * h; k++) if (mask[k]) { d[k * 4] = d[k * 4 + 1] = d[k * 4 + 2] = 0; }
+  for (let pass = 0; pass < 60; pass++) {
+    for (let j = 0; j < h; j++) {
+      for (let i = 0; i < w; i++) {
+        const k = j * w + i;
+        if (!mask[k]) continue;
+        let sr = 0, sg = 0, sb = 0, n = 0;
+        const add = (kk) => { sr += d[kk * 4]; sg += d[kk * 4 + 1]; sb += d[kk * 4 + 2]; n++; };
+        if (i) add(k - 1); if (i < w - 1) add(k + 1);
+        if (j) add(k - w); if (j < h - 1) add(k + w);
+        if (!n) continue;
+        d[k * 4] = sr / n; d[k * 4 + 1] = sg / n; d[k * 4 + 2] = sb / n;
+      }
+    }
+  }
+  pctx.putImageData(img, 0, 0);
+  ctx.drawImage(patch, x, y);
+}
+
 /* The feather fades the patch into whatever is underneath, and underneath the
    box edge is still the watermark — so the worked rect is grown by the feather
    width first, putting the fade over real background instead. */
@@ -527,6 +654,10 @@ function applyRegion(ctx, r, W, H, t) {
     ctx.fillStyle = r.color;
     ctx.fillRect(x, y, w, h);
     return;
+  }
+  if (r.mode === "logo") {
+    if (logoOk(r)) { eraseLogo(ctx, r); return; }
+    // not scanned yet — fall through to Smart Fill so the preview is never blank
   }
   if (r.mode === "inpaint") {
     const it = Math.max(60, Math.round(r.strength * 3.2));
