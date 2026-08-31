@@ -1,0 +1,100 @@
+name: Autopilot Income review
+
+# Opens one review issue per month so the plan in plans/autopilot-income.html
+# does not depend on anyone remembering it.
+on:
+  schedule:
+    # 09:00 Asia/Bangkok on the 1st of every month
+    - cron: '0 2 1 * *'
+    # every Monday in Oct–Dec: the ThaiESG deadline countdown
+    - cron: '0 2 * 10-12 1'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: income-review
+  cancel-in-progress: false
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open the review issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const LABEL = 'income-review';
+            const DEADLINE = Date.UTC(2026, 11, 31); // ThaiESG: 31 Dec 2026
+            const now = new Date();
+            const bkk = new Date(now.getTime() + 7 * 3600 * 1000);
+            const daysLeft = Math.ceil((DEADLINE - bkk.getTime()) / 86400000);
+            const month = bkk.toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+            const title = `ทบทวนรายได้ — ${month}`;
+
+            const { owner, repo } = context.repo;
+
+            // make sure the label exists
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: LABEL });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner, repo, name: LABEL, color: 'c2502e',
+                description: 'รอบทบทวนรายได้ประจำเดือน',
+              });
+            }
+
+            const existing = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: LABEL, per_page: 100,
+            });
+            if (existing.data.some(i => i.title === title)) {
+              core.info(`already open: ${title}`);
+              return;
+            }
+
+            const countdown = daysLeft > 0
+              ? `เหลืออีก **${daysLeft} วัน** ถึงเส้นตาย ThaiESG (31 ธ.ค. 2026) หลังจากนั้นเพดานลดจาก 300,000 เหลือ 100,000 บาท`
+              : `เส้นตาย ThaiESG แบบเพดาน 300,000 บาทผ่านไปแล้ว เพดานปัจจุบันคือ 100,000 บาทต่อปี`;
+
+            const body = [
+              `> ${countdown}`,
+              '',
+              'แผนเต็มอยู่ที่ [`plans/autopilot-income.html`](../blob/HEAD/plans/autopilot-income.html) — ใช้เวลารอบละประมาณ 15 นาที',
+              '',
+              '### เส้นทาง A — ทุนทำงาน',
+              '- [ ] เปิดพอร์ตดูยอดแล้วปิด ห้ามซื้อขายนอกรอบทบทวนครึ่งปี',
+              '- [ ] โอนกำไรจากเส้นทาง B และ C เข้าพอร์ต A',
+              '- [ ] เช็กว่าดอกเบี้ยนโยบายหรืออัตราเงินฝากเปลี่ยนไหม',
+              '',
+              '### เส้นทาง B — คอนเทนต์ทำงาน',
+              '- [ ] ดูวิวรวม 30 วัน เทียบเกณฑ์ตัด 20,000 วิว/เดือนที่เดือนที่ 6',
+              '- [ ] เช็กหน้าสถานะ YouTube Partner Program ว่ามีการเตือน inauthentic content ไหม',
+              '- [ ] เช็กว่ามีเพลงพร้อมปล่อยไหม',
+              '',
+              '### เส้นทาง C — เครื่องมือทำงาน',
+              '- [ ] ดูยอดสมาชิกใหม่และยอดยกเลิก ถ้ายกเลิกเกิน 10%/เดือน ปัญหาอยู่ที่ตัวสินค้า',
+              '',
+              '### ภาษี',
+              '- [ ] ตรวจสิทธิ ThaiESG ที่ยังใช้ได้ในปีนี้',
+              '- [ ] ทบทวนจังหวะโอนรายได้จากต่างประเทศกลับไทย ให้เข้าเงื่อนไข 2 ปีภาษี',
+              '',
+              '---',
+              '_เปิดโดย workflow `income-review` ปิด issue นี้เมื่อทำครบ_',
+            ].join('\n');
+
+            const created = await github.rest.issues.create({
+              owner, repo, title, body, labels: [LABEL],
+            });
+            core.info(`opened #${created.data.number}`);
+
+            // keep the queue short: close review issues older than 90 days
+            const cutoff = Date.now() - 90 * 86400000;
+            for (const issue of existing.data) {
+              if (new Date(issue.created_at).getTime() < cutoff) {
+                await github.rest.issues.update({
+                  owner, repo, issue_number: issue.number, state: 'closed',
+                  state_reason: 'not_planned',
+                });
+              }
+            }

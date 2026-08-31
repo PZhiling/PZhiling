@@ -1,0 +1,1338 @@
+<title>Autopilot Income</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ── tokens: inherited from the Faceless Creator Suite (docs/*.html) ───────── */
+:root{
+  --bg:#f8f5f3; --panel:#ffffff; --panel-2:#fdfbfa; --line:#e3dad3; --line-soft:#efe8e3;
+  --ink:#2b2320; --muted:#776a62; --faint:#8f8178;
+  --accent:#c2502e; --accent-ink:#a03c1e; --accent-wash:#f7ece7;
+  --good:#2e8555; --warn:#9a6a00; --crit:#bf4636;
+  --good-wash:#e9f3ed; --warn-wash:#f7f0dd; --crit-wash:#faeae7;
+  --code-bg:#efe9e4;
+  /* validated categorical series — do not hand-tune */
+  --s1:#c2502e; --s2:#00998c; --s3:#7a4fb5;
+  --s1-wash:#f7ece7; --s2-wash:#e4f3f1; --s3-wash:#efe9f8;
+  --grid:#e9e1db; --shadow:0 1px 2px rgba(43,35,32,.05),0 8px 24px -16px rgba(43,35,32,.28);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#191412; --panel:#201a17; --panel-2:#241d19; --line:#372c24; --line-soft:#2d251f;
+    --ink:#eee7e2; --muted:#ab9c92; --faint:#93837a;
+    --accent:#ff8a5c; --accent-ink:#ffb090; --accent-wash:#33221a;
+    --good:#3f9c66; --warn:#b8881a; --crit:#d96553;
+    --good-wash:#1c2c22; --warn-wash:#2e2716; --crit-wash:#332019;
+    --code-bg:#2b2119;
+    --s1:#dd6c46; --s2:#00a596; --s3:#9a76d8;
+    --s1-wash:#33211a; --s2-wash:#142b28; --s3-wash:#241d33;
+    --grid:#2f261f; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#191412; --panel:#201a17; --panel-2:#241d19; --line:#372c24; --line-soft:#2d251f;
+  --ink:#eee7e2; --muted:#ab9c92; --faint:#93837a;
+  --accent:#ff8a5c; --accent-ink:#ffb090; --accent-wash:#33221a;
+  --good:#3f9c66; --warn:#b8881a; --crit:#d96553;
+  --good-wash:#1c2c22; --warn-wash:#2e2716; --crit-wash:#332019;
+  --code-bg:#2b2119;
+  --s1:#dd6c46; --s2:#00a596; --s3:#9a76d8;
+  --s1-wash:#33211a; --s2-wash:#142b28; --s3-wash:#241d33;
+  --grid:#2f261f; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans Thai","Noto Sans Thai",system-ui,-apple-system,sans-serif;
+  font-size:15.5px; line-height:1.72; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+@media(max-width:640px){.wrap{padding:0 16px}}
+
+/* ── masthead ─────────────────────────────────────────────────────────────── */
+.masthead{border-bottom:1px solid var(--line);background:var(--panel);position:relative;overflow:hidden}
+.masthead::after{content:"";position:absolute;inset:auto 0 0 0;height:2px;
+  background:linear-gradient(90deg,var(--s1) 0 34%,var(--s2) 34% 67%,var(--s3) 67% 100%)}
+.mast-in{padding:44px 0 34px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block}
+h1{font-size:clamp(38px,6.4vw,62px);line-height:1.02;margin:14px 0 0;font-weight:700;letter-spacing:-.03em;text-wrap:balance}
+.deck{margin:16px 0 0;max-width:62ch;color:var(--muted);font-size:17px}
+.deck b{color:var(--ink);font-weight:600}
+
+/* ── ticker ───────────────────────────────────────────────────────────────── */
+.ticker{border-bottom:1px solid var(--line);background:var(--panel-2)}
+.ticker-in{display:grid;grid-template-columns:repeat(6,1fr);gap:0;overflow-x:auto}
+.tk{padding:16px 18px;border-right:1px solid var(--line-soft);min-width:150px}
+.tk:last-child{border-right:0}
+.tk .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
+.tk .v{font-family:"IBM Plex Mono",monospace;font-size:23px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.03em;margin-top:3px;line-height:1.15}
+.tk .n{font-size:12px;color:var(--muted);line-height:1.4;margin-top:1px}
+@media(max-width:900px){.ticker-in{grid-template-columns:repeat(3,1fr)}.tk:nth-child(3n){border-right:0}.tk:nth-child(-n+3){border-bottom:1px solid var(--line-soft)}}
+@media(max-width:520px){.ticker-in{grid-template-columns:repeat(2,1fr)}.tk{min-width:0}.tk:nth-child(3n){border-right:1px solid var(--line-soft)}.tk:nth-child(2n){border-right:0}}
+
+/* ── sections ─────────────────────────────────────────────────────────────── */
+section{padding:56px 0;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px;flex-wrap:wrap}
+.sec-tag{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);border:1px solid var(--line);padding:3px 8px;border-radius:3px;white-space:nowrap}
+h2{font-size:clamp(24px,3.4vw,31px);margin:0;font-weight:700;letter-spacing:-.02em;text-wrap:balance}
+h3{font-size:18px;margin:0 0 6px;font-weight:600;letter-spacing:-.01em}
+h4{font-size:14px;margin:0 0 4px;font-weight:600}
+.lede{color:var(--muted);max-width:66ch;margin:10px 0 28px;font-size:16px}
+p{margin:0 0 12px}
+a{color:var(--accent-ink);text-decoration-color:color-mix(in oklab,var(--accent) 40%,transparent);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px 22px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:16px}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:860px){.g3,.g2{grid-template-columns:1fr}}
+
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid;white-space:nowrap;font-weight:500}
+.p-good{color:var(--good);border-color:color-mix(in oklab,var(--good) 34%,transparent);background:var(--good-wash)}
+.p-warn{color:var(--warn);border-color:color-mix(in oklab,var(--warn) 34%,transparent);background:var(--warn-wash)}
+.p-crit{color:var(--crit);border-color:color-mix(in oklab,var(--crit) 34%,transparent);background:var(--crit-wash)}
+.p-mute{color:var(--muted);border-color:var(--line);background:transparent}
+
+.swatch{width:9px;height:9px;border-radius:2px;display:inline-block;flex:0 0 auto}
+</style>
+<style>
+/* ── lanes ────────────────────────────────────────────────────────────────── */
+.lane{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.lane-top{padding:16px 20px 14px;border-bottom:1px solid var(--line-soft)}
+.lane-rule{height:3px}
+.lane-a .lane-rule{background:var(--s1)} .lane-b .lane-rule{background:var(--s2)} .lane-c .lane-rule{background:var(--s3)}
+.lane-id{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px}
+.lane-a .lane-id .swatch{background:var(--s1)} .lane-b .lane-id .swatch{background:var(--s2)} .lane-c .lane-id .swatch{background:var(--s3)}
+.lane h3{margin:6px 0 2px;font-size:19px}
+.lane-sub{color:var(--muted);font-size:13.5px;line-height:1.55}
+.lane-stats{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line-soft)}
+.lane-stat{padding:12px 20px;border-right:1px solid var(--line-soft)}
+.lane-stat:last-child{border-right:0}
+.lane-stat .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.lane-stat .v{font-family:"IBM Plex Mono",monospace;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.lane-body{padding:16px 20px 20px;flex:1}
+.lane-body ul{margin:0;padding-left:17px}
+.lane-body li{margin-bottom:7px;font-size:14px;line-height:1.6}
+.lane-body li::marker{color:var(--faint)}
+
+/* ── tables ───────────────────────────────────────────────────────────────── */
+.tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:14px}
+thead th{text-align:left;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;
+  padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel-2);position:sticky;top:0;white-space:nowrap}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--panel-2)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums;font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+td.name{font-weight:500}
+td .sub{display:block;color:var(--muted);font-size:12.5px;line-height:1.45;font-weight:400}
+.bar-cell{position:relative;min-width:130px}
+.bar-track{height:7px;background:var(--grid);border-radius:4px;overflow:hidden;margin-top:6px}
+.bar-fill{height:100%;border-radius:4px}
+
+/* ── charts ───────────────────────────────────────────────────────────────── */
+.figure{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px 22px 16px;box-shadow:var(--shadow)}
+.fig-title{font-size:15px;font-weight:600;margin:0 0 2px}
+.fig-note{font-size:12.5px;color:var(--muted);margin:0 0 16px;max-width:70ch}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 0;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+svg{display:block;max-width:100%;height:auto;overflow:visible}
+svg text{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.axis{font-size:10.5px;fill:var(--faint)}
+.axis-lbl{font-size:10px;fill:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.gridline{stroke:var(--grid);stroke-width:1}
+.dlabel{font-size:11px;fill:var(--ink);font-weight:500}
+.tip{position:fixed;pointer-events:none;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  padding:9px 11px;font-size:12.5px;line-height:1.5;box-shadow:0 8px 28px -8px rgba(0,0,0,.35);opacity:0;transition:opacity .1s;max-width:250px}
+.tip.on{opacity:1}
+.tip .t-h{font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:7px}
+.tip .t-r{display:flex;justify-content:space-between;gap:18px;color:var(--muted)}
+.tip .t-r b{color:var(--ink);font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-weight:600}
+.hit{cursor:crosshair}
+
+/* ── calculator ───────────────────────────────────────────────────────────── */
+.calc{display:grid;grid-template-columns:320px 1fr;gap:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:var(--shadow)}
+@media(max-width:860px){.calc{grid-template-columns:1fr}}
+.calc-in{padding:22px;border-right:1px solid var(--line);background:var(--panel-2)}
+@media(max-width:860px){.calc-in{border-right:0;border-bottom:1px solid var(--line)}}
+.field{margin-bottom:22px}
+.field label{display:flex;justify-content:space-between;align-items:baseline;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.field .fv{font-size:15px;color:var(--ink);font-weight:600;letter-spacing:-.02em;text-transform:none}
+input[type=range]{width:100%;accent-color:var(--accent);height:22px;cursor:pointer}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;padding:9px 6px;background:var(--panel);border:0;border-right:1px solid var(--line);cursor:pointer;
+  font-family:"IBM Plex Sans Thai",sans-serif;font-size:13px;color:var(--muted);transition:background .12s,color .12s}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:600}
+:root[data-theme="dark"] .seg button[aria-pressed="true"],
+:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#1c1310}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]) .seg button[aria-pressed="true"]{color:#fff}}
+.calc-out{padding:22px}
+.hero-row{display:flex;gap:28px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line-soft);margin-bottom:16px}
+.hero-fig .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.hero-fig .v{font-family:"IBM Plex Mono",monospace;font-size:clamp(28px,4.6vw,40px);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.035em;line-height:1.1}
+.hero-fig .n{font-size:12.5px;color:var(--muted)}
+.alloc-row{display:grid;grid-template-columns:1fr 92px 84px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:13.5px}
+.alloc-row:last-child{border-bottom:0}
+.alloc-row .an{display:flex;align-items:center;gap:9px;min-width:0}
+.alloc-row .an span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alloc-row .amt,.alloc-row .yld{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:13px}
+.alloc-row .yld{color:var(--muted)}
+
+/* ── misc blocks ──────────────────────────────────────────────────────────── */
+.callout{border:1px solid;border-radius:8px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start}
+.callout .cb{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;white-space:nowrap;padding-top:2px}
+.c-warn{border-color:color-mix(in oklab,var(--warn) 40%,transparent);background:var(--warn-wash)}
+.c-warn .cb{color:var(--warn)}
+.c-good{border-color:color-mix(in oklab,var(--good) 40%,transparent);background:var(--good-wash)}
+.c-good .cb{color:var(--good)}
+.c-crit{border-color:color-mix(in oklab,var(--crit) 40%,transparent);background:var(--crit-wash)}
+.c-crit .cb{color:var(--crit)}
+.callout p{margin:0;font-size:14px;line-height:1.62}
+.callout p+p{margin-top:8px}
+
+.timeline{border-left:2px solid var(--line);margin-left:8px;padding-left:22px;display:flex;flex-direction:column;gap:26px}
+.tl-item{position:relative}
+.tl-item::before{content:"";position:absolute;left:-29px;top:6px;width:11px;height:11px;border-radius:50%;background:var(--panel);border:2px solid var(--accent)}
+.tl-when{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);font-weight:600}
+.tl-load{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);margin-left:10px;letter-spacing:0;text-transform:none}
+.tl-item h4{margin:4px 0 5px;font-size:16px}
+.tl-item ul{margin:0;padding-left:17px;font-size:14px;color:var(--muted)}
+.tl-item li{margin-bottom:5px}
+.tl-item li b{color:var(--ink);font-weight:600}
+
+.check{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+.check:last-child{border-bottom:0}
+.check input{margin-top:4px;width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex:0 0 auto}
+.check label{cursor:pointer;font-size:14px;line-height:1.6}
+.check .cm{display:block;color:var(--muted);font-size:12.5px}
+.check input:checked+label{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--faint)}
+.check input:checked+label .cm{text-decoration:none}
+
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.6;margin:0}
+code{font-family:"IBM Plex Mono",monospace;font-size:.9em;background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre code{background:none;padding:0;font-size:inherit}
+
+footer{padding:44px 0 60px;color:var(--muted);font-size:13px}
+footer h3{font-size:13px;letter-spacing:.1em;text-transform:uppercase;font-family:"IBM Plex Mono",monospace;color:var(--faint);font-weight:500;margin-bottom:12px}
+.srcs{columns:2;column-gap:36px;font-size:12.5px;line-height:1.75}
+@media(max-width:700px){.srcs{columns:1}}
+.srcs li{break-inside:avoid;margin-bottom:5px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header class="masthead">
+  <div class="wrap mast-in">
+    <div class="eyebrow">
+      <span class="dot"></span><span>แผนรายได้ต่อเนื่อง</span>
+      <span>·</span><span>ข้อมูลตลาด ณ 31 ส.ค. 2026</span>
+      <span>·</span><span>ทำเพื่อ PZhiling</span>
+    </div>
+    <h1>Autopilot Income</h1>
+    <p class="deck">
+      สามเส้นทางที่ทำงานแทนคุณ เรียงตาม<b>ชั่วโมงที่คุณต้องเสียจริง</b> ไม่ใช่ตามตัวเลขที่ฟังดูดี
+      ทุกตัวเลขในหน้านี้มีที่มา และทุกทางเลือกบอกไว้ตรง ๆ ว่าโอกาสล้มเหลวเท่าไร
+    </p>
+  </div>
+</header>
+
+<div class="ticker">
+  <div class="wrap"><div class="ticker-in">
+    <div class="tk"><div class="k">ดอกเบี้ยนโยบาย ไทย</div><div class="v">1.00%</div><div class="n">คงที่ 3 ประชุมติด · ต่ำสุดตั้งแต่ ก.ย. 2022</div></div>
+    <div class="tk"><div class="k">พันธบัตรไทย 10 ปี</div><div class="v">2.05%</div><div class="n">แตะ 2.34% เดือน พ.ค. สูงสุดตั้งแต่ ก.พ. 2025</div></div>
+    <div class="tk"><div class="k">SET Index</div><div class="v">1,588</div><div class="n">ปันผลเฉลี่ยตลาด ~4.5% · กลุ่มแบงก์ ~6%</div></div>
+    <div class="tk"><div class="k">พันธบัตรสหรัฐ 10 ปี</div><div class="v">4.72%</div><div class="n">ส่วนต่างจากไทย 2.67 จุด</div></div>
+    <div class="tk"><div class="k">T-Bill สหรัฐ 3 เดือน</div><div class="v">3.83%</div><div class="n">1 ปี 4.13% · 30 ปี 5.21%</div></div>
+    <div class="tk"><div class="k">USD / THB</div><div class="v">32.74</div><div class="n">บาทแข็ง 2.68% ใน 1 เดือน</div></div>
+  </div></div>
+</div>
+
+<main>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">01 · อ่านก่อน</span><h2>ความจริงสามข้อ ก่อนจะเริ่ม</h2></div>
+    <p class="lede">คุณบอกว่าไม่อยากยุ่ง ผมเลยต้องบอกก่อนว่า “ไม่ยุ่ง” มีราคาของมัน และราคานั้นจ่ายได้สองสกุลเท่านั้น: เงินทุน หรือ แรงตอนต้น</p>
+    <div class="grid g3">
+
+      <div class="card">
+        <div class="pill p-mute" style="margin-bottom:10px">กติกาข้อที่ 1</div>
+        <h3>“ไม่ต้องยุ่ง” มีสองแบบ</h3>
+        <p style="font-size:14px;color:var(--muted)">
+          <b style="color:var(--ink)">เงินทำงาน</b> — ยุ่งน้อยจริงตั้งแต่วันแรก ตั้งค่าครั้งเดียวจบ
+          แต่ผลตอบแทนผูกกับขนาดทุนแบบตรงไปตรงมา ทุน 1 ล้านที่ 4% คือ 40,000 บาท/ปี ไม่มีทางลัด
+        </p>
+        <p style="font-size:14px;color:var(--muted);margin:0">
+          <b style="color:var(--ink)">สินทรัพย์ทำงาน</b> — ใช้ทุนน้อย แต่ต้องลงแรงหนัก 60–120 ชั่วโมงในช่วงต้น
+          แล้วหลังจากนั้นค่อยเหลือ 5–15 ชั่วโมง/เดือน ไม่มีอันไหนที่ “0 ชั่วโมงตั้งแต่วันแรก” นอกจากเอาเงินไปฝาก
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="pill p-crit" style="margin-bottom:10px">กติกาข้อที่ 2</div>
+        <h3>ตัวเลขความล้มเหลวที่เขาไม่ค่อยบอก</h3>
+        <div style="font-size:14px;color:var(--muted);display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed var(--line);padding-bottom:8px">
+            <span>สินค้าดิจิทัลบน Gumroad ที่ขายได้ <b style="color:var(--crit)">0 บาท</b></span><b class="num" style="color:var(--ink)">44%</b></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed var(--line);padding-bottom:8px">
+            <span>รายได้กลางของครีเอเตอร์ Gumroad ต่อเดือน</span><b class="num" style="color:var(--ink)">$72</b></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed var(--line);padding-bottom:8px">
+            <span>สินค้า indie hacker ที่รายได้เป็นศูนย์</span><b class="num" style="color:var(--ink)">54%</b></div>
+          <div style="display:flex;justify-content:space-between;gap:12px">
+            <span>micro-SaaS ที่ทำได้ต่ำกว่า $1,000/เดือน</span><b class="num" style="color:var(--ink)">70%</b></div>
+        </div>
+        <p style="font-size:13px;color:var(--muted);margin:12px 0 0">
+          แผนนี้จึงวางให้ <b style="color:var(--ink)">เส้นทาง A แบกรายได้พื้น</b> ส่วน B และ C เป็นออปชันที่ถ้าติดคือได้เยอะ ถ้าไม่ติดก็ไม่พังพอร์ต
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="pill p-good" style="margin-bottom:10px">กติกาข้อที่ 3</div>
+        <h3>ปีนี้ช่องว่างดอกเบี้ยกว้างผิดปกติ</h3>
+        <p style="font-size:14px;color:var(--muted)">
+          ไทยกดดอกเบี้ยนโยบายไว้ที่ <b class="num" style="color:var(--ink)">1.00%</b> ขณะที่พันธบัตรสหรัฐ 10 ปีอยู่ที่
+          <b class="num" style="color:var(--ink)">4.72%</b> — ห่างกัน <b class="num" style="color:var(--ink)">2.67</b> จุด
+          เงินสดบาทที่นอนเฉย ๆ ในบัญชีออมทรัพย์ปกติจึงเป็นการตัดสินใจที่แพงที่สุดในหน้านี้
+        </p>
+        <p style="font-size:14px;color:var(--muted);margin:0">
+          แต่ส่วนต่างนั้นไม่ฟรี มันคือค่าความเสี่ยงค่าเงิน บาทเพิ่งแข็งขึ้น <b class="num" style="color:var(--ink)">2.68%</b> ในเดือนเดียว
+          ซึ่งกินผลตอบแทน T-Bill ทั้งปีไปครึ่งหนึ่ง — เพราะแบบนี้แผนนี้ถึงไม่ให้ย้ายเงินทั้งก้อนไปฝั่งดอลลาร์
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">02 · โครงสร้าง</span><h2>สามเส้นทาง หนึ่งพอร์ต</h2></div>
+    <p class="lede">
+      แต่ละเส้นทางแก้ปัญหาคนละอย่าง A ให้รายได้ที่คาดเดาได้ B ให้เพดานที่สูง C ให้สินทรัพย์ที่ขายทิ้งได้ในอนาคต
+      ตัวเลข “ชั่วโมง/เดือน” คือหลังผ่านช่วงตั้งต้นแล้ว
+    </p>
+    <div class="grid g3">
+
+      <article class="lane lane-a">
+        <div class="lane-rule"></div>
+        <div class="lane-top">
+          <div class="lane-id"><span class="swatch"></span>เส้นทาง A</div>
+          <h3>ทุนทำงาน</h3>
+          <p class="lane-sub">จัดเงินที่มีอยู่ให้ไปอยู่ในที่ที่ให้ผลตอบแทนสูงสุดต่อความเสี่ยงและต่อภาษีที่จ่าย</p>
+        </div>
+        <div class="lane-stats">
+          <div class="lane-stat"><div class="k">ผลตอบแทนคาด</div><div class="v" style="color:var(--s1)">3–5%</div></div>
+          <div class="lane-stat"><div class="k">ชั่วโมง/เดือน</div><div class="v">0.5</div></div>
+        </div>
+        <div class="lane-body"><ul>
+          <li>ตั้งค่าครั้งเดียว 3–4 ชั่วโมง แล้วแตะแค่ปีละ 2 ครั้ง</li>
+          <li>ผลตอบแทนคาดเดาได้ ไม่ต้องรอ “ติด”</li>
+          <li>มีดีลลดหย่อนภาษีที่หมดอายุ 31 ธ.ค. 2026 — ผลตอบแทนทันที 5–35%</li>
+          <li>ข้อจำกัด: เพดานถูกล็อกด้วยขนาดทุน</li>
+        </ul></div>
+      </article>
+
+      <article class="lane lane-b">
+        <div class="lane-rule"></div>
+        <div class="lane-top">
+          <div class="lane-id"><span class="swatch"></span>เส้นทาง B</div>
+          <h3>คอนเทนต์ทำงาน</h3>
+          <p class="lane-sub">เดินเครื่อง Faceless Creator Suite ที่คุณเขียนไว้แล้ว ให้กลายเป็นสายพานผลิตช่อง YouTube และคาตาล็อกเพลง</p>
+        </div>
+        <div class="lane-stats">
+          <div class="lane-stat"><div class="k">ผลตอบแทนคาด</div><div class="v" style="color:var(--s2)">0–฿100k/ด.</div></div>
+          <div class="lane-stat"><div class="k">ชั่วโมง/เดือน</div><div class="v">8–15</div></div>
+        </div>
+        <div class="lane-body"><ul>
+          <li>ต้นทุนเริ่มต้นเกือบเป็นศูนย์ เพราะเครื่องมือคุณสร้างเสร็จแล้ว</li>
+          <li>RPM สาย personal finance $10–15 · บัตรเครดิต $25–45</li>
+          <li>เดือน 1–3 คือช่วงเงียบ วิวต่ำกว่า 100 เป็นเรื่องปกติ</li>
+          <li>ความเสี่ยงหลักคือนโยบาย inauthentic content ของ YouTube ไม่ใช่คู่แข่ง</li>
+        </ul></div>
+      </article>
+
+      <article class="lane lane-c">
+        <div class="lane-rule"></div>
+        <div class="lane-top">
+          <div class="lane-id"><span class="swatch"></span>เส้นทาง C</div>
+          <h3>เครื่องมือทำงาน</h3>
+          <p class="lane-sub">ขายตัว Suite เอง แทนที่จะใช้มันคนเดียว — คนที่อยากทำช่อง faceless มีเยอะกว่าคนที่ทำสำเร็จมาก</p>
+        </div>
+        <div class="lane-stats">
+          <div class="lane-stat"><div class="k">ผลตอบแทนคาด</div><div class="v" style="color:var(--s3)">0–฿140k/ด.</div></div>
+          <div class="lane-stat"><div class="k">ชั่วโมง/เดือน</div><div class="v">4–10</div></div>
+        </div>
+        <div class="lane-body"><ul>
+          <li>ของพร้อมขายแล้ว 4 ตัว เหลือแค่ทำหน้าขายกับระบบเก็บเงิน</li>
+          <li>เวลาเฉลี่ยถึง $1,000 MRR = 3.5 เดือน สำหรับคนที่ไปถึง</li>
+          <li>micro-SaaS ที่มีกำไร มัธยฐาน $4,200 MRR</li>
+          <li>โบนัส: ขายกิจการทิ้งได้ที่ 24–40 เท่าของกำไรต่อเดือน</li>
+        </ul></div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">03 · แผนที่</span><h2>แรงที่เสีย เทียบกับ เงินที่ได้</h2></div>
+    <p class="lede">
+      แกนนอนคือชั่วโมงที่ต้องใช้ต่อเดือนหลังตั้งระบบเสร็จแล้ว แกนตั้งคือรายได้ต่อปีในกรณีฐาน
+      ขนาดวงกลมคือโอกาสที่จะได้ตามนั้น วงเล็กแปลว่าเสี่ยงจะได้ศูนย์
+      เส้นทาง A รวมเป็นจุดเดียวเพราะในทางปฏิบัติคุณถือทั้งพอร์ต ไม่ได้เลือกแค่ตัวเดียว
+    </p>
+    <div class="figure">
+      <p class="fig-title">ตำแหน่งของแต่ละทางเลือก</p>
+      <p class="fig-note">เส้นทาง A คิดที่ทุน 1,000,000 บาท สัดส่วนแบบสมดุล · เส้นทาง B และ C คิดที่เดือนที่ 12 ในฉากทัศน์ฐาน · ชี้ที่วงกลมเพื่อดูบาทต่อชั่วโมง</p>
+      <div id="scatter"></div>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--s1)"></i>A · ทุนทำงาน</span>
+        <span><i class="swatch" style="background:var(--s2)"></i>B · คอนเทนต์ทำงาน</span>
+        <span><i class="swatch" style="background:var(--s3)"></i>C · เครื่องมือทำงาน</span>
+        <span style="color:var(--faint)">วงใหญ่ = โอกาสสำเร็จสูง</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">04 · เส้นทาง A</span><h2>ที่จอดเงิน เรียงตามผลตอบแทนสุทธิ</h2></div>
+    <p class="lede">
+      อัตราด้านล่างเป็นผลตอบแทน<b>ก่อน</b>ภาษี ส่วนคอลัมน์ภาษีบอกว่าจะโดนหักเท่าไร
+      ดอกเบี้ยเงินฝากและหุ้นกู้โดนหัก ณ ที่จ่าย 15% เงินปันผลหุ้นไทยโดน 10%
+      ส่วนกำไรจากคริปโตบนกระดานที่มีใบอนุญาต ไทย ยกเว้นภาษีถึงสิ้นปี 2029
+    </p>
+
+    <div class="figure" style="margin-bottom:22px">
+      <p class="fig-title">อัตราผลตอบแทนต่อปี ตามประเภทสินทรัพย์</p>
+      <p class="fig-note">แถบสีเดียวกันทั้งหมดเพราะนี่คือการเทียบขนาด ไม่ใช่การแยกประเภท · ป้าย ฿ กับ $ บอกสกุลเงินที่รับความเสี่ยง</p>
+      <div id="ladder"></div>
+    </div>
+
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th>สินทรัพย์</th><th class="r">ผลตอบแทน</th><th>ภาษี</th><th>สภาพคล่อง</th><th>ความเสี่ยงหลัก</th><th class="r">เวลาที่ใช้</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="name">บัญชีดิจิทัลดอกสูง <span class="sub">Dime! Save 3% ที่ 10,000 บาทแรก · ibank e-Savings 2.20% ที่ 20,000 บาทแรก · LH Bank 5.55% เฉพาะ 100,000 บาทท้ายของทุกล้าน</span></td>
+            <td class="r" style="color:var(--good);font-weight:600">1.0–3.0%</td>
+            <td>หัก 15%<span class="sub">ยกเว้นถ้าดอกรวมทั้งปีไม่เกิน 20,000</span></td>
+            <td>ถอนได้ทันที</td>
+            <td>ไม่มี (คุ้มครอง 1 ล้าน/ธนาคาร)</td>
+            <td class="r">30 นาที<span class="sub">ครั้งเดียว</span></td>
+          </tr>
+          <tr>
+            <td class="name">กองทุนตลาดเงิน <span class="sub">SCBTMF · K-MONEY · KFCASH — ที่พักเงินก้อนที่เกินเพดานดอกสูง</span></td>
+            <td class="r" style="color:var(--good);font-weight:600">1.0–1.3%</td>
+            <td>กองทุนไม่หัก<span class="sub">กำไรส่วนต่างไม่เสียภาษี</span></td>
+            <td>T+1</td>
+            <td>แทบไม่มี</td>
+            <td class="r">20 นาที</td>
+          </tr>
+          <tr>
+            <td class="name">พันธบัตรออมทรัพย์รัฐบาล <span class="sub">รุ่นวอลเล็ต ซื้อผ่านเป๋าตัง ขั้นต่ำ 100 บาท · ล็อกอัตราไว้ยาว</span></td>
+            <td class="r" style="color:var(--good);font-weight:600">2.0–2.4%</td>
+            <td>หัก 15%</td>
+            <td>ล็อก 3–10 ปี</td>
+            <td>เสียโอกาสถ้าดอกเบี้ยขึ้น</td>
+            <td class="r">1 ชม.<span class="sub">ต่อรอบเสนอขาย</span></td>
+          </tr>
+          <tr>
+            <td class="name">หุ้นกู้เอกชนระดับลงทุน <span class="sub">เรต A ขึ้นไป อายุ 3–5 ปี — เลี่ยงหุ้นกู้ high yield ให้หมด ตลาดหุ้นกู้ไทยหดตัว 3.5% ในปี 2025</span></td>
+            <td class="r" style="color:var(--good);font-weight:600">3.0–4.0%</td>
+            <td>หัก 15%</td>
+            <td>ขายต่อยาก</td>
+            <td>ผู้ออกผิดนัดชำระ</td>
+            <td class="r">2 ชม.<span class="sub">ต่อดีล + อ่านไฟลิ่ง</span></td>
+          </tr>
+          <tr>
+            <td class="name">หุ้นปันผลไทย · SETHD <span class="sub">30 ตัวใน SET100 ที่จ่ายปันผลต่อเนื่อง 3 ปีขึ้นไป · กลุ่มแบงก์เฉลี่ยราว 6%</span></td>
+            <td class="r" style="color:var(--good);font-weight:600">4.5–6.0%</td>
+            <td>หัก 10%<span class="sub">ขอเครดิตภาษีเงินปันผลคืนได้</span></td>
+            <td>T+2</td>
+            <td>ราคาหุ้นผันผวน · ตัดปันผล</td>
+            <td class="r">1 ชม./ไตรมาส</td>
+          </tr>
+          <tr>
+            <td class="name">REIT และกองทุนโครงสร้างพื้นฐาน <span class="sub">กองอสังหาฯ ให้ผลตอบแทนราว 6% แต่ต้องดูอัตราการเช่าและอายุสัญญาที่เหลือ</span></td>
+            <td class="r" style="color:var(--good);font-weight:600">5.5–6.5%</td>
+            <td>หัก 10%</td>
+            <td>สภาพคล่องต่ำ</td>
+            <td>ผู้เช่าหาย · สัญญาสัมปทานหมด</td>
+            <td class="r">2 ชม./ปี</td>
+          </tr>
+          <tr>
+            <td class="name">พันธบัตรสหรัฐระยะสั้น ผ่าน DR/DRx <span class="sub">ซื้อเป็นบาทบนกระดาน SET ไม่ต้องเปิดพอร์ตนอก ซื้อเศษหน่วยได้</span></td>
+            <td class="r" style="color:var(--good);font-weight:600">3.8–4.1%</td>
+            <td>ปันผล/ดอก หัก 10%</td>
+            <td>T+2</td>
+            <td style="color:var(--crit)">ค่าเงิน — บาทแข็ง 2.7% ใน 1 เดือน</td>
+            <td class="r">1 ชม.</td>
+          </tr>
+          <tr>
+            <td class="name">กองทุนตราสารหนี้โลก แบบป้องกันค่าเงิน <span class="sub">ตัวอย่างกองระดับโลกให้ yield 5.61% ณ 31 ก.ค. 2026 — ป้องกันค่าเงินแล้วจะเหลือส่วนต่างประมาณ 2.5–3%</span></td>
+            <td class="r" style="color:var(--good);font-weight:600">2.5–3.5%</td>
+            <td>กองทุนไม่หัก</td>
+            <td>T+3 ถึง T+5</td>
+            <td>ต้นทุนป้องกันค่าเงินกินส่วนต่าง</td>
+            <td class="r">1 ชม.</td>
+          </tr>
+          <tr style="background:var(--accent-wash)">
+            <td class="name">กองทุน ThaiESG <span class="sub">ลดหย่อนได้ 30% ของเงินได้ สูงสุด 300,000 บาท เฉพาะที่ซื้อภายใน 31 ธ.ค. 2026 · ถือครบ 5 ปี</span></td>
+            <td class="r" style="color:var(--accent-ink);font-weight:700">5–35%<span class="sub" style="color:var(--muted)">คืนภาษีทันที</span></td>
+            <td style="color:var(--good);font-weight:600">ได้ภาษีคืน</td>
+            <td>ล็อก 5 ปี</td>
+            <td>มูลค่ากองทุนแกว่งได้</td>
+            <td class="r">30 นาที</td>
+          </tr>
+          <tr>
+            <td class="name">คริปโตบนกระดานที่มีใบอนุญาต ก.ล.ต. <span class="sub">กำไรจากการขายยกเว้นภาษีบุคคลธรรมดา 1 ม.ค. 2025 – 31 ธ.ค. 2029</span></td>
+            <td class="r" style="color:var(--warn);font-weight:600">คาดเดาไม่ได้</td>
+            <td style="color:var(--good)">0% กำไรส่วนต่าง<span class="sub" style="color:var(--crit)">แต่รายได้จาก staking ยังเสียภาษี</span></td>
+            <td>ทันที</td>
+            <td style="color:var(--crit)">ขาดทุนได้ 50%+ ไม่ใช่ตัวสร้างรายได้ประจำ</td>
+            <td class="r">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:grid;gap:16px;grid-template-columns:1fr 1fr;margin-top:22px">
+      <div class="callout c-warn" style="grid-column:1/-1">
+        <div class="cb">ทำก่อนสิ้นปี</div>
+        <div>
+          <p><b>ThaiESG คือผลตอบแทนที่สูงที่สุดต่อเวลาที่เสียในหน้านี้ และมันมีวันหมดอายุ</b>
+          สิทธิลดหย่อน 30% ของเงินได้ เพดาน 300,000 บาท ใช้ได้เฉพาะเงินที่ซื้อภายใน <b>31 ธ.ค. 2026</b>
+          หลังจากนั้นเพดานลดเหลือ 100,000 บาท</p>
+          <p>ถ้าเงินได้พึงประเมินของคุณอยู่ในขั้น 25% การใส่ 300,000 บาท แปลว่าคืนภาษี 75,000 บาท
+          นั่นคือ 25% ต่อ 30 นาทีของงาน ไม่มีสินทรัพย์ไหนในตารางเทียบได้
+          ข้อแลกเปลี่ยนคือเงินถูกล็อก 5 ปี และ NAV กองทุนก็ขึ้นลงได้ตามปกติ</p>
+        </div>
+      </div>
+      <div class="callout c-crit">
+        <div class="cb">อย่าเผลอ</div>
+        <div><p>เงินได้จากต่างประเทศที่โอนกลับไทยต้องเสียภาษี ถ้าคุณอยู่ไทยเกิน 180 วันในปีนั้น
+        มีร่างกฎใหม่ให้ยกเว้นถ้าโอนกลับภายใน 2 ปีภาษี — คาดว่าเริ่มใช้รอบยื่นภาษี ม.ค.–มี.ค. 2026
+        แปลว่ารายได้ YouTube และ Stripe ที่จะเข้าในเส้นทาง B และ C ต้องวางแผนจังหวะโอนกลับให้ดี</p></div>
+      </div>
+      <div class="callout c-good">
+        <div class="cb">จุดที่ได้เปรียบ</div>
+        <div><p>คุณจะมีรายได้เป็นดอลลาร์จากเส้นทาง B และ C อยู่แล้ว ถ้าเก็บส่วนหนึ่งไว้เป็นดอลลาร์และซื้อพันธบัตรสหรัฐระยะสั้นที่ 3.83%
+        คุณจะได้ส่วนต่างดอกเบี้ยโดยไม่ต้องแลกเงินและไม่ต้องรับความเสี่ยงค่าเงินตอนแลกกลับ นี่คือการ hedge ที่ไม่มีต้นทุน</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">05 · เครื่องคำนวณ</span><h2>ใส่ตัวเลขของคุณ</h2></div>
+    <p class="lede">
+      ลากสองแถบด้านซ้าย แล้วดูว่าเงินก้อนนั้นควรไปอยู่ตรงไหนและจะได้กลับมาเท่าไรในปีแรก
+      ตัวเลขคืนภาษีคำนวณจากขั้นภาษีสูงสุดที่คุณอยู่ และเคารพเพดาน ThaiESG ทั้งสองข้อ
+    </p>
+
+    <div class="calc">
+      <div class="calc-in">
+        <div class="field">
+          <label for="cap">ทุนที่ลงได้ <span class="fv num" id="capV">1,000,000 ฿</span></label>
+          <input type="range" id="cap" min="100000" max="10000000" step="50000" value="1000000">
+        </div>
+        <div class="field">
+          <label for="inc">เงินได้พึงประเมินต่อปี <span class="fv num" id="incV">1,200,000 ฿</span></label>
+          <input type="range" id="inc" min="0" max="6000000" step="50000" value="1200000">
+        </div>
+        <div class="field">
+          <label style="margin-bottom:8px">ระดับความเสี่ยง</label>
+          <div class="seg" id="risk" role="group" aria-label="ระดับความเสี่ยง">
+            <button data-r="0" aria-pressed="false">ระวัง</button>
+            <button data-r="1" aria-pressed="true">สมดุล</button>
+            <button data-r="2" aria-pressed="false">รุก</button>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin:0;line-height:1.55">
+          ขั้นภาษีประมาณจากเงินได้พึงประเมิน หักค่าใช้จ่าย 100,000 และค่าลดหย่อนส่วนตัว 60,000
+          ถ้าคุณมีลดหย่อนอื่นอีก ตัวเลขคืนภาษีจริงจะต่างไปเล็กน้อย
+        </p>
+      </div>
+
+      <div class="calc-out">
+        <div class="hero-row">
+          <div class="hero-fig">
+            <div class="k">รายได้จากทุน ปีแรก</div>
+            <div class="v" id="oIncome" style="color:var(--s1)">—</div>
+            <div class="n" id="oIncomeSub">หลังหักภาษี ณ ที่จ่ายแล้ว</div>
+          </div>
+          <div class="hero-fig">
+            <div class="k">ภาษีที่ได้คืน</div>
+            <div class="v" id="oTax" style="color:var(--good)">—</div>
+            <div class="n" id="oTaxSub">จาก ThaiESG</div>
+          </div>
+          <div class="hero-fig">
+            <div class="k">ผลตอบแทนรวมปีแรก</div>
+            <div class="v" id="oPct">—</div>
+            <div class="n">รวมเงินคืนภาษีเข้าไปด้วย</div>
+          </div>
+        </div>
+        <div id="alloc"></div>
+        <p style="font-size:12px;color:var(--muted);margin:14px 0 0;line-height:1.55">
+          ผลตอบแทนคาดการณ์ใช้ค่ากลางของช่วงในตารางข้อ 04 หุ้นปันผลกับ REIT คิดเฉพาะเงินปันผล ไม่รวมส่วนต่างราคา
+          ปีที่สองเป็นต้นไปจะไม่มีเงินคืนภาษีก้อนนี้ ถ้าไม่ได้ซื้อ ThaiESG เพิ่ม และเพดานจะเหลือ 100,000 บาท
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">06 · เส้นทาง B</span><h2>คุณสร้างโรงงานไว้แล้ว แต่ยังไม่ได้เดินเครื่อง</h2></div>
+    <p class="lede">
+      ในรีโปนี้มีเครื่องมือที่เสร็จแล้วสี่ตัว ซึ่งรวมกันคือสายการผลิตคอนเทนต์ครบวงจร
+      คนอื่นต้องจ่ายค่าซับสไครป์เดือนละหลายพันเพื่อให้ได้แบบนี้ ของคุณมีอยู่แล้วและไม่มีค่าใช้จ่ายรายเดือน
+    </p>
+
+    <div class="grid g2" style="margin-bottom:26px">
+      <div class="card">
+        <h3>ของที่มีอยู่ในมือ</h3>
+        <div style="display:flex;flex-direction:column;gap:11px;margin-top:12px">
+          <div style="display:flex;gap:12px;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid var(--line-soft)">
+            <span class="pill p-mute" style="min-width:118px;justify-content:center">Podcast SEO</span>
+            <span style="font-size:13.5px;color:var(--muted)">วิเคราะห์ช่องว่าง SEO เลือกคีย์เวิร์ด เขียนสคริปต์ ทำสตอรีบอร์ด และ TTS — คือทั้งท่อของช่องพอดแคสต์ faceless</span>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid var(--line-soft)">
+            <span class="pill p-mute" style="min-width:118px;justify-content:center">Shorts Studio</span>
+            <span style="font-size:13.5px;color:var(--muted)">ตัดคลิปสั้นสำหรับป้อน YouTube Shorts, Reels และ TikTok — ช่องทางหาคนดูใหม่ที่ถูกที่สุดตอนนี้</span>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid var(--line-soft)">
+            <span class="pill p-mute" style="min-width:118px;justify-content:center">Music Release</span>
+            <span style="font-size:13.5px;color:var(--muted)">ปล่อยเพลงเข้าสตรีมมิง — คาตาล็อกเพลงคือสินทรัพย์ที่เก็บค่าลิขสิทธิ์ได้ตลอดชีพและไม่ต้องดูแล</span>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <span class="pill p-mute" style="min-width:118px;justify-content:center">Watermark</span>
+            <span style="font-size:13.5px;color:var(--muted)">ลบและใส่ลายน้ำ — เครื่องมือช่วยงาน ไม่ใช่ตัวทำเงินโดยตรง แต่เป็นฟีเจอร์ที่ขายได้ในเส้นทาง C</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>เลือกหมวดให้ถูก ต่างกัน 5 เท่า</h3>
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:14px">
+          สองช่องที่มีวิวเท่ากันแต่คนละหมวด รายได้ต่างกันได้ถึงห้าเท่า นี่คือการตัดสินใจครั้งเดียวที่สำคัญที่สุดในเส้นทางนี้
+        </p>
+        <div id="rpm"></div>
+      </div>
+    </div>
+
+    <div class="callout c-crit" style="margin-bottom:22px">
+      <div class="cb">กติกาที่ทำให้ตาย</div>
+      <div>
+        <p>เมื่อ 15 ก.ค. 2025 YouTube เปลี่ยนชื่อกฎ repetitious content เป็น <b>inauthentic content</b>
+        และถึงกลางปี 2026 การตรวจจับก็ขยับไปตรวจ<b>ที่ระดับช่อง</b>แล้ว ไม่ใช่รายคลิป โทษคือสามครั้ง:
+        เตือน → ระงับรายได้ 90 วัน → ถอดออกจาก YouTube Partner Program ถาวร</p>
+        <p><b>กฎไม่ได้ห้ามใช้ AI</b> คลิปที่ใช้ AI ช่วยผลิตทำเงินได้ปกติ และ RPM ไม่ต่างจากคลิปที่ไม่ใช้ AI ในหมวดเดียวกัน
+        สิ่งที่โดนคือคลิปที่ทำจากเทมเพลตเดียวซ้ำ ๆ ผลิตเป็นจำนวนมาก และไม่มีอะไรที่เป็นของผู้สร้างเลย
+        เป้าหมายตรงตัวของกฎนี้คือ “ช่องเสียง AI + สไลด์ภาพนิ่ง ไม่มีตัวตน ไม่มีมุมมอง”</p>
+        <p>สิ่งที่ต้องมีเพื่อให้รอด: <b>ชื่อและบุคลิกของผู้เล่าที่ชัดเจน</b> · <b>มุมมองเฉพาะตัวในสคริปต์</b> ·
+        <b>รูปแบบคลิปที่หลากหลายไม่ใช่แม่พิมพ์เดียว</b> · <b>ความเห็นที่เพิ่มเข้าไปจริง ๆ ไม่ใช่อ่านข่าวคำต่อคำ</b>
+        และห้ามยิง Shorts วันละ 10 คลิปจากเทมเพลตเดียว นั่นคือสูตรที่โดนแบนเร็วที่สุด</p>
+      </div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <h3>คาตาล็อกเพลง — สายที่เงียบแต่ไม่ตาย</h3>
+        <p style="font-size:14px;color:var(--muted)">
+          Spotify จ่ายราว <b class="num" style="color:var(--ink)">$0.003–0.005</b> ต่อสตรีม หรือประมาณ
+          <b class="num" style="color:var(--ink)">$3,000–5,000</b> ต่อหนึ่งล้านสตรีม
+          DistroKid หัก <b class="num" style="color:var(--ink)">0%</b> จากค่าลิขสิทธิ์ เก็บเป็นค่ารายปีแทน
+        </p>
+        <p style="font-size:14px;color:var(--muted)">
+          Spotify อนุญาตเพลงที่สร้างด้วย AI และจ่ายค่าลิขสิทธิ์ตามปกติ แต่ตั้งแต่ มี.ค. 2026 ค่ายจัดจำหน่ายเกือบทั้งหมด
+          เพิ่มช่องแจ้ง AI ตามมาตรฐาน DDEX แล้ว — <b style="color:var(--ink)">ต้องแจ้งให้ตรงความจริง</b>
+          และห้ามใช้เสียงที่ฟังออกว่าเป็นศิลปินคนอื่นโดยไม่มีเอกสารยินยอม
+        </p>
+        <p style="font-size:14px;color:var(--muted);margin:0">
+          จุดแข็งของสายนี้คือเพลงที่ปล่อยแล้วอยู่ยาว ไม่มีอัลกอริทึมมาถอดออกเหมือนคลิป
+          จุดอ่อนคือช้ามาก คิดเป็นสายที่ทบต้นในหน่วยปี ไม่ใช่เดือน
+        </p>
+      </div>
+      <div class="card">
+        <h3>จังหวะที่เป็นจริง</h3>
+        <p style="font-size:14px;color:var(--muted)">
+          ช่องที่ทำดีในหมวด RPM สูง ปล่อย <b style="color:var(--ink)">3–5 คลิปต่อสัปดาห์</b>
+          ทำได้ราว <b class="num" style="color:var(--ink)">$3,000–10,000</b> ต่อเดือน ภายใน <b>10–18 เดือน</b>
+        </p>
+        <p style="font-size:14px;color:var(--muted)">
+          แต่เดือนที่ 1–3 คือช่วงเงียบ คลิปส่วนใหญ่จะได้วิวไม่ถึง 100 นั่นไม่ใช่สัญญาณว่าล้มเหลว
+          มันคือช่วงที่อัลกอริทึมยังไม่มีข้อมูลพอจะแนะนำช่องคุณ <b style="color:var(--ink)">คนส่วนใหญ่เลิกในเดือนที่สอง</b>
+        </p>
+        <p style="font-size:14px;color:var(--muted);margin:0">
+          เกณฑ์ตัดสินใจที่ควรตั้งไว้ล่วงหน้า: ถ้าถึงเดือนที่ 6 แล้ววิวรวมต่อเดือนยังไม่ถึง 20,000
+          ให้เปลี่ยนหมวดหรือเปลี่ยนรูปแบบ ไม่ใช่เพิ่มจำนวนคลิป
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">07 · เส้นทาง C</span><h2>ขายพลั่ว ไม่ใช่ขุดทองเอง</h2></div>
+    <p class="lede">
+      คนที่<b>อยากทำ</b>ช่อง faceless มีมากกว่าคนที่ทำสำเร็จหลายสิบเท่า และกลุ่มนั้นจ่ายเงินเพื่อเครื่องมือ
+      คุณมีเครื่องมือที่เสร็จแล้วสี่ตัว ซึ่งแปลว่าส่วนที่ยากที่สุดของธุรกิจนี้คุณทำเสร็จไปแล้ว เหลือแค่หน้าขายกับระบบเก็บเงิน
+    </p>
+
+    <div class="grid g3" style="margin-bottom:24px">
+      <div class="card">
+        <div class="pill p-mute" style="margin-bottom:10px">ตัวเลขอ้างอิง</div>
+        <h3>ระยะทางจริง</h3>
+        <div style="font-size:14px;color:var(--muted);display:flex;flex-direction:column;gap:10px;margin-top:10px">
+          <div style="display:flex;justify-content:space-between;gap:12px"><span>เวลากลางถึง $1,000 MRR</span><b class="num" style="color:var(--ink)">3.5 เดือน</b></div>
+          <div style="display:flex;justify-content:space-between;gap:12px"><span>เวลาเฉลี่ยถึง $10,000 MRR</span><b class="num" style="color:var(--ink)">14 เดือน</b></div>
+          <div style="display:flex;justify-content:space-between;gap:12px"><span>micro-SaaS ที่มีกำไร มัธยฐาน</span><b class="num" style="color:var(--ink)">$4,200 MRR</b></div>
+          <div style="display:flex;justify-content:space-between;gap:12px"><span>ทุนที่ใช้ก่อนมีรายได้แรก</span><b class="num" style="color:var(--ink)">&lt; $1,000</b></div>
+        </div>
+        <p style="font-size:12.5px;color:var(--muted);margin:12px 0 0">ตัวเลขเหล่านี้เป็นค่าของ<b style="color:var(--muted)">คนที่ไปถึง</b>เท่านั้น 70% ไปไม่ถึง $1,000 MRR</p>
+      </div>
+
+      <div class="card">
+        <div class="pill p-good" style="margin-bottom:10px">สิ่งที่ขายได้เลย</div>
+        <h3>แพ็กเกจที่ควรตั้ง</h3>
+        <ul style="margin:10px 0 0;padding-left:17px;font-size:13.5px;color:var(--muted);line-height:1.65">
+          <li><b style="color:var(--ink)">ฟรี</b> — Watermark Studio ทั้งตัว ใช้เป็นประตูหน้าและตัวเก็บอีเมล</li>
+          <li><b style="color:var(--ink)">$19/เดือน</b> — Shorts + Podcast SEO จำกัดจำนวนครั้งต่อเดือน ผู้ใช้ใส่คีย์ Gemini ของตัวเอง ต้นทุนคุณเกือบศูนย์</li>
+          <li><b style="color:var(--ink)">$49/เดือน</b> — ไม่จำกัด รวม Music Release และการส่งออกทั้งหมด</li>
+          <li><b style="color:var(--ink)">$249 จ่ายครั้งเดียว</b> — เวอร์ชันติดตั้งเอง สำหรับคนที่ไม่อยากผูกซับสไครป์ กลุ่มนี้ซื้อไวที่สุด</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="pill p-crit" style="margin-bottom:10px">อย่าเสียเวลากับสิ่งนี้</div>
+        <h3>SEO ไม่ใช่ทางหาลูกค้าอีกแล้ว</h3>
+        <p style="font-size:13.5px;color:var(--muted)">
+          อัปเดตอัลกอริทึมหลักเดือน มี.ค. 2026 ทำให้ <b class="num" style="color:var(--crit)">71%</b> ของเว็บสาย affiliate อันดับตก
+          และเมื่อมี AI Overviews โผล่ อัตราการคลิกลดลง <b class="num" style="color:var(--crit)">58–61%</b>
+          ทราฟฟิกจากเสิร์ชของผู้เผยแพร่รายเล็กหายไป <b class="num" style="color:var(--crit)">60%</b> ในสองปี
+        </p>
+        <p style="font-size:13.5px;color:var(--muted);margin:0">
+          <b style="color:var(--ink)">อย่าสร้างบล็อกเพื่อหาลูกค้า</b> ไปตรงที่คนอยู่แทน:
+          r/NewTubers, กลุ่ม Facebook สายทำช่อง, Product Hunt, และคอมเมนต์ใต้คลิปสอนทำช่อง faceless
+          คนที่โพสต์เล่าการสร้างของตัวเองระหว่างทางไปถึง $1,000 MRR เร็วกว่าคนที่เงียบแล้วค่อยเปิดตัว
+        </p>
+      </div>
+    </div>
+
+    <div class="callout c-warn">
+      <div class="cb">ข้อได้เปรียบที่ต้องรีบใช้</div>
+      <div><p>คุณกำลังจะเดินเส้นทาง B อยู่แล้ว ซึ่งแปลว่าคุณจะมีช่องจริงที่ใช้เครื่องมือตัวเองสร้าง
+      นั่นคือหลักฐานการขายที่คู่แข่งซื้อไม่ได้ — <b>ถ่ายหน้าจอตัวเลขช่องตัวเองแล้วเอาไปเป็นหน้าแรกของเว็บขาย</b>
+      เส้นทาง B กับ C จึงไม่ใช่สองงาน แต่เป็นงานเดียวที่เก็บเกี่ยวสองรอบ</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">08 · ประมาณการ</span><h2>12 เดือนข้างหน้า หน้าตาเป็นแบบไหน</h2></div>
+    <p class="lede">
+      สามฉากทัศน์ ไม่ใช่คำทำนาย เส้นทาง A เป็นตัวเลขที่มั่นใจได้เพราะผูกกับอัตราดอกเบี้ยจริง
+      ส่วน B และ C คือส่วนที่ไม่แน่นอน — สังเกตว่าในฉากทัศน์แย่ทั้งสองเส้นเป็นศูนย์ ซึ่งเป็นผลลัพธ์ที่มีโอกาสเกิดสูงสุดตามสถิติ
+    </p>
+    <div class="figure">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+        <div>
+          <p class="fig-title">รายได้ต่อเดือน แยกตามเส้นทาง</p>
+          <p class="fig-note" style="margin:0">ทุนตั้งต้น 1,000,000 บาท · หน่วยเป็นบาทต่อเดือน · เงินคืนภาษี ThaiESG ไม่รวมอยู่ในกราฟนี้</p>
+        </div>
+        <div class="seg" id="scen" role="group" aria-label="ฉากทัศน์" style="min-width:250px">
+          <button data-s="0" aria-pressed="false">แย่</button>
+          <button data-s="1" aria-pressed="true">ฐาน</button>
+          <button data-s="2" aria-pressed="false">ดี</button>
+        </div>
+      </div>
+      <div id="proj"></div>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--s1)"></i>A · ทุนทำงาน</span>
+        <span><i class="swatch" style="background:var(--s2)"></i>B · คอนเทนต์ทำงาน</span>
+        <span><i class="swatch" style="background:var(--s3)"></i>C · เครื่องมือทำงาน</span>
+      </div>
+      <div id="scenNote" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft);font-size:13.5px;color:var(--muted)"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">09 · ลำดับการทำ</span><h2>ทำอะไร เมื่อไร ใช้เวลาเท่าไร</h2></div>
+    <p class="lede">
+      เรียงตามผลตอบแทนต่อชั่วโมง ไม่ใช่ตามความน่าตื่นเต้น สองสัปดาห์แรกให้ผลตอบแทนต่อเวลาสูงที่สุดในทั้งแผน
+      เพราะเป็นงานที่ผลลัพธ์แน่นอนและมีเส้นตาย
+    </p>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-when">สัปดาห์ที่ 1–2 <span class="tl-load">ใช้เวลา 5 ชั่วโมง · ทำครั้งเดียว</span></div>
+        <h4>เก็บของง่ายให้หมดก่อน</h4>
+        <ul>
+          <li><b>ThaiESG ก่อนอื่นใด</b> ใส่ให้เต็มเท่าที่เพดาน 30% ของเงินได้และ 300,000 บาทเปิดให้ ต้องจบภายใน 31 ธ.ค. 2026 นี่คือผลตอบแทนที่แน่นอนที่สุดในหน้านี้</li>
+          <li><b>ย้ายเงินสดออกจากบัญชีออมทรัพย์ปกติ</b> เปิดบัญชีดิจิทัลดอกสูงสองสามใบ ไล่เก็บชั้นดอกสูงของแต่ละเจ้าให้เต็มก่อน แล้วส่วนที่เหลือเข้ากองทุนตลาดเงิน</li>
+          <li><b>ตั้ง DCA อัตโนมัติ</b> เข้าหุ้นปันผลหรือ SETHD ทุกเดือน ตั้งครั้งเดียวแล้วไม่ต้องกลับมาดู</li>
+        </ul>
+      </div>
+      <div class="tl-item">
+        <div class="tl-when">เดือนที่ 1 <span class="tl-load">ใช้เวลา 25 ชั่วโมง</span></div>
+        <h4>เลือกหมวด แล้วสร้างตัวตนของช่อง</h4>
+        <ul>
+          <li>เลือกหมวดเดียวจากตาราง RPM แล้วห้ามเปลี่ยนก่อนเดือนที่ 6</li>
+          <li>สร้างชื่อผู้เล่า บุคลิก และมุมมองที่ชัด — ข้อนี้ไม่ใช่การตลาด มันคือเงื่อนไขที่กันไม่ให้โดนกฎ inauthentic content</li>
+          <li>ผลิตคลิปสะสมไว้ 12 คลิปก่อนปล่อยคลิปแรก เพื่อไม่ให้ต้องผลิตแข่งกับตารางปล่อยตั้งแต่ต้น</li>
+          <li>ตั้งรูปแบบคลิปไว้อย่างน้อย 3 แบบที่หน้าตาไม่เหมือนกัน</li>
+        </ul>
+      </div>
+      <div class="tl-item">
+        <div class="tl-when">เดือนที่ 2–3 <span class="tl-load">ใช้เวลา 15 ชั่วโมง/เดือน</span></div>
+        <h4>ช่วงเงียบ — งานคือไม่เลิก</h4>
+        <ul>
+          <li>ปล่อย 3 คลิปยาวต่อสัปดาห์ ตัด Shorts จากคลิปยาวด้วย Shorts Studio ไม่ต้องผลิตแยก</li>
+          <li>คาดหวังวิวต่ำกว่า 100 ต่อคลิป นี่คือค่าปกติ ไม่ใช่สัญญาณให้เปลี่ยนแผน</li>
+          <li>คู่ขนาน: ทำหน้าขายของเส้นทาง C กับระบบเก็บเงิน ใช้เวลาราว 10 ชั่วโมง</li>
+          <li>ปล่อยเพลงชุดแรก 5–10 แทร็กผ่าน DistroKid แจ้งสถานะ AI ให้ตรงความจริง</li>
+        </ul>
+      </div>
+      <div class="tl-item">
+        <div class="tl-when">เดือนที่ 4–6 <span class="tl-load">ใช้เวลา 12 ชั่วโมง/เดือน</span></div>
+        <h4>จุดตัดสินใจแรก</h4>
+        <ul>
+          <li>ถึงเกณฑ์ 1,000 ผู้ติดตาม กับ 4,000 ชั่วโมงรับชม แล้วสมัคร YouTube Partner Program</li>
+          <li>เปิดขายเส้นทาง C แบบเงียบ ๆ ในชุมชนที่คนทำช่องอยู่จริง ไม่ต้องเปิดตัวใหญ่</li>
+          <li><b>เกณฑ์ตัด:</b> ถ้าเดือนที่ 6 วิวรวมยังไม่ถึง 20,000 ต่อเดือน ให้เปลี่ยนหมวดหรือรูปแบบ ไม่ใช่เพิ่มจำนวนคลิป</li>
+          <li>ทบทวนพอร์ตเส้นทาง A ครั้งแรก ใช้เวลาไม่เกิน 1 ชั่วโมง</li>
+        </ul>
+      </div>
+      <div class="tl-item">
+        <div class="tl-when">เดือนที่ 7–12 <span class="tl-load">ใช้เวลา 8 ชั่วโมง/เดือน</span></div>
+        <h4>ปล่อยให้ทบต้น</h4>
+        <ul>
+          <li>ลดการผลิตใหม่ลง แล้วเอาเวลาไปทำคลิปเดิมที่ทำงานได้ดีให้มีเวอร์ชันต่อยอด</li>
+          <li>เอากำไรจาก B และ C กลับเข้าเส้นทาง A ทุกไตรมาส นี่คือจุดที่ทั้งสามเส้นทางกลายเป็นระบบเดียว</li>
+          <li>วางแผนจังหวะโอนเงินจากต่างประเทศกลับไทยให้เข้าเงื่อนไข 2 ปีภาษี</li>
+          <li>ซื้อ ThaiESG รอบใหม่ก่อนสิ้นปี ปีนี้เพดานเหลือ 100,000 บาทแล้ว</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">10 · ระบบเตือน</span><h2>สิบห้านาทีต่อเดือน แค่นั้นพอ</h2></div>
+    <p class="lede">
+      แผนที่ต้องอาศัยความจำจะพังภายในสามเดือน ผมเลยใส่ workflow ไว้ในรีโปนี้แล้ว
+      มันจะเปิด issue ให้อัตโนมัติทุกวันที่ 1 ของเดือน พร้อมเช็กลิสต์ข้างล่างนี้ และเตือนเรื่อง ThaiESG ถี่ขึ้นเมื่อใกล้สิ้นปี
+    </p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>เช็กลิสต์ประจำเดือน</h3>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px">ติ๊กได้ เบราว์เซอร์จำให้ กดปุ่มล่างสุดเพื่อเริ่มรอบใหม่</p>
+        <div id="checklist"></div>
+        <button id="resetCk" style="margin-top:14px;background:transparent;border:1px solid var(--line);color:var(--muted);
+          padding:7px 13px;border-radius:6px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">
+          เริ่มรอบใหม่</button>
+      </div>
+      <div class="card">
+        <h3>ตัวเตือนอัตโนมัติในรีโป</h3>
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:12px">
+          ไฟล์อยู่ที่ <code>.github/workflows/income-review.yml</code> ไม่ต้องตั้งค่าอะไรเพิ่ม
+          ใช้สิทธิ์ที่ GitHub ให้มาอยู่แล้ว ไม่ต้องใส่โทเคน
+        </p>
+        <pre><code>on:
+  schedule:
+    # 09:00 เวลาไทย ทุกวันที่ 1
+    - cron: '0 2 1 * *'
+    # ทุกวันจันทร์ในไตรมาสสุดท้าย
+    #   เตือนเส้นตาย ThaiESG
+    - cron: '0 2 * 10-12 1'
+  workflow_dispatch:</code></pre>
+        <p style="font-size:13px;color:var(--muted);margin:12px 0 0">
+          สิ่งที่มันทำ: เปิด issue ชื่อ <b style="color:var(--ink)">ทบทวนรายได้ — เดือนนั้น ๆ</b>
+          ใส่เช็กลิสต์ให้ครบ นับวันที่เหลือถึง 31 ธ.ค. 2026 และปิด issue เก่าที่ค้างเพื่อไม่ให้รก
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">11 · ขอบเขต</span><h2>สิ่งที่แผนนี้ทำไม่ได้</h2></div>
+    <div class="grid g3">
+      <div class="callout c-crit" style="flex-direction:column;gap:8px">
+        <div class="cb">ข้อจำกัดของผม</div>
+        <p>ผมเปิดบัญชี ซื้อขาย รับเงิน หรือกดยืนยันธุรกรรมแทนคุณไม่ได้ ทุกอย่างในหน้านี้คือการค้นข้อมูล คำนวณ และเรียงลำดับให้
+        ส่วนที่ต้องมีคุณกดเองคือขั้นตอนที่มีเงินจริงเคลื่อนไหว และนั่นควรเป็นแบบนั้น</p>
+      </div>
+      <div class="callout c-warn" style="flex-direction:column;gap:8px">
+        <div class="cb">ตัวเลขมีวันหมดอายุ</div>
+        <p>อัตราทั้งหมดเป็นของ 31 ส.ค. 2026 ดอกเบี้ยนโยบายไทยอยู่ที่ 1.00% มาสามประชุมแล้ว
+        ถ้ามีการลดดอกเบี้ยอีก ผลตอบแทนฝั่งตราสารหนี้ไทยจะลดตามทันที
+        และตัวเลขหุ้นกู้เอกชนในตารางเป็นช่วงประมาณจากส่วนต่างปกติ ต้องเช็กจากไฟลิ่งจริงของแต่ละรุ่นก่อนซื้อ</p>
+      </div>
+      <div class="callout c-warn" style="flex-direction:column;gap:8px">
+        <div class="cb">นี่ไม่ใช่คำแนะนำการลงทุน</div>
+        <p>ผมไม่ได้เป็นที่ปรึกษาการลงทุนที่มีใบอนุญาต และไม่รู้ภาระหนี้ ภาระครอบครัว หรือสภาพคล่องที่คุณต้องใช้จริง
+        เรื่องภาษี โดยเฉพาะกฎเงินได้จากต่างประเทศที่กำลังจะเปลี่ยน ควรยืนยันกับนักบัญชีก่อนโอนเงินก้อนใหญ่กลับไทย</p>
+      </div>
+    </div>
+
+    <div style="margin-top:22px" class="callout c-good">
+      <div class="cb">สรุปให้สั้นที่สุด</div>
+      <div>
+        <p>ถ้าคุณจะอ่านแค่บรรทัดเดียว: <b>ทำ ThaiESG ให้เสร็จก่อน 31 ธ.ค. 2026 แล้วย้ายเงินสดออกจากบัญชีออมทรัพย์ปกติ</b>
+        สองอย่างนี้ใช้เวลารวมกันประมาณ 5 ชั่วโมง ให้ผลตอบแทนที่แน่นอน และเป็นสิ่งเดียวในแผนนี้ที่มีเส้นตาย</p>
+        <p>ส่วนเส้นทาง B และ C ให้มองเป็นออปชันราคาถูก เพราะต้นทุนของมันคือเวลาที่คุณจะใช้เขียนโค้ดอยู่แล้ว
+        ถ้ามันติด มันจะใหญ่กว่าเส้นทาง A หลายเท่า ถ้าไม่ติด คุณก็ยังมีเส้นทาง A รองอยู่ — นั่นคือเหตุผลที่แผนนี้เรียงลำดับแบบนี้</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer><div class="wrap">
+  <h3>แหล่งข้อมูล · เข้าถึง 31 ส.ค. 2026</h3>
+  <ol class="srcs">
+    <li><a href="https://www.bot.or.th/en/our-roles/monetary-policy/mpc-publication/policy-interest-rate.html">ธนาคารแห่งประเทศไทย — อัตราดอกเบี้ยนโยบาย 1.00%</a></li>
+    <li><a href="https://tradingeconomics.com/thailand/government-bond-yield">Trading Economics — พันธบัตรรัฐบาลไทย 10 ปี</a></li>
+    <li><a href="https://tradingeconomics.com/united-states/government-bond-yield">Trading Economics — พันธบัตรสหรัฐ 10 ปี</a></li>
+    <li><a href="https://www.forbes.com/advisor/investing/treasury-rates/">Forbes Advisor — อัตราพันธบัตรสหรัฐ 27 ส.ค. 2026</a></li>
+    <li><a href="https://tradingeconomics.com/thailand/currency">Trading Economics — USD/THB</a></li>
+    <li><a href="https://www.kaohooninternational.com/markets/589626">Kaohoon International — SET Index ส.ค. 2026</a></li>
+    <li><a href="https://en.thairath.co.th/money/investment/capital_market/2941326">Thairath — ดัชนี SETHD และแนวโน้มปันผล 2026</a></li>
+    <li><a href="https://www.set.or.th/en/market/information/securities-list/constituents-list-sethd">SET — รายชื่อหุ้นในดัชนี SETHD</a></li>
+    <li><a href="https://en.thairath.co.th/money/personal_finance/financial_planning/2922715">Thairath — 11 บัญชีเงินฝากดิจิทัลดอกสูง 2026</a></li>
+    <li><a href="https://taxsummaries.pwc.com/thailand/individual/income-determination">PwC — ภาษีหัก ณ ที่จ่าย เงินปันผลและดอกเบี้ยของไทย</a></li>
+    <li><a href="https://www.expattaxthailand.com/understanding-assessable-foreign-sourced-income-in-thailand/">Expat Tax Thailand — เงินได้จากต่างประเทศ อัปเดต 2026</a></li>
+    <li><a href="https://www.forvismazars.com/th/en/insights/doing-business-in-thailand/tax/tax-rules-on-foreign-sourced-income">Forvis Mazars — ร่างผ่อนปรนเงินได้ต่างประเทศ 2 ปีภาษี</a></li>
+    <li><a href="https://www.bangkokbank.com/en/Personal/Save-And-Invest/Mutual-Funds/Thai-ESG-Funds">ธนาคารกรุงเทพ — เงื่อนไขและเพดาน ThaiESG</a></li>
+    <li><a href="https://www.hlbthai.com/thai-esgx-fund-tax-measures-approved/">HLB Thailand — มาตรการภาษี Thai ESGX</a></li>
+    <li><a href="https://www.forvismazars.com/th/en/insights/doing-business-in-thailand/tax/thailand-exempts-tax-on-digital-asset-gains">Forvis Mazars — ยกเว้นภาษีกำไรสินทรัพย์ดิจิทัล 5 ปี</a></li>
+    <li><a href="https://www.set.or.th/en/market/product/drx/introduction">SET — DR และ DRx ลงทุนหุ้นต่างประเทศเป็นเงินบาท</a></li>
+    <li><a href="https://www.thaibma.or.th/doc/press/y2026/Doc012026.pdf">ThaiBMA — สรุปตลาดตราสารหนี้ไทย 2025 และแนวโน้ม 2026</a></li>
+    <li><a href="https://arwriterai.com/en/blog/youtube-inauthentic-content-policy-ai-creators-2026/">นโยบาย inauthentic content ของ YouTube ปี 2026</a></li>
+    <li><a href="https://monetizednow.com/youtube-ai-content-monetization-policy">MonetizedNow — กฎการสร้างรายได้จากคอนเทนต์ AI</a></li>
+    <li><a href="https://outlierkit.com/blog/most-profitable-youtube-niches">OutlierKit — RPM แยกตามหมวด ข้อมูลปี 2026</a></li>
+    <li><a href="https://easyviral.ai/blog/how-much-do-faceless-youtube-channels-make-2026">EasyViral — รายได้จริงของช่อง faceless ปี 2026</a></li>
+    <li><a href="https://www.chartlex.com/blog/money/how-much-does-spotify-pay-per-stream-2026">Chartlex — อัตราจ่ายต่อสตรีมของ Spotify 2026</a></li>
+    <li><a href="https://dynamoi.com/learn/ai-music-distribution/spotify-ai-music-policy">Dynamoi — นโยบายเพลง AI ของ Spotify และการแจ้ง DDEX</a></li>
+    <li><a href="https://saasranger.com/blog/micro-saas-revenue-reality-what-1000-founders-actually-earn/">SaaSRanger — รายได้จริงของผู้ก่อตั้ง micro-SaaS กว่า 1,000 ราย</a></li>
+    <li><a href="https://fungies.io/digital-products-passive-income-2026/">Fungies — สถิติรายได้สินค้าดิจิทัล 2026</a></li>
+    <li><a href="https://www.omnibound.ai/blog/ai-seo-statistics">Omnibound — สถิติ AI Overviews และทราฟฟิกที่หายไป</a></li>
+    <li><a href="https://mediacopilot.ai/affiliate-marketing-ai-overviews-traffic-economy-2/">Media Copilot — ผลกระทบของ AI Overviews ต่อสาย affiliate</a></li>
+  </ol>
+  <p style="margin-top:22px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--faint)">
+    สร้างด้วย Claude Code · พาเลตต์สืบทอดจาก Faceless Creator Suite ในรีโปนี้ · สีชุดข้อมูลผ่านการตรวจ contrast และตาบอดสีแล้ว
+  </p>
+</div></footer>
+
+<div class="tip" id="tip"></div>
+
+<script>
+(function(){
+"use strict";
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);return n;};
+const cs=()=>getComputedStyle(document.documentElement);
+const tok=n=>cs().getPropertyValue(n).trim();
+const fmt=n=>Math.round(n).toLocaleString("en-US");
+const baht=n=>fmt(n)+" ฿";
+
+/* ── shared tooltip ──────────────────────────────────────────────────────── */
+const tip=document.getElementById("tip");
+function showTip(e,html){tip.innerHTML=html;tip.classList.add("on");moveTip(e);}
+function moveTip(e){
+  const r=tip.getBoundingClientRect();
+  let x=e.clientX+15,y=e.clientY+15;
+  if(x+r.width>innerWidth-10)x=e.clientX-r.width-15;
+  if(y+r.height>innerHeight-10)y=e.clientY-r.height-15;
+  tip.style.left=x+"px";tip.style.top=y+"px";
+}
+function hideTip(){tip.classList.remove("on");}
+function bindTip(node,html){
+  node.addEventListener("pointerenter",e=>showTip(e,html));
+  node.addEventListener("pointermove",moveTip);
+  node.addEventListener("pointerleave",hideTip);
+  node.addEventListener("focus",e=>{const b=node.getBoundingClientRect();showTip({clientX:b.left+b.width/2,clientY:b.top},html);});
+  node.addEventListener("blur",hideTip);
+}
+const chip=c=>'<i class="swatch" style="background:'+c+'"></i>';
+function roundRect(x,y,w,h,rt,rb){
+  rt=Math.min(rt,w/2,h);rb=Math.min(rb,w/2,h-rt);
+  return "M"+(x+rt)+","+y+"h"+(w-2*rt)+"a"+rt+","+rt+" 0 0 1 "+rt+","+rt+
+    "v"+(h-rt-rb)+"a"+rb+","+rb+" 0 0 1 "+(-rb)+","+rb+"h"+(-(w-2*rb))+
+    "a"+rb+","+rb+" 0 0 1 "+(-rb)+","+(-rb)+"v"+(-(h-rt-rb))+"a"+rt+","+rt+" 0 0 1 "+rt+","+(-rt)+"z";
+}
+
+/* ── 1. effort × return scatter ──────────────────────────────────────────── */
+const SC=[
+  {t:"Suite แบบซับสไครป์",        x:7,  y:589000,p:.25,s:3,dx:-13,an:"end",
+   n:"$1,500 MRR ในเดือนที่ 12 · ต่ำกว่ามัธยฐานของ micro-SaaS ที่มีกำไร"},
+  {t:"ช่อง YouTube หมวดการเงิน",  x:10, y:377000,p:.35,s:2,dx:-13,an:"end",
+   n:"$960 ต่อเดือนในเดือนที่ 12 ที่ RPM $8 · ปลายล่างของช่วงที่ช่องซึ่งทำได้ดีทำกัน"},
+  {t:"ขายไลเซนส์ครั้งเดียว",      x:4,  y:150000,p:.40,s:3,dx:12, an:"start",
+   n:"ราว 19 ชุดต่อปีที่ $249 · กลุ่มที่ตัดสินใจซื้อเร็วที่สุด"},
+  {t:"ThaiESG · เงินคืนภาษีปีแรก", x:0.2,y:75000, p:.95,s:1,dx:12, an:"start",
+   n:"300,000 บาทที่ขั้นภาษี 25% · ได้ครั้งเดียว ไม่ใช่ทุกปีในอัตรานี้"},
+  {t:"คาตาล็อกเพลง",             x:3,  y:40000, p:.30,s:2,dx:12, an:"start",
+   n:"ราว 10 ล้านสตรีมสะสม ที่ $0.004 ต่อสตรีม · โตช้าแต่ไม่หายไป"},
+  {t:"พอร์ตเส้นทาง A",x:0.5,y:36000,p:.93,s:1,dx:12,an:"start",
+   n:"ทุน 1,000,000 บาท สัดส่วนแบบสมดุล หลังหักภาษี ณ ที่จ่าย · ไม่ต้องเดา ไม่ต้องรอติด"}
+];
+function scatter(){
+  const box=document.getElementById("scatter");box.innerHTML="";
+  const W=Math.max(580,Math.min(box.clientWidth||900,1000)),H=430,M={t:16,r:26,b:48,l:76};
+  const iw=W-M.l-M.r, ih=H-M.t-M.b;
+  const xMax=12, yMax=640000;
+  const X=v=>M.l+(v/xMax)*iw, Y=v=>M.t+ih-(v/yMax)*ih;
+  const svg=el("svg",{viewBox:"0 0 "+W+" "+H,role:"img",
+    "aria-label":"แผนที่ชั่วโมงที่ใช้ต่อเดือน เทียบกับรายได้ต่อปีของแต่ละทางเลือก"});
+  [0,100000,200000,300000,400000,500000,600000].forEach(v=>{
+    svg.appendChild(el("line",{x1:M.l,x2:W-M.r,y1:Y(v),y2:Y(v),class:"gridline"}));
+    const tx=el("text",{x:M.l-9,y:Y(v)+4,class:"axis","text-anchor":"end"});
+    tx.textContent=v?fmt(v/1000)+"k":"0";svg.appendChild(tx);
+  });
+  [0,2,4,6,8,10,12].forEach(v=>{
+    const tx=el("text",{x:X(v),y:H-M.b+20,class:"axis","text-anchor":"middle"});
+    tx.textContent=v;svg.appendChild(tx);
+  });
+  const xl=el("text",{x:M.l+iw/2,y:H-8,class:"axis-lbl","text-anchor":"middle"});
+  xl.textContent="ชั่วโมงต่อเดือน หลังตั้งระบบเสร็จแล้ว";svg.appendChild(xl);
+  const yl=el("text",{x:0,y:0,class:"axis-lbl","text-anchor":"middle",
+    transform:"translate(16,"+(M.t+ih/2)+") rotate(-90)"});
+  yl.textContent="รายได้ต่อปี (บาท)";svg.appendChild(yl);
+
+  // the diagonal every option is measured against: baht earned per hour spent
+  const gd=el("text",{x:X(11.9),y:Y(620000),class:"axis","text-anchor":"end","fill-opacity":".85"});
+  gd.textContent="ยิ่งอยู่ซ้ายบน ยิ่งคุ้มเวลา";svg.appendChild(gd);
+
+  SC.forEach(d=>{
+    const col=tok("--s"+d.s), r=5+d.p*11;
+    const grp=el("g",{tabindex:"0",class:"hit"});
+    grp.appendChild(el("circle",{cx:X(d.x),cy:Y(d.y),r:r+2.5,fill:tok("--panel")}));
+    grp.appendChild(el("circle",{cx:X(d.x),cy:Y(d.y),r:r,fill:col,"fill-opacity":".22",
+      stroke:col,"stroke-width":"2"}));
+    const lb=el("text",{x:X(d.x)+d.dx+(d.an==="start"?r-6:-(r-6)),y:Y(d.y)+4,
+      class:"dlabel","text-anchor":d.an});
+    lb.textContent=d.t;grp.appendChild(lb);
+    bindTip(grp,'<div class="t-h">'+chip(col)+d.t+'</div>'+
+      '<div class="t-r"><span>รายได้ต่อปี</span><b>'+baht(d.y)+'</b></div>'+
+      '<div class="t-r"><span>ชั่วโมง/เดือน</span><b>'+d.x+'</b></div>'+
+      '<div class="t-r"><span>บาทต่อชั่วโมง</span><b>'+fmt(d.y/(d.x*12))+'</b></div>'+
+      '<div class="t-r"><span>โอกาสได้ตามนี้</span><b>'+Math.round(d.p*100)+'%</b></div>'+
+      '<div style="margin-top:6px;color:var(--muted)">'+d.n+'</div>');
+    svg.appendChild(grp);
+  });
+  box.appendChild(svg);
+}
+
+/* ── 2. yield ladder ─────────────────────────────────────────────────────── */
+const LAD=[
+  {t:"REIT และกองทุนโครงสร้างพื้นฐาน",v:6.00,c:"฿",n:"หัก 10% · สภาพคล่องต่ำ"},
+  {t:"หุ้นปันผลไทย SETHD",           v:5.00,c:"฿",n:"หัก 10% · ขอเครดิตภาษีคืนได้"},
+  {t:"พันธบัตรสหรัฐ 10 ปี",          v:4.72,c:"$",n:"รับความเสี่ยงค่าเงิน"},
+  {t:"T-Bill สหรัฐ 3 เดือน",         v:3.83,c:"$",n:"รับความเสี่ยงค่าเงิน"},
+  {t:"หุ้นกู้เอกชนระดับลงทุน",        v:3.50,c:"฿",n:"หัก 15% · ขายต่อยาก"},
+  {t:"บัญชีดิจิทัลดอกสูง ชั้นแรก",    v:3.00,c:"฿",n:"เฉพาะวงเงินชั้นแรกของแต่ละธนาคาร"},
+  {t:"กองทุนตราสารหนี้โลก ป้องกันค่าเงิน",v:3.00,c:"฿",n:"ต้นทุนป้องกันค่าเงินกินส่วนต่างไปแล้ว"},
+  {t:"พันธบัตรออมทรัพย์รัฐบาล",       v:2.20,c:"฿",n:"หัก 15% · ล็อก 3–10 ปี"},
+  {t:"กองทุนตลาดเงิน",               v:1.20,c:"฿",n:"ไม่หักภาษี · ถอน T+1"},
+  {t:"บัญชีออมทรัพย์ปกติ",            v:0.25,c:"฿",n:"จุดที่เงินคุณอยู่ตอนนี้ ถ้ายังไม่ย้าย"}
+];
+function ladder(){
+  const box=document.getElementById("ladder");box.innerHTML="";
+  const W=Math.max(560,Math.min(box.clientWidth||880,1000)),
+        rowH=34, M={t:8,r:64,b:30,l:250};
+  const H=M.t+LAD.length*rowH+M.b, iw=W-M.l-M.r;
+  const vMax=6.6, X=v=>(v/vMax)*iw;
+  const svg=el("svg",{viewBox:"0 0 "+W+" "+H,role:"img","aria-label":"อัตราผลตอบแทนต่อปีของแต่ละสินทรัพย์"});
+  const acc=tok("--accent");
+  for(let v=0;v<=6;v+=2){
+    svg.appendChild(el("line",{x1:M.l+X(v),x2:M.l+X(v),y1:M.t,y2:M.t+LAD.length*rowH,class:"gridline"}));
+    const tx=el("text",{x:M.l+X(v),y:H-10,class:"axis","text-anchor":"middle"});
+    tx.textContent=v+"%";svg.appendChild(tx);
+  }
+  LAD.forEach((d,i)=>{
+    const y=M.t+i*rowH, bh=15, by=y+(rowH-bh)/2;
+    const grp=el("g",{tabindex:"0",class:"hit"});
+    grp.appendChild(el("rect",{x:0,y:y,width:W,height:rowH,fill:"transparent"}));
+    const nm=el("text",{x:M.l-28,y:by+12,class:"dlabel","text-anchor":"end"});
+    nm.textContent=d.t;
+    if(d.v<0.5)nm.setAttribute("fill",tok("--crit"));
+    grp.appendChild(nm);
+    grp.appendChild(el("rect",{x:M.l,y:by,width:iw,height:bh,rx:4,fill:tok("--grid")}));
+    grp.appendChild(el("rect",{x:M.l,y:by,width:Math.max(3,X(d.v)),height:bh,rx:4,
+      fill:d.v<0.5?tok("--crit"):acc,"fill-opacity":d.v<0.5?".55":"1"}));
+    const vt=el("text",{x:M.l+X(d.v)+10,y:by+12,class:"dlabel"});
+    vt.textContent=d.v.toFixed(2)+"%";grp.appendChild(vt);
+    const cc=el("text",{x:M.l-13,y:by+12,class:"axis","text-anchor":"middle","font-weight":"600",
+      fill:d.c==="$"?tok("--warn"):tok("--faint"),"font-size":"12"});
+    cc.textContent=d.c;grp.appendChild(cc);
+    bindTip(grp,'<div class="t-h">'+d.t+'</div><div class="t-r"><span>ผลตอบแทนต่อปี</span><b>'+d.v.toFixed(2)+'%</b></div>'+
+      '<div class="t-r"><span>สกุลที่รับเสี่ยง</span><b>'+(d.c==="$"?"ดอลลาร์":"บาท")+'</b></div>'+
+      '<div style="margin-top:5px;color:var(--muted)">'+d.n+'</div>');
+    svg.appendChild(grp);
+  });
+  box.appendChild(svg);
+}
+
+/* ── 3. RPM bars ─────────────────────────────────────────────────────────── */
+const RPM=[
+  {t:"บัตรเครดิต / สินเชื่อ",v:35,r:"$25–45"},
+  {t:"การเงิน / การลงทุน",  v:18,r:"$12–25"},
+  {t:"การเงินส่วนบุคคล",    v:12,r:"$10–15"},
+  {t:"เทคโนโลยี / ซอฟต์แวร์",v:9, r:"$7–12"},
+  {t:"สารคดี / คดีจริง",    v:8, r:"$6–11"},
+  {t:"เพลงผ่อนคลาย / นอนหลับ",v:5, r:"$3–8"},
+  {t:"บันเทิงทั่วไป",       v:3, r:"$2–4"}
+];
+function rpmBars(){
+  const box=document.getElementById("rpm");box.innerHTML="";
+  const max=40;
+  RPM.forEach(d=>{
+    const row=document.createElement("div");
+    row.style.cssText="margin-bottom:11px";
+    row.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:3px">'+
+      '<span>'+d.t+'</span><b class="num" style="font-size:12.5px">'+d.r+'</b></div>'+
+      '<div class="bar-track" style="margin-top:0"><div class="bar-fill" style="width:'+(d.v/max*100)+'%;background:var(--s2)"></div></div>';
+    box.appendChild(row);
+  });
+  const note=document.createElement("p");
+  note.style.cssText="font-size:12px;color:var(--muted);margin:12px 0 0;line-height:1.55";
+  note.textContent="RPM คือรายได้ต่อ 1,000 วิว หลัง YouTube หักส่วนแบ่งแล้ว คลิปที่ใช้ AI และแจ้งตามกติกา ได้ RPM เท่ากับคลิปทั่วไปในหมวดเดียวกัน";
+  box.appendChild(note);
+}
+
+/* ── 4. portfolio calculator ─────────────────────────────────────────────── */
+const SLOTS=[
+  {k:"digital", t:"บัญชีดิจิทัลดอกสูง",        y:.015, wht:.15, s:1},
+  {k:"mmf",     t:"กองทุนตลาดเงิน",            y:.012, wht:0,   s:1},
+  {k:"govt",    t:"พันธบัตรออมทรัพย์รัฐบาล",    y:.022, wht:.15, s:1},
+  {k:"ig",      t:"หุ้นกู้เอกชนระดับลงทุน",     y:.035, wht:.15, s:1},
+  {k:"esg",     t:"กองทุน ThaiESG",            y:.030, wht:0,   s:1},
+  {k:"sethd",   t:"หุ้นปันผลไทย SETHD",         y:.050, wht:.10, s:1},
+  {k:"reit",    t:"REIT และกองโครงสร้างพื้นฐาน", y:.060, wht:.10, s:1},
+  {k:"usdr",    t:"พันธบัตรสหรัฐระยะสั้น ผ่าน DR",y:.039, wht:.10, s:1}
+];
+const MIX=[
+  {digital:.15,mmf:.15,govt:.30,ig:.20,esg:.10,sethd:.07,reit:.03,usdr:0},
+  {digital:.10,mmf:.10,govt:.15,ig:.15,esg:.15,sethd:.20,reit:.08,usdr:.07},
+  {digital:.05,mmf:.05,govt:.05,ig:.10,esg:.15,sethd:.30,reit:.15,usdr:.15}
+];
+const BRACKETS=[[150000,0],[300000,.05],[500000,.10],[750000,.15],[1000000,.20],[2000000,.25],[5000000,.30],[Infinity,.35]];
+function marginalRate(net){for(const[c,r]of BRACKETS)if(net<=c)return r;return .35;}
+
+let risk=1;
+function calc(){
+  const cap=+document.getElementById("cap").value;
+  const inc=+document.getElementById("inc").value;
+  document.getElementById("capV").textContent=fmt(cap)+" ฿";
+  document.getElementById("incV").textContent=fmt(inc)+" ฿";
+
+  const net=Math.max(0,inc-160000);
+  const rate=marginalRate(net);
+  const mix=MIX[risk];
+
+  // ThaiESG obeys both caps: 300,000 baht and 30% of assessable income
+  const esgCap=Math.min(300000,inc*.30);
+  const esgWanted=cap*mix.esg;
+  const esg=Math.min(esgWanted,esgCap,cap);
+  const spill=esgWanted-esg;
+
+  const amounts={};
+  const others=SLOTS.filter(s=>s.k!=="esg");
+  const otherW=others.reduce((a,s)=>a+mix[s.k],0)||1;
+  others.forEach(s=>{amounts[s.k]=cap*mix[s.k]+spill*(mix[s.k]/otherW);});
+  amounts.esg=esg;
+
+  let gross=0,netInc=0;
+  SLOTS.forEach(s=>{const a=amounts[s.k];gross+=a*s.y;netInc+=a*s.y*(1-s.wht);});
+  const taxBack=esg*rate;
+
+  document.getElementById("oIncome").textContent=baht(netInc);
+  document.getElementById("oIncomeSub").textContent="ก่อนหักภาษี "+baht(gross);
+  document.getElementById("oTax").textContent=baht(taxBack);
+  document.getElementById("oTaxSub").textContent= inc>0
+    ? "ขั้นภาษี "+Math.round(rate*100)+"% · เพดานที่ใช้ได้ "+baht(esgCap)
+    : "ไม่มีเงินได้ จึงไม่มีภาษีให้ลดหย่อน";
+  document.getElementById("oPct").textContent=(((netInc+taxBack)/cap)*100).toFixed(2)+"%";
+
+  const box=document.getElementById("alloc");box.innerHTML="";
+  const hd=document.createElement("div");
+  hd.className="alloc-row";
+  hd.style.cssText="border-bottom:1px solid var(--line);padding-bottom:7px";
+  hd.innerHTML='<div class="an" style="font-family:\'IBM Plex Mono\',monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)">ที่จอดเงิน</div>'+
+    '<div class="amt" style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)">จำนวน</div>'+
+    '<div class="yld" style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)">สุทธิ/ปี</div>';
+  box.appendChild(hd);
+  SLOTS.forEach(s=>{
+    const a=amounts[s.k];if(a<1)return;
+    const r=document.createElement("div");r.className="alloc-row";
+    const isEsg=s.k==="esg";
+    r.innerHTML='<div class="an"><i class="swatch" style="background:var(--s1);opacity:'+(isEsg?1:.45)+'"></i>'+
+      '<span>'+s.t+(isEsg?' <b style="color:var(--accent-ink)">+ คืนภาษี</b>':'')+'</span></div>'+
+      '<div class="amt">'+fmt(a)+'</div>'+
+      '<div class="yld">'+fmt(a*s.y*(1-s.wht))+'</div>';
+    box.appendChild(r);
+  });
+  const headroom=Math.max(0,Math.min(esgCap,cap)-esg);
+  if(headroom>1000&&rate>0){
+    const n=document.createElement("p");
+    n.style.cssText="font-size:12.5px;color:var(--accent-ink);margin:12px 0 0;line-height:1.55";
+    n.textContent="ยังใส่ ThaiESG ได้อีก "+fmt(headroom)+" บาทภายใน 31 ธ.ค. 2026 ซึ่งจะได้ภาษีคืนเพิ่มอีกราว "+fmt(headroom*rate)+" บาท";
+    box.appendChild(n);
+  }
+  if(esgWanted>esgCap+1){
+    const w=document.createElement("p");
+    w.style.cssText="font-size:12.5px;color:var(--warn);margin:12px 0 0;line-height:1.55";
+    w.textContent="เพดาน ThaiESG เต็มที่ "+fmt(esgCap)+" บาทแล้ว ส่วนที่เหลือถูกกระจายไปยังช่องอื่นตามสัดส่วน";
+    box.appendChild(w);
+  }
+}
+
+/* ── 5. 12-month projection ──────────────────────────────────────────────── */
+const A_MONTHLY=3000;
+const CURVES={
+  b:[[0,0,0,0,0,0,0,0,0,0,0,0],
+     [0,0,0,300,900,2500,6000,11000,17000,23000,28000,33000],
+     [0,0,500,2500,7000,16000,31000,48000,64000,78000,89000,98000]],
+  c:[[0,0,0,0,0,0,0,0,0,0,0,0],
+     [0,0,1200,3000,6000,10000,15000,20000,25000,30000,35000,39000],
+     [0,0,4000,11000,23000,39000,58000,78000,96000,113000,127000,137500]]
+};
+const SCEN_NOTE=[
+  "<b>ฉากทัศน์แย่</b> — เส้นทาง B และ C ไม่ติดเลย ซึ่งตรงกับสถิติของคนส่วนใหญ่: 44% ของสินค้าดิจิทัลขายไม่ได้เลย และ 54% ของสินค้า indie รายได้เป็นศูนย์ ในกรณีนี้คุณยังเหลือรายได้จากทุนราว 36,000 บาทต่อปี บวกเงินคืนภาษีปีแรก และเสียเวลาไปราว 150 ชั่วโมง สิ่งที่ได้กลับมาคือเครื่องมือที่ใช้งานได้จริงและช่องที่พร้อมลองรอบสอง",
+  "<b>ฉากทัศน์ฐาน</b> — ช่องเริ่มมีวิวจริงในเดือนที่ 5 และมีสมาชิกจ่ายเงินกลุ่มแรกในเดือนที่ 3 สิ้นปีที่ 1 รายได้รวมราว 75,000 บาทต่อเดือน โดยที่สองในสามมาจากงานที่ทำเสร็จไปแล้วในครึ่งปีแรก นี่คือกรณีที่สมเหตุสมผลถ้าทำตามตารางโดยไม่ขาด",
+  "<b>ฉากทัศน์ดี</b> — ช่องติดในเดือนที่ 4 และเครื่องมือได้แรงบอกต่อ สิ้นปีรายได้รวมราว 238,000 บาทต่อเดือน ตรงกับปลายล่างของช่วง $3,000–10,000 ต่อเดือนที่ช่อง faceless ทำได้ใน 10–18 เดือน โอกาสเกิดจริงประมาณหนึ่งในสี่ ไม่ควรวางแผนชีวิตบนฉากทัศน์นี้"
+];
+let scen=1;
+function proj(){
+  const box=document.getElementById("proj");box.innerHTML="";
+  const W=Math.max(560,Math.min(box.clientWidth||880,1000)),H=340,M={t:14,r:16,b:44,l:70};
+  const iw=W-M.l-M.r, ih=H-M.t-M.b;
+  const b=CURVES.b[scen], c=CURVES.c[scen];
+  const totals=b.map((v,i)=>A_MONTHLY+v+c[i]);
+  const yMax=Math.max(60000,Math.ceil(Math.max.apply(null,totals)/50000)*50000);
+  const Y=v=>M.t+ih-(v/yMax)*ih;
+  const bw=iw/12, pad=bw*.22;
+  const svg=el("svg",{viewBox:"0 0 "+W+" "+H,role:"img","aria-label":"ประมาณการรายได้ต่อเดือนตลอด 12 เดือน แยกตามเส้นทาง"});
+  const step=yMax/4;
+  for(let v=0;v<=yMax;v+=step){
+    svg.appendChild(el("line",{x1:M.l,x2:W-M.r,y1:Y(v),y2:Y(v),class:"gridline"}));
+    const tx=el("text",{x:M.l-9,y:Y(v)+4,class:"axis","text-anchor":"end"});
+    tx.textContent=v?fmt(v/1000)+"k":"0";svg.appendChild(tx);
+  }
+  const cols=[tok("--s1"),tok("--s2"),tok("--s3")], surf=tok("--panel");
+  for(let i=0;i<12;i++){
+    const x=M.l+i*bw+pad/2, w=bw-pad;
+    const segs=[["A · ทุนทำงาน",A_MONTHLY],["B · คอนเทนต์ทำงาน",b[i]],["C · เครื่องมือทำงาน",c[i]]];
+    const stackTop=totals[i];
+    let acc=0;
+    const grp=el("g",{tabindex:"0",class:"hit"});
+    grp.appendChild(el("rect",{x:M.l+i*bw,y:M.t,width:bw,height:ih,fill:"transparent"}));
+    segs.forEach((sg,si)=>{
+      if(sg[1]<=0)return;
+      const y0=Y(acc+sg[1]), y1=Y(acc), h=Math.max(1,y1-y0-(acc>0?2:0));
+      const isBottom=acc===0, isTop=(acc+sg[1])>=stackTop-.5;
+      grp.appendChild(el("path",{d:roundRect(x,y0,w,h,isTop?4:0,isBottom?4:0),fill:cols[si]}));
+      acc+=sg[1];
+    });
+    let rows="";
+    segs.forEach((sg,si)=>{rows+='<div class="t-r"><span>'+chip(cols[si])+' '+sg[0]+'</span><b>'+baht(sg[1])+'</b></div>';});
+    bindTip(grp,'<div class="t-h">เดือนที่ '+(i+1)+'</div>'+rows+
+      '<div class="t-r" style="border-top:1px solid var(--line);margin-top:5px;padding-top:5px"><span>รวม</span><b>'+baht(totals[i])+'</b></div>');
+    svg.appendChild(grp);
+    if(i%2===0||i===11){
+      const tx=el("text",{x:M.l+i*bw+bw/2,y:H-M.b+20,class:"axis","text-anchor":"middle"});
+      tx.textContent=i+1;svg.appendChild(tx);
+    }
+  }
+  const xl=el("text",{x:M.l+iw/2,y:H-8,class:"axis-lbl","text-anchor":"middle"});
+  xl.textContent="เดือนที่";svg.appendChild(xl);
+  box.appendChild(svg);
+  document.getElementById("scenNote").innerHTML=SCEN_NOTE[scen]+
+    '<div style="margin-top:10px;font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:var(--ink)">รวมทั้งปี '+
+    baht(totals.reduce((a,v)=>a+v,0))+' · เดือนที่ 12 อยู่ที่ '+baht(totals[11])+' ต่อเดือน</div>';
+}
+
+/* ── 6. monthly checklist ────────────────────────────────────────────────── */
+const CK=[
+  ["เปิดพอร์ตดูยอดเส้นทาง A แล้วปิด","ห้ามซื้อขายอะไรนอกรอบทบทวนครึ่งปี การแตะพอร์ตบ่อยคือสาเหตุอันดับหนึ่งที่ทำให้ผลตอบแทนหาย"],
+  ["โอนกำไรจากเส้นทาง B และ C เข้าพอร์ต A","นี่คือจุดที่สามเส้นทางกลายเป็นระบบเดียว ไม่ใช่สามงานแยกกัน"],
+  ["ดูวิวรวม 30 วันของช่อง","เทียบกับเกณฑ์ตัดที่ตั้งไว้ ถ้าเดือนที่ 6 ยังไม่ถึง 20,000 ให้เปลี่ยนหมวด ไม่ใช่เพิ่มคลิป"],
+  ["เช็กหน้าสถานะ YouTube Partner Program","มองหาการเตือนเรื่อง inauthentic content ถ้ามีต้องแก้ทันที เพราะโทษเป็นระบบสามครั้ง"],
+  ["ดูยอดสมาชิกใหม่และยอดยกเลิกของเส้นทาง C","ถ้าอัตรายกเลิกเกิน 10% ต่อเดือน แปลว่าปัญหาอยู่ที่ตัวสินค้า ไม่ใช่การตลาด"],
+  ["เช็กว่ามีเพลงพร้อมปล่อยไหม","คาตาล็อกโตด้วยจำนวน ปล่อยสม่ำเสมอสำคัญกว่าปล่อยทีละเยอะ"],
+  ["นับวันที่เหลือถึงเส้นตาย ThaiESG","31 ธ.ค. 2026 เพดานจะลดจาก 300,000 เหลือ 100,000 บาท"],
+  ["เช็กว่าดอกเบี้ยนโยบายหรืออัตราเงินฝากเปลี่ยนไหม","ถ้า กนง. ลดดอกเบี้ย ผลตอบแทนฝั่งตราสารหนี้ไทยทั้งตารางจะเลื่อนลงตาม"]
+];
+function checklist(){
+  const box=document.getElementById("checklist");box.innerHTML="";
+  let saved={};
+  try{saved=JSON.parse(localStorage.getItem("autopilot-ck")||"{}");}catch(e){saved={};}
+  CK.forEach((c,i)=>{
+    const d=document.createElement("div");d.className="check";
+    const id="ck"+i;
+    d.innerHTML='<input type="checkbox" id="'+id+'"'+(saved[i]?" checked":"")+'>'+
+      '<label for="'+id+'">'+c[0]+'<span class="cm">'+c[1]+'</span></label>';
+    d.querySelector("input").addEventListener("change",e=>{
+      saved[i]=e.target.checked;
+      try{localStorage.setItem("autopilot-ck",JSON.stringify(saved));}catch(err){}
+    });
+    box.appendChild(d);
+  });
+  document.getElementById("resetCk").onclick=()=>{
+    try{localStorage.removeItem("autopilot-ck");}catch(e){}
+    checklist();
+  };
+}
+
+/* ── init ────────────────────────────────────────────────────────────────── */
+function drawAll(){scatter();ladder();proj();}
+document.getElementById("cap").addEventListener("input",calc);
+document.getElementById("inc").addEventListener("input",calc);
+document.querySelectorAll("#risk button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    risk=+b.dataset.r;
+    document.querySelectorAll("#risk button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+    calc();
+  });
+});
+document.querySelectorAll("#scen button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    scen=+b.dataset.s;
+    document.querySelectorAll("#scen button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+    proj();
+  });
+});
+let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(drawAll,160);});
+if(window.matchMedia){
+  const mq=window.matchMedia("(prefers-color-scheme: dark)");
+  (mq.addEventListener?mq.addEventListener.bind(mq,"change"):mq.addListener.bind(mq))(drawAll);
+}
+rpmBars();checklist();calc();drawAll();
+})();
+</script>
