@@ -1,4 +1,4 @@
-# BRAND DNA — THE COMPETENCE TRAP
+# BRAND DNA — VELVET ANCHOR
 
 > วิธีใช้: คัดลอกทั้งไฟล์ตั้งแต่บรรทัด `# BRAND DNA` ลงไป แล้ววางในกล่อง Brand DNA
 > ของ Podcast SEO Studio (`docs/index.html` → ปุ่ม Brand DNA) มันจะถูกฉีดเข้าทุก prompt
@@ -11,6 +11,7 @@
 - Format: Faceless narrative podcast, English, 18–24 min episodes
 - Niche: Why competence does not convert into money. The gap between being good at the work and being paid for it — measured in salaries, savings, promotions, and the decisions people avoid making. Behavioural finance and workplace psychology appear only as working tools, never as citations.
 - One-line promise: "Every episode explains a money decision the listener has already made, and could not explain at the time."
+- Why the show is called Velvet Anchor: three meanings, all load-bearing. *Anchor* is the narrator who holds the episode. *Anchor* is what keeps a capable person in place for years. And *anchoring* is the bias at the centre of the subject — the first number spoken sets every number after it, in a salary, a price, a raise. Use the third meaning as a recurring idea across the season, never as a segment name and never explained twice.
 - Host persona: A calm, intelligent storyteller — like a trusted friend explaining something fascinating late at night. Never a lecturer, never a hype-man, never a coach, and never a finance guru. No predictions, no tickers, no portfolio advice.
 
 ## 2. Audience
