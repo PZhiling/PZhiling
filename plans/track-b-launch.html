@@ -1,0 +1,963 @@
+<title>YPP Sprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ── tokens: inherited from the Faceless Creator Suite (docs/*.html) ───────── */
+:root{
+  --bg:#f8f5f3; --panel:#ffffff; --panel-2:#fdfbfa; --line:#e3dad3; --line-soft:#efe8e3;
+  --ink:#2b2320; --muted:#776a62; --faint:#8f8178;
+  --accent:#c2502e; --accent-ink:#a03c1e; --accent-wash:#f7ece7;
+  --good:#2e8555; --warn:#9a6a00; --crit:#bf4636;
+  --good-wash:#e9f3ed; --warn-wash:#f7f0dd; --crit-wash:#faeae7;
+  --code-bg:#efe9e4;
+  /* validated categorical series — do not hand-tune */
+  --s1:#c2502e; --s2:#00998c; --s3:#7a4fb5;
+  --s1-wash:#f7ece7; --s2-wash:#e4f3f1; --s3-wash:#efe9f8;
+  --grid:#e9e1db; --shadow:0 1px 2px rgba(43,35,32,.05),0 8px 24px -16px rgba(43,35,32,.28);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#191412; --panel:#201a17; --panel-2:#241d19; --line:#372c24; --line-soft:#2d251f;
+    --ink:#eee7e2; --muted:#ab9c92; --faint:#93837a;
+    --accent:#ff8a5c; --accent-ink:#ffb090; --accent-wash:#33221a;
+    --good:#3f9c66; --warn:#b8881a; --crit:#d96553;
+    --good-wash:#1c2c22; --warn-wash:#2e2716; --crit-wash:#332019;
+    --code-bg:#2b2119;
+    --s1:#dd6c46; --s2:#00a596; --s3:#9a76d8;
+    --s1-wash:#33211a; --s2-wash:#142b28; --s3-wash:#241d33;
+    --grid:#2f261f; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#191412; --panel:#201a17; --panel-2:#241d19; --line:#372c24; --line-soft:#2d251f;
+  --ink:#eee7e2; --muted:#ab9c92; --faint:#93837a;
+  --accent:#ff8a5c; --accent-ink:#ffb090; --accent-wash:#33221a;
+  --good:#3f9c66; --warn:#b8881a; --crit:#d96553;
+  --good-wash:#1c2c22; --warn-wash:#2e2716; --crit-wash:#332019;
+  --code-bg:#2b2119;
+  --s1:#dd6c46; --s2:#00a596; --s3:#9a76d8;
+  --s1-wash:#33211a; --s2-wash:#142b28; --s3-wash:#241d33;
+  --grid:#2f261f; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans Thai","Noto Sans Thai",system-ui,-apple-system,sans-serif;
+  font-size:15.5px; line-height:1.72; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+@media(max-width:640px){.wrap{padding:0 16px}}
+
+/* ── masthead ─────────────────────────────────────────────────────────────── */
+.masthead{border-bottom:1px solid var(--line);background:var(--panel);position:relative;overflow:hidden}
+.masthead::after{content:"";position:absolute;inset:auto 0 0 0;height:2px;
+  background:linear-gradient(90deg,var(--s1) 0 34%,var(--s2) 34% 67%,var(--s3) 67% 100%)}
+.mast-in{padding:44px 0 34px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block}
+h1{font-size:clamp(38px,6.4vw,62px);line-height:1.02;margin:14px 0 0;font-weight:700;letter-spacing:-.03em;text-wrap:balance}
+.deck{margin:16px 0 0;max-width:62ch;color:var(--muted);font-size:17px}
+.deck b{color:var(--ink);font-weight:600}
+
+/* ── ticker ───────────────────────────────────────────────────────────────── */
+.ticker{border-bottom:1px solid var(--line);background:var(--panel-2)}
+.ticker-in{display:grid;grid-template-columns:repeat(6,1fr);gap:0;overflow-x:auto}
+.tk{padding:16px 18px;border-right:1px solid var(--line-soft);min-width:150px}
+.tk:last-child{border-right:0}
+.tk .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
+.tk .v{font-family:"IBM Plex Mono",monospace;font-size:23px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.03em;margin-top:3px;line-height:1.15}
+.tk .n{font-size:12px;color:var(--muted);line-height:1.4;margin-top:1px}
+@media(max-width:900px){.ticker-in{grid-template-columns:repeat(3,1fr)}.tk:nth-child(3n){border-right:0}.tk:nth-child(-n+3){border-bottom:1px solid var(--line-soft)}}
+@media(max-width:520px){.ticker-in{grid-template-columns:repeat(2,1fr)}.tk{min-width:0}.tk:nth-child(3n){border-right:1px solid var(--line-soft)}.tk:nth-child(2n){border-right:0}}
+
+/* ── sections ─────────────────────────────────────────────────────────────── */
+section{padding:56px 0;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px;flex-wrap:wrap}
+.sec-tag{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);border:1px solid var(--line);padding:3px 8px;border-radius:3px;white-space:nowrap}
+h2{font-size:clamp(24px,3.4vw,31px);margin:0;font-weight:700;letter-spacing:-.02em;text-wrap:balance}
+h3{font-size:18px;margin:0 0 6px;font-weight:600;letter-spacing:-.01em}
+h4{font-size:14px;margin:0 0 4px;font-weight:600}
+.lede{color:var(--muted);max-width:66ch;margin:10px 0 28px;font-size:16px}
+p{margin:0 0 12px}
+a{color:var(--accent-ink);text-decoration-color:color-mix(in oklab,var(--accent) 40%,transparent);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px 22px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:16px}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:860px){.g3,.g2{grid-template-columns:1fr}}
+
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid;white-space:nowrap;font-weight:500}
+.p-good{color:var(--good);border-color:color-mix(in oklab,var(--good) 34%,transparent);background:var(--good-wash)}
+.p-warn{color:var(--warn);border-color:color-mix(in oklab,var(--warn) 34%,transparent);background:var(--warn-wash)}
+.p-crit{color:var(--crit);border-color:color-mix(in oklab,var(--crit) 34%,transparent);background:var(--crit-wash)}
+.p-mute{color:var(--muted);border-color:var(--line);background:transparent}
+
+.swatch{width:9px;height:9px;border-radius:2px;display:inline-block;flex:0 0 auto}
+</style>
+<style>
+/* ── lanes ────────────────────────────────────────────────────────────────── */
+.lane{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.lane-top{padding:16px 20px 14px;border-bottom:1px solid var(--line-soft)}
+.lane-rule{height:3px}
+.lane-a .lane-rule{background:var(--s1)} .lane-b .lane-rule{background:var(--s2)} .lane-c .lane-rule{background:var(--s3)}
+.lane-id{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px}
+.lane-a .lane-id .swatch{background:var(--s1)} .lane-b .lane-id .swatch{background:var(--s2)} .lane-c .lane-id .swatch{background:var(--s3)}
+.lane h3{margin:6px 0 2px;font-size:19px}
+.lane-sub{color:var(--muted);font-size:13.5px;line-height:1.55}
+.lane-stats{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line-soft)}
+.lane-stat{padding:12px 20px;border-right:1px solid var(--line-soft)}
+.lane-stat:last-child{border-right:0}
+.lane-stat .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.lane-stat .v{font-family:"IBM Plex Mono",monospace;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.lane-body{padding:16px 20px 20px;flex:1}
+.lane-body ul{margin:0;padding-left:17px}
+.lane-body li{margin-bottom:7px;font-size:14px;line-height:1.6}
+.lane-body li::marker{color:var(--faint)}
+
+/* ── tables ───────────────────────────────────────────────────────────────── */
+.tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:14px}
+thead th{text-align:left;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;
+  padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel-2);position:sticky;top:0;white-space:nowrap}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--panel-2)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums;font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+td.name{font-weight:500}
+td .sub{display:block;color:var(--muted);font-size:12.5px;line-height:1.45;font-weight:400}
+.bar-cell{position:relative;min-width:130px}
+.bar-track{height:7px;background:var(--grid);border-radius:4px;overflow:hidden;margin-top:6px}
+.bar-fill{height:100%;border-radius:4px}
+
+/* ── charts ───────────────────────────────────────────────────────────────── */
+.figure{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px 22px 16px;box-shadow:var(--shadow)}
+.fig-title{font-size:15px;font-weight:600;margin:0 0 2px}
+.fig-note{font-size:12.5px;color:var(--muted);margin:0 0 16px;max-width:70ch}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 0;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+svg{display:block;max-width:100%;height:auto;overflow:visible}
+svg text{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.axis{font-size:10.5px;fill:var(--faint)}
+.axis-lbl{font-size:10px;fill:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.gridline{stroke:var(--grid);stroke-width:1}
+.dlabel{font-size:11px;fill:var(--ink);font-weight:500}
+.tip{position:fixed;pointer-events:none;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  padding:9px 11px;font-size:12.5px;line-height:1.5;box-shadow:0 8px 28px -8px rgba(0,0,0,.35);opacity:0;transition:opacity .1s;max-width:250px}
+.tip.on{opacity:1}
+.tip .t-h{font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:7px}
+.tip .t-r{display:flex;justify-content:space-between;gap:18px;color:var(--muted)}
+.tip .t-r b{color:var(--ink);font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-weight:600}
+.hit{cursor:crosshair}
+
+/* ── calculator ───────────────────────────────────────────────────────────── */
+.calc{display:grid;grid-template-columns:320px 1fr;gap:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:var(--shadow)}
+@media(max-width:860px){.calc{grid-template-columns:1fr}}
+.calc-in{padding:22px;border-right:1px solid var(--line);background:var(--panel-2)}
+@media(max-width:860px){.calc-in{border-right:0;border-bottom:1px solid var(--line)}}
+.field{margin-bottom:22px}
+.field label{display:flex;justify-content:space-between;align-items:baseline;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.field .fv{font-size:15px;color:var(--ink);font-weight:600;letter-spacing:-.02em;text-transform:none}
+input[type=range]{width:100%;accent-color:var(--accent);height:22px;cursor:pointer}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;padding:9px 6px;background:var(--panel);border:0;border-right:1px solid var(--line);cursor:pointer;
+  font-family:"IBM Plex Sans Thai",sans-serif;font-size:13px;color:var(--muted);transition:background .12s,color .12s}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:600}
+:root[data-theme="dark"] .seg button[aria-pressed="true"],
+:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#1c1310}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]) .seg button[aria-pressed="true"]{color:#fff}}
+.calc-out{padding:22px}
+.hero-row{display:flex;gap:28px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line-soft);margin-bottom:16px}
+.hero-fig .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.hero-fig .v{font-family:"IBM Plex Mono",monospace;font-size:clamp(28px,4.6vw,40px);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.035em;line-height:1.1}
+.hero-fig .n{font-size:12.5px;color:var(--muted)}
+.alloc-row{display:grid;grid-template-columns:1fr 92px 84px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:13.5px}
+.alloc-row:last-child{border-bottom:0}
+.alloc-row .an{display:flex;align-items:center;gap:9px;min-width:0}
+.alloc-row .an span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alloc-row .amt,.alloc-row .yld{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:13px}
+.alloc-row .yld{color:var(--muted)}
+
+/* ── misc blocks ──────────────────────────────────────────────────────────── */
+.callout{border:1px solid;border-radius:8px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start}
+.callout .cb{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;white-space:nowrap;padding-top:2px}
+.c-warn{border-color:color-mix(in oklab,var(--warn) 40%,transparent);background:var(--warn-wash)}
+.c-warn .cb{color:var(--warn)}
+.c-good{border-color:color-mix(in oklab,var(--good) 40%,transparent);background:var(--good-wash)}
+.c-good .cb{color:var(--good)}
+.c-crit{border-color:color-mix(in oklab,var(--crit) 40%,transparent);background:var(--crit-wash)}
+.c-crit .cb{color:var(--crit)}
+.callout p{margin:0;font-size:14px;line-height:1.62}
+.callout p+p{margin-top:8px}
+
+.timeline{border-left:2px solid var(--line);margin-left:8px;padding-left:22px;display:flex;flex-direction:column;gap:26px}
+.tl-item{position:relative}
+.tl-item::before{content:"";position:absolute;left:-29px;top:6px;width:11px;height:11px;border-radius:50%;background:var(--panel);border:2px solid var(--accent)}
+.tl-when{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);font-weight:600}
+.tl-load{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);margin-left:10px;letter-spacing:0;text-transform:none}
+.tl-item h4{margin:4px 0 5px;font-size:16px}
+.tl-item ul{margin:0;padding-left:17px;font-size:14px;color:var(--muted)}
+.tl-item li{margin-bottom:5px}
+.tl-item li b{color:var(--ink);font-weight:600}
+
+.check{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+.check:last-child{border-bottom:0}
+.check input{margin-top:4px;width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex:0 0 auto}
+.check label{cursor:pointer;font-size:14px;line-height:1.6}
+.check .cm{display:block;color:var(--muted);font-size:12.5px}
+.check input:checked+label{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--faint)}
+.check input:checked+label .cm{text-decoration:none}
+
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow-x:auto;
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.6;margin:0}
+code{font-family:"IBM Plex Mono",monospace;font-size:.9em;background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre code{background:none;padding:0;font-size:inherit}
+
+footer{padding:44px 0 60px;color:var(--muted);font-size:13px}
+footer h3{font-size:13px;letter-spacing:.1em;text-transform:uppercase;font-family:"IBM Plex Mono",monospace;color:var(--faint);font-weight:500;margin-bottom:12px}
+.srcs{columns:2;column-gap:36px;font-size:12.5px;line-height:1.75}
+@media(max-width:700px){.srcs{columns:1}}
+.srcs li{break-inside:avoid;margin-bottom:5px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>
+/* page-specific: the countdown board and the operating table */
+.board{background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);
+  display:grid;grid-template-columns:auto 1fr;gap:0;overflow:hidden}
+@media(max-width:820px){.board{grid-template-columns:1fr}}
+.board-count{padding:26px 34px;border-right:1px solid var(--line);background:var(--panel-2);text-align:center;
+  display:flex;flex-direction:column;justify-content:center}
+@media(max-width:820px){.board-count{border-right:0;border-bottom:1px solid var(--line)}}
+.board-count .big{font-family:"IBM Plex Mono",monospace;font-size:clamp(52px,11vw,78px);font-weight:600;
+  line-height:.95;letter-spacing:-.05em;color:var(--accent-ink);font-variant-numeric:tabular-nums}
+.board-count .lab{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin-top:8px}
+.board-body{padding:22px 26px}
+.thr{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;margin:16px 0 0}
+@media(max-width:560px){.thr{grid-template-columns:1fr;gap:10px}}
+.thr-box{border:1px solid var(--line);border-radius:7px;padding:13px 15px}
+.thr-box.now{border-color:color-mix(in oklab,var(--good) 45%,transparent);background:var(--good-wash)}
+.thr-box.later{border-color:color-mix(in oklab,var(--crit) 45%,transparent);background:var(--crit-wash)}
+.thr-box .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.thr-box .v{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin-top:2px}
+.thr-arrow{font-family:"IBM Plex Mono",monospace;color:var(--faint);font-size:19px;text-align:center}
+@media(max-width:560px){.thr-arrow{transform:rotate(90deg)}}
+
+.verdict{border-radius:7px;padding:14px 17px;border:1px solid;margin-top:16px}
+.verdict .vh{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:5px}
+.verdict p{margin:0;font-size:14px;line-height:1.62}
+.v-ok{border-color:color-mix(in oklab,var(--good) 42%,transparent);background:var(--good-wash)}
+.v-ok .vh{color:var(--good)}
+.v-tight{border-color:color-mix(in oklab,var(--warn) 42%,transparent);background:var(--warn-wash)}
+.v-tight .vh{color:var(--warn)}
+.v-no{border-color:color-mix(in oklab,var(--crit) 42%,transparent);background:var(--crit-wash)}
+.v-no .vh{color:var(--crit)}
+
+.ep td.fmt{white-space:nowrap}
+.ep-hook{font-size:12.5px;color:var(--muted);line-height:1.55;font-style:italic;display:block;margin-top:4px}
+.wk{display:grid;grid-template-columns:78px 1fr;gap:0;border:1px solid var(--line);border-radius:8px;
+  overflow:hidden;background:var(--panel);box-shadow:var(--shadow)}
+.wk-row{display:contents}
+.wk-day{padding:13px 14px;border-bottom:1px solid var(--line-soft);border-right:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--panel-2)}
+.wk-task{padding:13px 18px;border-bottom:1px solid var(--line-soft);font-size:14px;line-height:1.6}
+.wk-row:last-child .wk-day,.wk-row:last-child .wk-task{border-bottom:0}
+.wk-task b{font-weight:600}
+.wk-task .mins{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--faint);margin-left:7px}
+</style>
+
+<header class="masthead">
+  <div class="wrap mast-in">
+    <div class="eyebrow">
+      <span class="dot"></span><span>เส้นทาง B · คอนเทนต์ทำงาน</span>
+      <span>·</span><span>ต่อจาก Autopilot Income</span>
+      <span>·</span><span>31 ส.ค. 2026</span>
+    </div>
+    <h1>YPP Sprint</h1>
+    <p class="deck">
+      เมื่อ 10 ส.ค. ที่ผ่านมา YouTube ประกาศขึ้นเกณฑ์เข้าโปรแกรมพาร์ตเนอร์เป็น<b>สองเท่า</b>
+      มีผลกับคนที่สมัครตั้งแต่ 1 ก.พ. 2027 เป็นต้นไป ใครที่ผ่านเกณฑ์เดิมก่อนวันนั้นได้ไป
+      เส้นทาง B จึงไม่ใช่แผนที่ค่อย ๆ ทำอีกแล้ว มันมีเส้นตาย
+    </p>
+  </div>
+</header>
+
+<main>
+
+<section style="padding-top:38px">
+  <div class="wrap">
+    <div class="board">
+      <div class="board-count">
+        <div class="big" id="days">—</div>
+        <div class="lab">วัน ก่อนเกณฑ์เปลี่ยน 1 ก.พ. 2027</div>
+      </div>
+      <div class="board-body">
+        <h3 style="font-size:17px">เกณฑ์เข้า YouTube Partner Program</h3>
+        <p style="font-size:14px;color:var(--muted);margin:6px 0 0">
+          ผู้ติดตาม 1,000 คนเท่าเดิมทั้งสองฝั่ง สิ่งที่เปลี่ยนคือชั่วโมงรับชม
+          และ<b style="color:var(--ink)">ช่องที่เข้าโปรแกรมได้แล้วจะไม่ถูกดึงออก</b> — ผ่านก่อนเส้นตายคือผ่านตลอด
+        </p>
+        <div class="thr">
+          <div class="thr-box now">
+            <div class="k">ถึง 31 ม.ค. 2027</div>
+            <div class="v" style="color:var(--good)">4,000 ชม.</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:3px">ใน 365 วัน · หรือ 10 ล้านวิว Shorts ใน 90 วัน</div>
+          </div>
+          <div class="thr-arrow">→</div>
+          <div class="thr-box later">
+            <div class="k">ตั้งแต่ 1 ก.พ. 2027</div>
+            <div class="v" style="color:var(--crit)">8,000 ชม.</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:3px">ใน 365 วัน · หรือ 20 ล้านวิว Shorts ใน 90 วัน</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--muted);margin:14px 0 0">
+          นี่เป็นการแก้เกณฑ์ครั้งแรกตั้งแต่ปี 2018 ความหมายในทางปฏิบัติ:
+          ห้าเดือนข้างหน้าคุณกำลังวิ่งแข่งกับตัวเลขที่จะเป็นสองเท่าถ้าไปไม่ทัน
+          ส่วนเส้นทาง Shorts ตัดทิ้งได้เลย 10 ล้านวิวใน 90 วันไม่ใช่เป้าที่ช่องเปิดใหม่ควรเล็ง
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">01 · ข้อสรุป</span><h2>สามอย่างที่ต้องตัดสินใจวันนี้</h2></div>
+    <p class="lede">
+      ผมอ่าน Brand DNA ในรีโปคุณแล้ว มันเขียนดีกว่าที่ผมคาดไว้มาก — โครงสร้าง hook, กติกาเสียงเล่า,
+      สถาปัตยกรรม retention ครบและคม ปัญหาไม่ได้อยู่ที่ฝีมือ แต่อยู่ที่มันเล็งไปผิดตลาด
+    </p>
+    <div class="grid g3">
+      <div class="card">
+        <div class="pill p-warn" style="margin-bottom:10px">เปลี่ยน</div>
+        <h3>ย้ายเรื่อง ไม่ย้ายเสียง</h3>
+        <p style="font-size:14px;color:var(--muted);margin:0">
+          Brand DNA เดิมเล็งที่ “จิตวิทยาของคนเก่งที่ติดอยู่กับที่” ผสมสโตอิก ซึ่งอยู่ในกลุ่มพัฒนาตัวเอง
+          RPM ราว <b class="num" style="color:var(--ink)">$5–12</b> และแน่นมาก
+          ย้ายเรื่องเดียวกันไปที่<b style="color:var(--ink)">เงินและอาชีพ</b> RPM ขึ้นเป็น
+          <b class="num" style="color:var(--ink)">$12–35</b> โดยที่กติกาการเขียนทั้งเจ็ดข้อไม่ต้องแตะเลย
+        </p>
+      </div>
+      <div class="card">
+        <div class="pill p-warn" style="margin-bottom:10px">เปลี่ยน</div>
+        <h3>ตอนยาวขึ้นเป็น 18–24 นาที</h3>
+        <p style="font-size:14px;color:var(--muted);margin:0">
+          เกณฑ์ YPP นับ<b style="color:var(--ink)">ชั่วโมง</b> ไม่ใช่<b style="color:var(--ink)">วิว</b>
+          ตอน 20 นาทีที่ retention 40% เก็บได้ 8 นาทีต่อวิว ส่วนตอน 14 นาทีที่ retention 48%
+          เก็บได้ 6.7 นาที ทั้งที่ retention ดูดีกว่า ในสนามนี้ตอนยาวชนะแม้ retention ต่ำลง
+        </p>
+      </div>
+      <div class="card">
+        <div class="pill p-crit" style="margin-bottom:10px">แก้ที่ผมเขียนไว้ผิด</div>
+        <h3>Shorts ไม่ได้ป้อนคลิปยาว</h3>
+        <p style="font-size:14px;color:var(--muted);margin:0">
+          ในแดชบอร์ดก่อนหน้าผมเขียนว่าให้ตัด Shorts มาป้อนคลิปยาว ตอนนี้ระบบแนะนำของ Shorts
+          <b style="color:var(--ink)">แยกขาดจากคลิปยาวแล้ว</b> โพสต์ Shorts ไม่ช่วยและไม่ทำร้ายคลิปยาว
+          หน้าที่ของ Shorts เหลืออย่างเดียวคือหาผู้ติดตามให้ครบ 1,000 — และมันแปลงเป็นสมาชิกได้ไม่ถึง
+          หนึ่งในสิบของอัตราที่คลิปยาวทำได้
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">02 · นิช</span><h2>เก็บฝีมือไว้ทั้งหมด เปลี่ยนแค่ห้องที่เล่า</h2></div>
+    <p class="lede">
+      ข้อมูลปี 2026 บอกตรงกันสองอย่าง: กลุ่มสโตอิก/พัฒนาตัวเองอิ่มตัวที่ปลายล่าง
+      และช่องที่ผูกแรงจูงใจเข้ากับ<b>ผลลัพธ์ที่จับต้องได้</b> อย่างความก้าวหน้าในอาชีพและวินัยทางการเงิน
+      ทำได้ดีกว่าทั้งเรื่อง RPM และการเข้าถึง ส่วนฝั่งการเงิน ผู้ชมเองก็เอนไปทาง
+      <b>จิตวิทยาของเงิน</b> มากกว่าเทคนิคการเงินส่วนบุคคลตรง ๆ อยู่แล้ว
+    </p>
+    <div class="figure" style="margin-bottom:22px">
+      <p class="fig-title">RPM ต่อ 1,000 วิว แยกตามหมวด</p>
+      <p class="fig-note">แถบสีเข้มคือหมวดที่แนะนำให้ย้ายไป แถบจางคือจุดที่ Brand DNA เดิมยืนอยู่ · ตัวเลขเป็นช่วงที่รายงานกันในปี 2026</p>
+      <div id="rpm"></div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="color:var(--good)">สิ่งที่ไม่ต้องแตะเลย</h3>
+        <ul style="margin:10px 0 0;padding-left:17px;font-size:14px;color:var(--muted);line-height:1.68">
+          <li>กติกาเสียงเล่าทั้ง 8 ข้อ — เขียนเพื่อหู ใช้ “คุณ” ใน 60 วินาทีแรก หนึ่งความคิดต่อประโยค</li>
+          <li>สูตร hook สี่ท่อน และกฎห้ามเปิดด้วยคำทักทายหรือคำคม</li>
+          <li>สถาปัตยกรรม retention — เปิดลูป, เคส → กลไก → เครื่องมือ, re-hook ที่ 40%</li>
+          <li>รายการคำต้องห้าม และกฎตัวเลขต้องเจาะจง</li>
+          <li>เกณฑ์ตรวจคุณภาพก่อนปล่อยทั้งสี่ข้อ</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--accent-ink)">สิ่งที่เปลี่ยนในไฟล์ใหม่</h3>
+        <ul style="margin:10px 0 0;padding-left:17px;font-size:14px;color:var(--muted);line-height:1.68">
+          <li>นิชเป็น “ทำไมความเก่งถึงไม่แปลงเป็นเงิน” — ช่องว่างระหว่างทำงานดีกับได้เงินจากมัน</li>
+          <li>เพิ่มกฎข้อ 9: ห้ามแนะนำการลงทุน ห้ามเชียร์สินค้า ห้ามทำนายตลาด อธิบายพฤติกรรมอย่างเดียว</li>
+          <li>เพิ่มเคสที่สองที่ช่วง 60% เพื่อให้ 18–24 นาทีมีของจริง ไม่ใช่ยืดออก</li>
+          <li>เพิ่มหัวข้อ 8: ประตูตรวจ inauthentic content ห้าข้อ ที่ต้องผ่านก่อนปล่อยทุกตอน</li>
+          <li>ชื่อรายการเสนอไว้ว่า <b style="color:var(--ink)">The Competence Trap</b> เปลี่ยนได้ที่บรรทัดเดียว</li>
+        </ul>
+        <p style="font-size:13px;color:var(--muted);margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line-soft)">
+          ไฟล์อยู่ที่ <code>plans/brand-dna-money-psychology.md</code> คัดลอกทั้งไฟล์ไปวางในกล่อง Brand DNA ของสตูดิโอได้เลย
+          ผมไม่ได้ไปทับค่าเริ่มต้นเดิมในแอปคุณ
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">03 · เลข</span><h2>ต้องผลิตแค่ไหนถึงจะทัน</h2></div>
+    <p class="lede">
+      4,000 ชั่วโมง คือ 240,000 นาทีรับชม เครื่องคำนวณนี้แปลงมันเป็นสิ่งที่คุณควบคุมได้จริง:
+      ความยาวตอน อัตราคนดูจนจบ จำนวนตอนต่อสัปดาห์ และวิวเฉลี่ยต่อตอน
+      ลากดูแล้วจะเห็นว่าตัวแปรไหนขยับเส้นได้มากที่สุด
+    </p>
+
+    <div class="calc">
+      <div class="calc-in">
+        <div class="field">
+          <label for="len">ความยาวตอน <span class="fv num" id="lenV">20 นาที</span></label>
+          <input type="range" id="len" min="8" max="32" step="1" value="20">
+        </div>
+        <div class="field">
+          <label for="ret">คนดูจนจบเฉลี่ย <span class="fv num" id="retV">40%</span></label>
+          <input type="range" id="ret" min="20" max="60" step="1" value="40">
+        </div>
+        <div class="field">
+          <label for="cad">ตอนต่อสัปดาห์ <span class="fv num" id="cadV">3</span></label>
+          <input type="range" id="cad" min="1" max="5" step="1" value="3">
+        </div>
+        <div class="field">
+          <label for="vpe">วิวต่อตอน เมื่อช่องเข้าที่ <span class="fv num" id="vpeV">1,200</span></label>
+          <input type="range" id="vpe" min="150" max="4000" step="50" value="1200">
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin:0;line-height:1.55">
+          แบบจำลองคิดช่วงเงียบให้แล้ว ตอนแรก ๆ ได้วิวราว 15% ของค่าที่ตั้งไว้ แล้วไต่ขึ้นเต็มที่ราวสัปดาห์ที่ 16
+          และคิดว่าแต่ละตอนสะสมวิวส่วนใหญ่ภายใน 6–8 สัปดาห์แรกหลังปล่อย
+        </p>
+      </div>
+      <div class="calc-out">
+        <div class="hero-row">
+          <div class="hero-fig">
+            <div class="k">ชั่วโมงรับชม ณ 31 ม.ค. 2027</div>
+            <div class="v" id="oHours">—</div>
+            <div class="n">ต้องถึง 4,000 ชั่วโมง</div>
+          </div>
+          <div class="hero-fig">
+            <div class="k">ผู้ติดตามคาดการณ์</div>
+            <div class="v" id="oSubs">—</div>
+            <div class="n">ต้องถึง 1,000 คน</div>
+          </div>
+          <div class="hero-fig">
+            <div class="k">ตอนที่ต้องผลิต</div>
+            <div class="v" id="oEps">—</div>
+            <div class="n" id="oEpsSub">ตอน ใน 22 สัปดาห์</div>
+          </div>
+        </div>
+        <div id="raceChart"></div>
+        <div id="verdict"></div>
+      </div>
+    </div>
+
+    <div class="grid g3" style="margin-top:22px">
+      <div class="callout c-warn" style="flex-direction:column;gap:8px">
+        <div class="cb">ตัวแปรที่แรงที่สุด</div>
+        <p>ลาก “วิวต่อตอน” แล้วเทียบกับลาก “ตอนต่อสัปดาห์” จะเห็นว่าวิวต่อตอนขยับเส้นได้แรงกว่ามาก
+        เพราะมันคูณเข้ากับทุกตอนที่ปล่อยไปแล้วด้วย การเพิ่มจำนวนตอนเมื่อวิวต่อตอนยังต่ำ คือการทำงานหนักขึ้นเพื่อผลลัพธ์เท่าเดิม</p>
+      </div>
+      <div class="callout c-warn" style="flex-direction:column;gap:8px">
+        <div class="cb">กับดักของ retention</div>
+        <p>ถ้าตัดตอนให้สั้นลงเพื่อดัน retention ให้สวย ตัวเลขในหน้า Analytics จะดูดีขึ้นแต่ชั่วโมงสะสมจะลดลง
+        ในสนามนี้ตัวชี้วัดที่ถูกต้องคือ<b>นาทีต่อวิว</b> ไม่ใช่เปอร์เซ็นต์ — ลากสองแถบบนสลับกันดูได้</p>
+      </div>
+      <div class="callout c-crit" style="flex-direction:column;gap:8px">
+        <div class="cb">ถ้าตัวเลขบอกว่าไม่ทัน</div>
+        <p>อย่าเร่งจำนวนตอนเป็นทางแก้แรก ทางที่ได้ผลกว่าคือยอมรับว่าจะเข้าโปรแกรมที่เกณฑ์ 8,000 ชั่วโมงแทน
+        แล้ววางแผน 12 เดือนอย่างสงบ ดีกว่าผลิตรัว ๆ จนเข้าข่าย mass-produced แล้วโดนตัดสิทธิ์ถาวร</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">04 · Shorts</span><h2>Shorts มีหน้าที่เดียว และไม่ใช่หน้าที่ที่คุณคิด</h2></div>
+    <p class="lede">
+      ปีนี้ระบบแนะนำของ Shorts แยกออกจากคลิปยาวโดยสมบูรณ์ โพสต์ Shorts ไม่ทำให้คลิปยาวถูกแนะนำมากขึ้น
+      และไม่ทำให้น้อยลง สิ่งที่ยังจริงอยู่คือช่องที่ทำทั้งสองแบบโตเร็วกว่าช่องที่ทำอย่างเดียวราว 41%
+      แต่เหตุผลไม่ใช่เพราะอันหนึ่งป้อนอีกอัน
+    </p>
+    <div class="grid g2">
+      <div class="card">
+        <div class="lane-id" style="margin-bottom:8px"><span class="swatch" style="background:var(--s1)"></span>คลิปยาว</div>
+        <h3>เก็บชั่วโมง</h3>
+        <p style="font-size:14px;color:var(--muted);margin:0">
+          นี่คือเส้นทางเดียวที่พาไป 4,000 ชั่วโมงได้จริง ทุกการตัดสินใจเรื่องความยาว โครงสร้าง และ re-hook
+          มีไว้เพื่อเพิ่มนาทีต่อวิว ปล่อย <b style="color:var(--ink)">2–3 ตอนต่อสัปดาห์</b> ตามที่เครื่องคำนวณข้างบนบอก
+        </p>
+      </div>
+      <div class="card">
+        <div class="lane-id" style="margin-bottom:8px"><span class="swatch" style="background:var(--s3)"></span>Shorts</div>
+        <h3>เก็บผู้ติดตาม</h3>
+        <p style="font-size:14px;color:var(--muted);margin:0">
+          เป้าหมายเดียวคือ 1,000 ผู้ติดตาม ซึ่งมักมาถึงช้ากว่าชั่วโมงรับชมในช่องแนวเล่าเรื่อง
+          ปล่อย <b style="color:var(--ink)">15–30 ชิ้นต่อเดือน</b> ตัดจากช่วง pattern interrupt ทุก ~3 นาทีของตอนยาว
+          ซึ่ง Brand DNA เขียนให้จบในตัวอยู่แล้ว ใช้ Shorts Studio ที่คุณมี
+        </p>
+      </div>
+    </div>
+    <div class="callout c-crit" style="margin-top:18px">
+      <div class="cb">เส้นที่ห้ามข้าม</div>
+      <div><p>อย่าไล่ยอด Shorts ให้ถึง 10 ล้านวิวใน 90 วันเพื่อเข้า YPP ทางนั้น
+      เพราะจังหวะที่ต้องยิงวันละหลายชิ้นจากเทมเพลตเดียว คือรูปแบบที่นโยบาย inauthentic content เล็งไว้ตรง ๆ
+      และโทษคือระงับรายได้ 90 วัน ก่อนถอดออกถาวร — เสี่ยงเสียทุกอย่างเพื่อทางที่ไปไม่ถึงอยู่แล้ว</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">05 · สเลต</span><h2>สิบสองตอนแรก เขียนเสร็จแล้ว</h2></div>
+    <p class="lede">
+      เรียงตามลำดับที่ควรปล่อย ไม่ใช่ตามความชอบ สามตอนแรกทำหน้าที่อธิบายว่ารายการนี้คืออะไรภายในตอนเดียว
+      คอลัมน์รูปแบบมีไว้บังคับไม่ให้ซ้ำกันสี่ตอนติด ซึ่งเป็นเงื่อนไขข้อหนึ่งที่กันไม่ให้เข้าข่าย inauthentic content
+      ไฟล์เต็มพร้อมกลไกและเครื่องมือของแต่ละตอนอยู่ที่ <code>plans/episode-slate-01.md</code>
+    </p>
+    <div class="tbl-scroll">
+      <table class="ep">
+        <thead><tr><th style="width:34px" class="r">#</th><th>ตอน</th><th class="fmt">รูปแบบ</th></tr></thead>
+        <tbody>
+          <tr><td class="r">1</td><td class="name">The Competence Trap
+            <span class="sub">ทำไมคนที่ทีมพึ่งได้มากที่สุด มักเป็นคนสุดท้ายที่ได้ขึ้นเงินเดือน</span>
+            <span class="ep-hook">“In 1977, an Ohio factory promoted its worst engineer, and output went up eleven percent…”</span></td>
+            <td class="fmt">เจาะเคสเดียว</td></tr>
+          <tr><td class="r">2</td><td class="name">The Number That Stayed in Your Throat
+            <span class="sub">เก้าสิบวินาทีที่ซ้อมตัวเลขในหัวแล้วไม่ได้พูด</span>
+            <span class="ep-hook">“You rehearsed a number for an entire meeting and never said it…”</span></td>
+            <td class="fmt">เทียบสองเคส</td></tr>
+          <tr><td class="r">3</td><td class="name">Eleven Months
+            <span class="sub">เงินก้อนใหญ่หายไปได้อย่างไร ทั้งที่เจ้าของอธิบายทุกบาทได้</span>
+            <span class="ep-hook">“A man received four hundred thousand dollars and was broke in eleven months…”</span></td>
+            <td class="fmt">ไทม์ไลน์</td></tr>
+          <tr><td class="r">4</td><td class="name">The Research That Never Ends
+            <span class="sub">ทำไมคนที่อ่านมากที่สุดถึงลงทุนช้าที่สุด</span></td>
+            <td class="fmt">สามมุมมอง</td></tr>
+          <tr><td class="r">5</td><td class="name">The Raise That Arrived as More Work
+            <span class="sub">เลื่อนตำแหน่งที่ทำให้ค่าตัวต่อชั่วโมงลดลง</span></td>
+            <td class="fmt">เจาะเคสเดียว</td></tr>
+          <tr><td class="r">6</td><td class="name">The One Who Did Less
+            <span class="sub">เพื่อนร่วมงานที่ทำน้อยกว่าแต่ได้มากกว่า</span></td>
+            <td class="fmt">เทียบสองเคส</td></tr>
+          <tr><td class="r">7</td><td class="name">The Statement You Do Not Open
+            <span class="sub">เช็กยอดคงเหลือทุกวัน แต่ไม่เคยเปิดใบแจ้งยอด</span></td>
+            <td class="fmt">เจาะเคสเดียว</td></tr>
+          <tr><td class="r">8</td><td class="name">Almost Launched
+            <span class="sub">โปรเจกต์ข้างที่เกือบเสร็จมาสามปี</span></td>
+            <td class="fmt">ไทม์ไลน์</td></tr>
+          <tr><td class="r">9</td><td class="name">Safe and Reckless
+            <span class="sub">ทำไมการเก็บเงินรู้สึกปลอดภัย ทั้งที่เงินเฟ้อกินทุกปี</span></td>
+            <td class="fmt">สามมุมมอง</td></tr>
+          <tr><td class="r">10</td><td class="name">Three Years Too Long
+            <span class="sub">งานที่อยู่นานเกินไปสามปี</span></td>
+            <td class="fmt">เจาะเคสเดียว</td></tr>
+          <tr><td class="r">11</td><td class="name">The Conversation You Keep Moving
+            <span class="sub">บทสนทนาเรื่องเงินที่เลื่อนมาแปดเดือน</span></td>
+            <td class="fmt">เทียบสองเคส</td></tr>
+          <tr><td class="r">12</td><td class="name">What Competence Is Actually For
+            <span class="sub">ตอนปิดฤดูกาลแรก ร้อยกลไกทั้งสิบเอ็ดตอนเข้าด้วยกัน</span></td>
+            <td class="fmt">สามมุมมอง</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout c-good" style="margin-top:18px">
+      <div class="cb">ทำไมต้องเขียนสเลตล่วงหน้า</div>
+      <div><p>เพราะตอนที่ 1–3 คือช่วงที่วิวจะต่ำที่สุดและกำลังใจจะแย่ที่สุด
+      คนส่วนใหญ่เลิกในเดือนที่สองเพราะต้องคิดหัวข้อใหม่ทุกสัปดาห์ในขณะที่ยังไม่มีใครดู
+      ถ้าสิบสองตอนถูกตัดสินใจไปแล้ว งานที่เหลือคือการผลิต ซึ่งเครื่องมือของคุณทำได้เกือบทั้งหมด</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">06 · จังหวะ</span><h2>หนึ่งสัปดาห์หน้าตาเป็นแบบนี้</h2></div>
+    <p class="lede">
+      รอบนี้ออกแบบให้ผลิตสามตอนต่อสัปดาห์ โดยแยกวันเขียนออกจากวันประกอบ
+      เพราะสองงานนี้ใช้สมองคนละแบบ รวมแล้วราว 9–11 ชั่วโมงต่อสัปดาห์ในช่วงสปรินต์
+      หลังผ่าน YPP แล้วจะลดเหลือราว 8 ชั่วโมงต่อเดือน
+    </p>
+    <div class="wk">
+      <div class="wk-row"><div class="wk-day">จันทร์</div><div class="wk-task">
+        <b>ป้อนสเลต</b> เอาหัวข้อ 3 ตอนของสัปดาห์เข้า Podcast SEO Studio ทีเดียว ใช้ batch runner แล้วดาวน์โหลดเป็น zip
+        <span class="mins">60 นาที</span></div></div>
+      <div class="wk-row"><div class="wk-day">อังคาร</div><div class="wk-task">
+        <b>แก้สคริปต์ด้วยมือ</b> ตรงนี้ห้ามข้าม — เป็นจุดที่ทำให้ตอนผ่านประตูข้อ 8 ของ Brand DNA
+        ใส่จุดยืนที่ผู้ฟังเถียงได้อย่างน้อยหนึ่งจุดต่อตอน <span class="mins">150 นาที</span></div></div>
+      <div class="wk-row"><div class="wk-day">พุธ</div><div class="wk-task">
+        <b>เสียงและสตอรีบอร์ด</b> เจน TTS ทั้งสามตอน ตรวจช่วงที่ภาพนิ่งนานเกินด้วย AI auto-fix ในสตูดิโอ
+        <span class="mins">120 นาที</span></div></div>
+      <div class="wk-row"><div class="wk-day">พฤหัสบดี</div><div class="wk-task">
+        <b>ประกอบและใส่ลายน้ำ</b> ตัดต่อ ใส่ B-Roll ตาม storyboard ใช้ Watermark Studio
+        <span class="mins">180 นาที</span></div></div>
+      <div class="wk-row"><div class="wk-day">ศุกร์</div><div class="wk-task">
+        <b>ตัด Shorts</b> 4–6 ชิ้นจากช่วง pattern interrupt ของทั้งสามตอน ตั้งเวลาโพสต์กระจายทั้งสัปดาห์
+        <span class="mins">75 นาที</span></div></div>
+      <div class="wk-row"><div class="wk-day">เสาร์</div><div class="wk-task">
+        <b>ปล่อยและตั้งคิว</b> ปล่อยตอนแรกของสัปดาห์ ตั้งคิวอีกสองตอน เขียน title กับ description ด้วยตัวเอง
+        <span class="mins">45 นาที</span></div></div>
+      <div class="wk-row"><div class="wk-day">อาทิตย์</div><div class="wk-task">
+        <b>อ่านตัวเลข 15 นาที</b> ดูอย่างเดียว: นาทีต่อวิว (ไม่ใช่เปอร์เซ็นต์), จุดที่คนออกในกราฟ retention, ผู้ติดตามใหม่
+        อย่าแตะอย่างอื่น <span class="mins">15 นาที</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">07 · ประตูตรวจ</span><h2>ห้าข้อที่ต้องผ่านก่อนกดปล่อย</h2></div>
+    <p class="lede">
+      นโยบาย inauthentic content ตรวจ<b>ระดับช่อง</b>แล้ว ไม่ใช่รายคลิป แปลว่าตอนที่ผ่านหลวม ๆ หลายตอนติดกัน
+      สะสมเป็นความเสี่ยงของทั้งช่อง โทษคือเตือน แล้วระงับรายได้ 90 วัน แล้วถอดถาวร
+      ติ๊กครบทั้งห้าข้อทุกตอน เบราว์เซอร์จำให้ กดปุ่มล่างสุดเมื่อเริ่มตอนใหม่
+    </p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>ก่อนกดปล่อยตอนนี้</h3>
+        <div id="gate"></div>
+        <button id="resetGate" style="margin-top:14px;background:transparent;border:1px solid var(--line);color:var(--muted);
+          padding:7px 13px;border-radius:6px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">
+          เริ่มตอนใหม่</button>
+      </div>
+      <div class="card">
+        <h3>สัญญาณที่แปลว่าต้องหยุดผลิตแล้วคิดใหม่</h3>
+        <ul style="margin:10px 0 0;padding-left:17px;font-size:14px;color:var(--muted);line-height:1.68">
+          <li><b style="color:var(--ink)">มีอีเมลเตือนจาก YouTube</b> — หยุดปล่อยทันที แก้ตอนเก่าให้ผ่านประตูทั้งห้าก่อนปล่อยตอนใหม่</li>
+          <li><b style="color:var(--ink)">นาทีต่อวิวลดลงสามตอนติด</b> — ปัญหาอยู่ที่ 30 วินาทีแรก ไม่ใช่ที่หัวข้อ</li>
+          <li><b style="color:var(--ink)">เดือนที่ 3 แล้ววิวรวมยังไม่ถึง 5,000</b> — เปลี่ยน packaging ก่อน อย่าเพิ่งเปลี่ยนนิช</li>
+          <li><b style="color:var(--ink)">เดือนที่ 5 แล้วชั่วโมงสะสมยังไม่ถึง 800</b> — ยอมรับว่าจะไปเข้าที่เกณฑ์ 8,000 แล้ววางแผน 12 เดือนแทน</li>
+          <li><b style="color:var(--ink)">คุณเริ่มข้ามวันอังคาร</b> — วันแก้สคริปต์คือวันที่กันไม่ให้ช่องกลายเป็นของที่ผลิตด้วยแม่พิมพ์ ข้ามวันนี้คือเริ่มเดินเข้าหาโทษ</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-tag">08 · ขอบเขต</span><h2>สิ่งที่แผนนี้ไม่ได้รับประกัน</h2></div>
+    <div class="grid g3">
+      <div class="callout c-warn" style="flex-direction:column;gap:8px">
+        <div class="cb">แบบจำลองไม่ใช่คำทำนาย</div>
+        <p>เครื่องคำนวณข้อ 03 ใช้เส้นโค้งการเติบโตที่ผมสมมติขึ้น ไม่ใช่ข้อมูลจากช่องจริงของคุณ
+        ตัวเลข “วิวต่อตอน” คือสิ่งที่คุณควบคุมไม่ได้โดยตรง และเป็นตัวแปรที่แรงที่สุดในสมการ
+        ให้ใช้มันเป็นเครื่องมือเทียบทางเลือก ไม่ใช่เป็นคำสัญญา</p>
+      </div>
+      <div class="callout c-warn" style="flex-direction:column;gap:8px">
+        <div class="cb">RPM ยังไม่ใช่รายได้</div>
+        <p>ตัวเลข $12–35 ในข้อ 02 เป็นช่วงของหมวด ไม่ใช่ของช่องเปิดใหม่ ช่องใหม่มักได้ปลายล่างของช่วงในปีแรก
+        เพราะผู้ลงโฆษณายังไม่มีข้อมูลผู้ชม และรายได้จะเริ่มนับก็ต่อเมื่อผ่าน YPP แล้วเท่านั้น</p>
+      </div>
+      <div class="callout c-crit" style="flex-direction:column;gap:8px">
+        <div class="cb">โอกาสล้มเหลวยังสูง</div>
+        <p>ตัวเลขในแดชบอร์ดก่อนหน้ายังใช้อยู่ ช่อง faceless ส่วนใหญ่ไม่ถึงเกณฑ์ YPP เลย
+        สิ่งที่แผนนี้ทำได้คือทำให้ถ้าไม่สำเร็จ มันล้มเหลวเพราะตลาด ไม่ใช่เพราะเลือกนิชผิด ผลิตสั้นเกินไป
+        หรือโดนนโยบายตัดสิทธิ์ — สามอย่างนั้นแก้ได้ก่อนเริ่ม และแก้ไปแล้ว</p>
+      </div>
+    </div>
+    <div class="callout c-good" style="margin-top:20px">
+      <div class="cb">สรุปให้สั้นที่สุด</div>
+      <div>
+        <p>วางไฟล์ <code>brand-dna-money-psychology.md</code> ลงในกล่อง Brand DNA แล้วป้อนหัวข้อตอนที่ 1–3 เข้าสตูดิโอ
+        นั่นคืองานของสัปดาห์นี้ ประมาณหนึ่งบ่าย</p>
+        <p>เหตุผลที่ต้องเป็นสัปดาห์นี้ไม่ใช่เรื่องกำลังใจ แต่เป็นเรื่องเลข: ทุกสัปดาห์ที่ผ่านไปคือหนึ่งใน
+        <span id="wkLeft" class="num">22</span> สัปดาห์ที่เหลือก่อนเกณฑ์จะเป็นสองเท่า และสัปดาห์แรก ๆ
+        คือสัปดาห์ที่มีค่าที่สุด เพราะตอนที่ปล่อยเร็วมีเวลาสะสมชั่วโมงนานที่สุด</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer><div class="wrap">
+  <h3>แหล่งข้อมูล · เข้าถึง 31 ส.ค. 2026</h3>
+  <ol class="srcs">
+    <li><a href="https://blog.youtube/news-and-events/youtube-partner-program-updates-2027-new-opportunities-earn/">YouTube Blog — ประกาศปรับเกณฑ์ YPP ปี 2027</a></li>
+    <li><a href="https://support.google.com/youtube/answer/12843009">YouTube Help — Changes to the YouTube Partner Program</a></li>
+    <li><a href="https://techcrunch.com/2026/08/10/youtube-now-requires-creators-to-have-twice-as-many-watch-hours-to-start-earning-money/">TechCrunch — เกณฑ์ชั่วโมงรับชมเพิ่มเป็นสองเท่า (10 ส.ค. 2026)</a></li>
+    <li><a href="https://www.business-standard.com/technology/tech-news/technology-tech-news-youtube-partner-program-monetisation-rules-2027-watch-hours-shorts-views-126081100708_1.html">Business Standard — รายละเอียดเกณฑ์ใหม่และการคุ้มครองช่องเดิม</a></li>
+    <li><a href="https://vidiq.com/blog/post/youtube-partner-program-guide/">vidIQ — เกณฑ์ YPP สองระดับ ปี 2026</a></li>
+    <li><a href="https://air.io/en/monetization/youtube-partner-program-requirements-2026-the-complete-guide">AIR Media-Tech — คู่มือเกณฑ์ YPP 2026</a></li>
+    <li><a href="https://arwriterai.com/en/blog/youtube-inauthentic-content-policy-ai-creators-2026/">นโยบาย inauthentic content และการตรวจระดับช่อง</a></li>
+    <li><a href="https://monetizednow.com/youtube-ai-content-monetization-policy">MonetizedNow — กฎการสร้างรายได้จากคอนเทนต์ AI</a></li>
+    <li><a href="https://outlierkit.com/blog/highest-paying-youtube-niches">OutlierKit — CPM และ RPM แยกตามหมวด ปี 2026</a></li>
+    <li><a href="https://outlierkit.com/blog/youtube-rpm-finance-niche">OutlierKit — RPM หมวดการเงิน พร้อมข้อมูลจริง</a></li>
+    <li><a href="https://outlierkit.com/resources/youtube-finance-niche-creators/">OutlierKit — ช่องการเงินที่ทำงานได้ในปี 2026 และผู้ชมที่เอนไปทางจิตวิทยาของเงิน</a></li>
+    <li><a href="https://depthhq.com/blog/best-faceless-youtube-niches-2026">DepthHQ — นิช faceless เรียงตาม RPM และภาวะอิ่มตัว</a></li>
+    <li><a href="https://fluxnote.io/guides/faceless-youtube-channel-ideas-psychology">Fluxnote — นิชจิตวิทยาสำหรับช่อง faceless</a></li>
+    <li><a href="https://prepublish.ai/guides/youtube-retention-guide">Prepublish — เกณฑ์ retention ปี 2026 แยกตามความยาวคลิป</a></li>
+    <li><a href="https://www.teleprompter.com/blog/youtube-audience-retention">Teleprompter — คู่มือ retention และการคำนวณชั่วโมงรับชม</a></li>
+    <li><a href="https://influenceflow.io/resources/youtube-shorts-and-long-form-video-strategy-the-complete-2026-creators-guide-1/">InfluenceFlow — กลยุทธ์ผสม Shorts กับคลิปยาว ปี 2026</a></li>
+    <li><a href="https://milx.app/en/news/what-changed-in-the-youtube-algorithm-in-2026">MilX — ความเปลี่ยนแปลงของอัลกอริทึม YouTube รายเดือน ปี 2026</a></li>
+    <li><a href="https://sproutsocial.com/insights/youtube-shorts-vs-long-form-content-strategy/">Sprout Social — Shorts เทียบกับคลิปยาว และอัตราการแปลงเป็นผู้ติดตาม</a></li>
+  </ol>
+  <p style="margin-top:22px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--faint)">
+    สร้างด้วย Claude Code · ต่อจาก <b>Autopilot Income</b> · ใช้ design tokens ชุดเดียวกับ Faceless Creator Suite
+  </p>
+</div></footer>
+
+<div class="tip" id="tip"></div>
+
+<script>
+(function(){
+"use strict";
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);return n;};
+const tok=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt=n=>Math.round(n).toLocaleString("en-US");
+
+const tip=document.getElementById("tip");
+function showTip(e,html){tip.innerHTML=html;tip.classList.add("on");moveTip(e);}
+function moveTip(e){
+  const r=tip.getBoundingClientRect();
+  let x=e.clientX+15,y=e.clientY+15;
+  if(x+r.width>innerWidth-10)x=e.clientX-r.width-15;
+  if(y+r.height>innerHeight-10)y=e.clientY-r.height-15;
+  tip.style.left=x+"px";tip.style.top=y+"px";
+}
+const hideTip=()=>tip.classList.remove("on");
+function bindTip(node,html){
+  node.addEventListener("pointerenter",e=>showTip(e,html));
+  node.addEventListener("pointermove",moveTip);
+  node.addEventListener("pointerleave",hideTip);
+  node.addEventListener("focus",()=>{const b=node.getBoundingClientRect();showTip({clientX:b.left+b.width/2,clientY:b.top},html);});
+  node.addEventListener("blur",hideTip);
+}
+
+/* ── countdown to the last qualifying day ────────────────────────────────── */
+const DEADLINE=Date.UTC(2027,1,1); // thresholds change 1 Feb 2027
+function daysLeft(){
+  const now=new Date();
+  const today=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate());
+  return Math.max(0,Math.round((DEADLINE-today)/86400000));
+}
+const DL=daysLeft(), WEEKS=Math.max(1,Math.floor(DL/7));
+document.getElementById("days").textContent=fmt(DL);
+document.getElementById("wkLeft").textContent=WEEKS;
+document.getElementById("oEpsSub").textContent="ตอน ใน "+WEEKS+" สัปดาห์";
+
+/* ── RPM by niche — emphasis, not categorical ────────────────────────────── */
+const RPM=[
+  {t:"การเงินส่วนบุคคลและการลงทุน",lo:12,hi:35,role:"target"},
+  {t:"ประกันและวางแผนการเงิน",     lo:15,hi:32,role:"near"},
+  {t:"อสังหาริมทรัพย์เพื่อการลงทุน",lo:15,hi:30,role:"near"},
+  {t:"กฎหมายและสิทธิ",             lo:10,hi:28,role:"other"},
+  {t:"ซอฟต์แวร์ B2B",              lo:8, hi:24,role:"other"},
+  {t:"จิตวิทยาและพัฒนาตัวเอง",      lo:5, hi:12,role:"current"},
+  {t:"บันเทิงทั่วไป",               lo:2, hi:4, role:"other"}
+];
+function rpmChart(){
+  const box=document.getElementById("rpm");box.innerHTML="";
+  const W=Math.max(560,Math.min(box.clientWidth||880,1000)),rowH=38,M={t:10,r:78,b:32,l:220};
+  const H=M.t+RPM.length*rowH+M.b, iw=W-M.l-M.r, vMax=38;
+  const X=v=>(v/vMax)*iw;
+  const svg=el("svg",{viewBox:"0 0 "+W+" "+H,role:"img","aria-label":"ช่วง RPM ต่อ 1,000 วิว แยกตามหมวดคอนเทนต์"});
+  const acc=tok("--accent"),gr=tok("--grid"),mu=tok("--muted");
+  for(let v=0;v<=35;v+=10){
+    svg.appendChild(el("line",{x1:M.l+X(v),x2:M.l+X(v),y1:M.t,y2:M.t+RPM.length*rowH,class:"gridline"}));
+    const tx=el("text",{x:M.l+X(v),y:H-10,class:"axis","text-anchor":"middle"});
+    tx.textContent="$"+v;svg.appendChild(tx);
+  }
+  RPM.forEach((d,i)=>{
+    const y=M.t+i*rowH, bh=16, by=y+(rowH-bh)/2;
+    const hot=d.role==="target", cur=d.role==="current";
+    const fill=hot?acc:(cur?tok("--crit"):gr);
+    const op=hot?1:(cur?.5:1);
+    const grp=el("g",{tabindex:"0",class:"hit"});
+    grp.appendChild(el("rect",{x:0,y:y,width:W,height:rowH,fill:"transparent"}));
+    const nm=el("text",{x:M.l-14,y:by+12,class:"dlabel","text-anchor":"end"});
+    nm.textContent=d.t;
+    if(hot)nm.setAttribute("fill",tok("--accent-ink"));
+    if(!hot&&!cur)nm.setAttribute("fill",mu);
+    grp.appendChild(nm);
+    // the range, drawn from low to high
+    grp.appendChild(el("rect",{x:M.l+X(d.lo),y:by,width:Math.max(4,X(d.hi)-X(d.lo)),height:bh,rx:4,
+      fill:fill,"fill-opacity":op}));
+    const vt=el("text",{x:M.l+X(d.hi)+10,y:by+12,class:"dlabel"});
+    vt.textContent="$"+d.lo+"–"+d.hi;
+    if(!hot&&!cur)vt.setAttribute("fill",mu);
+    grp.appendChild(vt);
+    if(hot||cur){
+      const tag=el("text",{x:M.l+X(d.lo)-8,y:by+12,class:"axis","text-anchor":"end",
+        fill:hot?tok("--accent-ink"):tok("--crit"),"font-weight":"600"});
+      tag.textContent=hot?"ไปที่นี่":"อยู่ที่นี่";grp.appendChild(tag);
+    }
+    bindTip(grp,'<div class="t-h">'+d.t+'</div>'+
+      '<div class="t-r"><span>RPM ต่อ 1,000 วิว</span><b>$'+d.lo+'–'+d.hi+'</b></div>'+
+      '<div class="t-r"><span>ที่ 100,000 วิว/เดือน</span><b>$'+fmt(d.lo*100)+'–'+fmt(d.hi*100)+'</b></div>');
+    svg.appendChild(grp);
+  });
+  box.appendChild(svg);
+}
+
+/* ── the race: cumulative watch hours against the 4,000-hour line ────────── */
+const TARGET_HOURS=4000, TARGET_SUBS=1000, SUB_RATE=0.012;
+const growth=w=>Math.min(1,0.15+0.85*w/16);       // channel ramps over ~16 weeks
+const maturity=r=>r<=0?0:1-Math.exp(-r/6);        // an episode accrues over ~6-8 weeks
+function model(){
+  const len=+document.getElementById("len").value;
+  const ret=+document.getElementById("ret").value/100;
+  const cad=+document.getElementById("cad").value;
+  const vpe=+document.getElementById("vpe").value;
+  const series=[];
+  for(let t=1;t<=WEEKS;t++){
+    let views=0;
+    for(let w=1;w<=t;w++) views+=cad*vpe*growth(w)*maturity(t-w);
+    series.push({week:t,views:views,hours:views*len*ret/60,subs:views*SUB_RATE});
+  }
+  return {series:series,len:len,ret:ret,cad:cad,vpe:vpe,eps:cad*WEEKS};
+}
+function raceChart(m){
+  const box=document.getElementById("raceChart");box.innerHTML="";
+  const W=Math.max(520,Math.min(box.clientWidth||760,900)),H=250,M={t:16,r:18,b:38,l:58};
+  const iw=W-M.l-M.r, ih=H-M.t-M.b;
+  const last=m.series[m.series.length-1].hours;
+  const rough=Math.max(TARGET_HOURS*1.2,last*1.08);
+  const step=rough<=6000?1000:(rough<=13000?2000:5000);
+  const yMax=Math.ceil(rough/step)*step;
+  const X=w=>M.l+((w-1)/(WEEKS-1||1))*iw, Y=v=>M.t+ih-(v/yMax)*ih;
+  const svg=el("svg",{viewBox:"0 0 "+W+" "+H,role:"img","aria-label":"ชั่วโมงรับชมสะสมเทียบกับเส้น 4,000 ชั่วโมง"});
+  for(let v=0;v<=yMax+1;v+=step){
+    svg.appendChild(el("line",{x1:M.l,x2:W-M.r,y1:Y(v),y2:Y(v),class:"gridline"}));
+    const tx=el("text",{x:M.l-9,y:Y(v)+4,class:"axis","text-anchor":"end"});
+    tx.textContent=v>=1000?fmt(v/1000)+"k":fmt(v);svg.appendChild(tx);
+  }
+  // the threshold that decides everything
+  svg.appendChild(el("line",{x1:M.l,x2:W-M.r,y1:Y(TARGET_HOURS),y2:Y(TARGET_HOURS),
+    stroke:tok("--crit"),"stroke-width":"1.5","stroke-dasharray":"5 4"}));
+  const tl=el("text",{x:M.l+8,y:Y(TARGET_HOURS)-7,class:"axis",fill:tok("--crit"),"font-weight":"600"});
+  tl.textContent="4,000 ชั่วโมง";svg.appendChild(tl);
+
+  const acc=tok("--accent");
+  let d="",area="M"+X(1)+","+Y(0);
+  m.series.forEach((p,i)=>{d+=(i?"L":"M")+X(p.week)+","+Y(p.hours);area+="L"+X(p.week)+","+Y(p.hours);});
+  area+="L"+X(WEEKS)+","+Y(0)+"Z";
+  svg.appendChild(el("path",{d:area,fill:acc,"fill-opacity":".13"}));
+  svg.appendChild(el("path",{d:d,fill:"none",stroke:acc,"stroke-width":"2","stroke-linejoin":"round"}));
+  const endP=m.series[m.series.length-1];
+  svg.appendChild(el("circle",{cx:X(endP.week),cy:Y(endP.hours),r:5,fill:acc,stroke:tok("--panel"),"stroke-width":"2"}));
+
+  [1,5,9,13,17,WEEKS].filter((v,i,a)=>a.indexOf(v)===i&&v<=WEEKS).forEach(w=>{
+    const tx=el("text",{x:X(w),y:H-M.b+19,class:"axis","text-anchor":"middle"});
+    tx.textContent="ส."+w;svg.appendChild(tx);
+  });
+  // crosshair
+  const hair=el("line",{y1:M.t,y2:M.t+ih,stroke:tok("--faint"),"stroke-width":"1","stroke-dasharray":"3 3",opacity:"0"});
+  svg.appendChild(hair);
+  const hit=el("rect",{x:M.l,y:M.t,width:iw,height:ih,fill:"transparent",class:"hit",tabindex:"0"});
+  hit.addEventListener("pointermove",e=>{
+    const r=svg.getBoundingClientRect();
+    const rel=(e.clientX-r.left)/r.width*W;
+    let i=Math.round((rel-M.l)/iw*(WEEKS-1));
+    i=Math.max(0,Math.min(m.series.length-1,i));
+    const p=m.series[i];
+    hair.setAttribute("x1",X(p.week));hair.setAttribute("x2",X(p.week));hair.setAttribute("opacity","1");
+    showTip(e,'<div class="t-h">สัปดาห์ที่ '+p.week+'</div>'+
+      '<div class="t-r"><span>ชั่วโมงสะสม</span><b>'+fmt(p.hours)+'</b></div>'+
+      '<div class="t-r"><span>วิวสะสม</span><b>'+fmt(p.views)+'</b></div>'+
+      '<div class="t-r"><span>ผู้ติดตาม</span><b>'+fmt(p.subs)+'</b></div>');
+  });
+  hit.addEventListener("pointerleave",()=>{hair.setAttribute("opacity","0");hideTip();});
+  svg.appendChild(hit);
+  box.appendChild(svg);
+}
+function render(){
+  const m=model();
+  document.getElementById("lenV").textContent=m.len+" นาที";
+  document.getElementById("retV").textContent=Math.round(m.ret*100)+"%";
+  document.getElementById("cadV").textContent=m.cad;
+  document.getElementById("vpeV").textContent=fmt(m.vpe);
+  const end=m.series[m.series.length-1];
+  const hoursOk=end.hours>=TARGET_HOURS, subsOk=end.subs>=TARGET_SUBS;
+  document.getElementById("oHours").textContent=fmt(end.hours);
+  document.getElementById("oHours").style.color=hoursOk?tok("--good"):tok("--crit");
+  document.getElementById("oSubs").textContent=fmt(end.subs);
+  document.getElementById("oSubs").style.color=subsOk?tok("--good"):tok("--crit");
+  document.getElementById("oEps").textContent=fmt(m.eps);
+  raceChart(m);
+
+  const v=document.getElementById("verdict");
+  const perEp=end.views/m.eps, minPerView=m.len*m.ret;
+  const base='<div style="font-size:12.5px;color:var(--muted);margin-top:9px">'+
+    'เท่ากับเฉลี่ย <b class="num" style="color:var(--ink)">'+fmt(perEp)+'</b> วิวต่อตอน และ '+
+    '<b class="num" style="color:var(--ink)">'+minPerView.toFixed(1)+'</b> นาทีรับชมต่อวิว</div>';
+  if(hoursOk&&subsOk){
+    v.className="verdict v-ok";
+    v.innerHTML='<div class="vh">ทันเกณฑ์เดิม</div><p>ผ่านทั้งชั่วโมงรับชมและผู้ติดตามก่อน 1 ก.พ. 2027 '+
+      'ซึ่งแปลว่าเข้า YPP ที่เกณฑ์ 4,000 ชั่วโมงและอยู่ในโปรแกรมถาวร ไม่ถูกดึงออกเมื่อเกณฑ์ขึ้นเป็นสองเท่า</p>'+base;
+  }else if(hoursOk&&!subsOk){
+    v.className="verdict v-tight";
+    v.innerHTML='<div class="vh">ชั่วโมงพอ แต่ผู้ติดตามไม่ถึง</div><p>นี่คือกรณีที่พบบ่อยที่สุดในช่องแนวเล่าเรื่อง '+
+      'และเป็นกรณีเดียวที่ Shorts แก้ได้จริง เพิ่มเป็น 25–30 ชิ้นต่อเดือนโดยไม่ต้องแตะตารางคลิปยาว</p>'+base;
+  }else if(end.hours>=TARGET_HOURS*0.75){
+    v.className="verdict v-tight";
+    v.innerHTML='<div class="vh">เฉียด</div><p>ขาดอีก <b class="num">'+fmt(TARGET_HOURS-end.hours)+'</b> ชั่วโมง '+
+      'ลองเพิ่มความยาวตอนก่อนเพิ่มจำนวนตอน เพราะความยาวคูณกับทุกวิวที่มีอยู่แล้ว โดยไม่เพิ่มงานผลิตเป็นเท่าตัว</p>'+base;
+  }else{
+    v.className="verdict v-no";
+    v.innerHTML='<div class="vh">ไม่ทันเกณฑ์เดิม</div><p>ได้ <b class="num">'+fmt(end.hours)+'</b> จาก 4,000 ชั่วโมง '+
+      'ทางที่ตรงไปตรงมาที่สุดคือยอมรับตั้งแต่ตอนนี้ว่าจะเข้าที่เกณฑ์ 8,000 ชั่วโมง แล้ววางแผน 12 เดือนอย่างสงบ '+
+      'การเร่งผลิตให้ทันด้วยตอนที่ทำจากแม่พิมพ์เดียว เสี่ยงโดนตัดสิทธิ์ถาวรมากกว่าจะพาไปถึงเส้น</p>'+base;
+  }
+}
+
+/* ── pre-publish gate ────────────────────────────────────────────────────── */
+const GATE=[
+  ["มีจุดยืนที่ผู้ฟังเถียงได้อย่างน้อยหนึ่งจุด","ผู้เล่าต้องเป็นตัวละครที่มีความเห็น ไม่ใช่คนอ่านข้อมูลเฉย ๆ นี่คือข้อที่แยกช่องที่รอดออกจากช่องที่โดน"],
+  ["โครงเรื่องประกอบขึ้นเอง ไม่ใช่การเล่าซ้ำจากแหล่งเดียว","เคส ลำดับ และข้อสรุป ต้องถูกเรียบเรียงที่นี่ ไม่ใช่สรุปหนังสือหรือคลิปคนอื่น"],
+  ["รูปแบบไม่ซ้ำกับสามตอนก่อนหน้า","หมุนตามคอลัมน์ในสเลต: เจาะเคสเดียว / เทียบสองเคส / ไทม์ไลน์ / สามมุมมอง"],
+  ["ไม่มีประโยคไหนที่ยกมาแบบไม่ได้เรียบเรียง","อ่านผ่านทั้งสคริปต์แล้วหาประโยคที่ฟังเหมือนถูกก๊อปมา"],
+  ["จังหวะภาพต่างจากตอนก่อน","สตอรีบอร์ดต้องไม่ใช้จังหวะช็อตชุดเดิม ตรวจด้วย AI auto-fix ในสตูดิโอ"],
+  ["ไม่มีประโยคไหนที่ถูกอ่านเป็นคำแนะนำการลงทุนได้","ตามกฎข้อ 9 ของ Brand DNA — อธิบายว่ามีคนทำอะไร ไม่ใช่บอกว่าผู้ฟังควรทำอะไร"]
+];
+function gate(){
+  const box=document.getElementById("gate");box.innerHTML="";
+  let saved={};
+  try{saved=JSON.parse(localStorage.getItem("ypp-gate")||"{}");}catch(e){saved={};}
+  GATE.forEach((c,i)=>{
+    const d=document.createElement("div");d.className="check";
+    const id="g"+i;
+    d.innerHTML='<input type="checkbox" id="'+id+'"'+(saved[i]?" checked":"")+'>'+
+      '<label for="'+id+'">'+c[0]+'<span class="cm">'+c[1]+'</span></label>';
+    d.querySelector("input").addEventListener("change",e=>{
+      saved[i]=e.target.checked;
+      try{localStorage.setItem("ypp-gate",JSON.stringify(saved));}catch(err){}
+    });
+    box.appendChild(d);
+  });
+  document.getElementById("resetGate").onclick=()=>{
+    try{localStorage.removeItem("ypp-gate");}catch(e){}
+    gate();
+  };
+}
+
+["len","ret","cad","vpe"].forEach(id=>document.getElementById(id).addEventListener("input",render));
+let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{rpmChart();render();},160);});
+if(window.matchMedia){
+  const mq=window.matchMedia("(prefers-color-scheme: dark)");
+  const h=()=>{rpmChart();render();};
+  (mq.addEventListener?mq.addEventListener.bind(mq,"change"):mq.addListener.bind(mq))(h);
+}
+gate();rpmChart();render();
+})();
+</script>
