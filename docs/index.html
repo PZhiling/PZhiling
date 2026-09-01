@@ -500,8 +500,11 @@
       <textarea id="pastebox" placeholder="## Phase 1: ..."></textarea>
       <div class="btnrow">
         <button class="btn primary" id="analyze">🎛️ วิเคราะห์ผลลัพธ์</button>
+        <button class="btn" id="importscript">📄 นำสคริปต์ที่เขียนเองเข้า</button>
         <button class="btn" id="loaddemo">ดูตัวอย่าง (Demo)</button>
       </div>
+      <input type="file" id="scriptfile" accept=".md,.markdown,.txt,text/plain,text/markdown" hidden />
+      <p class="hint" style="margin-top:8px">สคริปต์ที่แก้มือแล้ว (.md / .txt) นำเข้าได้เลย — ระบบห่อเป็น Phase 3 ให้ ตัดบันทึกท้ายไฟล์ออกจากการนับคำ แล้วเปิดปุ่มสร้าง Storyboard ให้ในแท็บ B-Roll</p>
     </div>
 
     <div id="workspace" hidden>
@@ -1954,6 +1957,66 @@ $("#loaddemo").addEventListener("click", () => {
   analyzeResult(demo, false);
   toast("โหลดตัวอย่างแล้ว — ลองกดแท็บ ✓ ตรวจคุณภาพ");
 });
+/* ── import a hand-edited script ──
+   The paste box expects a full studio document with Phase headings. A script
+   rewritten by hand has none, so extractPhases() returns nulls, narrationOnly()
+   runs to the end of the file, and the production notes at the bottom get
+   counted as narration — inflating the duration and dropping the whole surplus
+   on the last storyboard segment as a phantom freeze. Wrap the bare script into
+   the shape the rest of the app already understands. */
+
+/* Deliberately broader than SCRIPT_END, which only matches a bare heading —
+   a hand-written file writes "## Description — first two lines shown in search". */
+const PACK_HEAD = /^[ \t]*#{1,6}[ \t]*(?:\*{1,2}[ \t]*)?(?:[^\w\s\n]{1,4}[ \t]*)?(?:production[ \t]*(?:pack|notes)|packaging|titles?|description|thumbnail|hashtags?|tags|shorts[ \t]*cut|authenticity|notes[ \t]*for|บันทึกการผลิต|ชื่อคลิป|คำอธิบาย|ภาพปก|แฮชแท็ก)\b/i;
+const STORYBOARD_TODO = "ยังไม่มีตาราง Storyboard — เปิดแท็บ B-Roll Studio แล้วกดสร้างจากสคริปต์";
+const hasPhases = (text) => { const p = extractPhases(text); return !!(p.p1 || p.p2 || p.p3); };
+
+function wrapBareScript(text) {
+  const lines = String(text).split("\n");
+  const firstCue = lines.findIndex((l) => TS_LINE.test(l));
+  // Only ever cut after narration has started, so a file whose notes sit at the
+  // top is never truncated down to nothing.
+  let end = lines.length;
+  if (firstCue >= 0) {
+    for (let i = firstCue + 1; i < lines.length; i++) {
+      if (TS_LINE.test(lines[i])) continue; // a cue line is never the boundary
+      if (PACK_HEAD.test(lines[i])) { end = i; break; }
+    }
+  }
+  const body = lines.slice(0, end).join("\n").trim();
+  const pack = lines.slice(end).join("\n").trim();
+  // Phase 1 and 2 must both be emitted: PH(1,2) has no Phase 2 to stop at, so a
+  // document with only Phase 1 and Phase 3 makes p1 swallow the script itself.
+  return [
+    "## Phase 1: บันทึกการผลิต (นำเข้าจากไฟล์)",
+    pack || "— ไม่มีบันทึกท้ายไฟล์ —",
+    "## Phase 2: Visual Storyboard",
+    STORYBOARD_TODO,
+    "## Phase 3: Script",
+    body,
+  ].join("\n\n");
+}
+
+function importScriptText(text, name) {
+  const raw = String(text).replace(/\r\n?/g, "\n").trim();
+  if (!raw) return toast("ไฟล์ว่างเปล่า");
+  const full = hasPhases(raw);
+  const md = full ? raw : wrapBareScript(raw);
+  $("#pastebox").value = md;
+  analyzeResult(md);
+  toast(full ? `นำเข้า ${name} แล้ว ✓` : "นำเข้าเป็น Phase 3 แล้ว ✓ — สร้าง Storyboard ต่อได้ในแท็บ B-Roll");
+}
+
+$("#importscript").addEventListener("click", () => $("#scriptfile").click());
+$("#scriptfile").addEventListener("change", async (e) => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = ""; // re-importing the same file must still fire change
+  if (!f) return;
+  if (f.size > 2 * 1024 * 1024) return alert("ไฟล์ใหญ่เกิน 2 MB — สคริปต์หนึ่งตอนไม่ควรเกินไม่กี่สิบ KB");
+  try { importScriptText(await f.text(), f.name); }
+  catch (err) { alert("อ่านไฟล์ไม่ได้: " + ((err && err.message) || err)); }
+});
+
 $("#copyall").addEventListener("click", () => current && copyText(current.md));
 $("#dlmd").addEventListener("click", () => current && download("seo_analysis_full.md", current.md, "text/markdown;charset=utf-8"));
 $("#dltxt").addEventListener("click", () => current && download("podcast_script.txt", current.phases.p3 || current.md));
@@ -2524,11 +2587,67 @@ function cgptBatchPrompt(rows, idxs, seq, pos, no, total) {
   return head + body + tail;
 }
 
+/* The storyboard rules already exist once, inside the master prompt template.
+   Slice Phase 2 out of it rather than restating them here — a second copy would
+   drift the moment the master prompt is edited. */
+function storyboardSpec() {
+  const m = $("#sysprompt").textContent.match(/(?:^|\n)##[ \t]*Phase[ \t]*2\b[\s\S]*?(?=\n##[ \t]*Phase[ \t]*3\b|$)/);
+  return m ? m[0].trim() : "";
+}
+function storyboardPrompt() {
+  const script = (current.phases.p3 || current.md).slice(0, 14000);
+  const cues = current.ts.map((t) => t.label).join(" ");
+  return `${script}
+
+---
+
+จากสคริปต์ด้านบน สร้างเฉพาะ "ตาราง Visual Storyboard" ตามกติกาด้านล่าง
+ตอบกลับเป็นตาราง Markdown ล้วนๆ ห้ามมีคำอธิบายก่อนหรือหลังตาราง
+ต้องครบทุก Timestamp ต่อไปนี้ เรียงตามลำดับ ห้ามขาดห้ามเกิน:
+${cues}
+
+${storyboardSpec()}${dnaSuffix()}`;
+}
+async function genStoryboard() {
+  const body = $("#brollbody");
+  body.innerHTML = `<p class="hint">⏳ AI กำลังสร้างคิวภาพจากสคริปต์...</p>`;
+  try {
+    const text = await callGemini(storyboardPrompt(), { temp: 0.7 });
+    if (!text.split("\n").some(isTableLine)) throw new Error("ผลลัพธ์ไม่ใช่ตาราง Markdown ลองใหม่");
+    applyStoryboard(text);
+    toast("Storyboard พร้อมแล้ว ✓");
+  } catch (err) { alert(aiErrorThai(err)); renderBroll(); }
+}
+/* Splice the table into Phase 2 so every reader — QC coverage, B-Roll Studio,
+   the exports — sees it exactly as it would in a generated document. */
+function applyStoryboard(table) {
+  const p2 = "## Phase 2: Visual Storyboard\n\n" + table.trim();
+  const c = current;
+  const md = c.phases.p2
+    ? c.md.replace(c.phases.p2, () => p2 + "\n\n")
+    : c.phases.p3
+      ? c.md.replace(c.phases.p3, () => p2 + "\n\n" + c.phases.p3)
+      : c.md + "\n\n" + p2;
+  $("#pastebox").value = md;
+  analyzeResult(md, true, { keepImgs: true });
+  showView("broll");
+}
 function renderBroll() {
   const body = $("#brollbody");
   const rows = storyboardRows();
   if (!rows) {
-    body.innerHTML = `<div class="empty">ไม่พบตาราง Storyboard (ที่มีคอลัมน์ Timestamp) ใน Phase 2</div>`;
+    /* An imported script arrives with no storyboard at all. Offer to build one
+       from the cues it already carries, rather than stopping here. */
+    const cues = current.ts.length;
+    body.innerHTML = `<div class="empty">ไม่พบตาราง Storyboard (ที่มีคอลัมน์ Timestamp) ใน Phase 2</div>` +
+      (cues
+        ? `<div class="btnrow">${hasGemini()
+            ? `<button class="btn primary" id="sbgen">🎬 สร้าง Storyboard จากสคริปต์ (${cues} คิว)</button>`
+            : `<button class="btn" id="sbcopy">📋 คัดลอก Prompt สร้าง Storyboard (โหมดไม่มี key)</button>`}</div>
+           <p class="hint" style="margin-top:6px">ใช้กติกาภาพชุดเดียวกับ Prompt หลัก — ANCHOR/SUPPORT, Google Flow, Motion Direction</p>`
+        : `<p class="hint" style="margin-top:6px">สคริปต์ยังไม่มี Timestamp [M:SS] — ต้องมีก่อนจึงจะสร้างคิวภาพได้</p>`);
+    $("#sbgen")?.addEventListener("click", genStoryboard);
+    $("#sbcopy")?.addEventListener("click", () => copyText(storyboardPrompt(), "คัดลอกแล้ว — วางในแอป AI แล้วนำตารางที่ได้กลับมาวางในช่อง Paste"));
     return;
   }
   current.brollImgs = current.brollImgs || {};

@@ -20,6 +20,11 @@ inauthentic/repetitive-content patterns.
   *Google Flow* image prompts (NotebookLM "Analytical Indigo" style).
 - **AI auto-fix** for missing visuals, missing prompts, and long visual-freeze
   gaps in the storyboard.
+- **Import a hand-edited script** (`.md` / `.txt`) and carry on from there. A
+  bare script is wrapped as Phase 3 and its production notes are parked in
+  Phase 1, so they never inflate the word count or the duration estimate; the
+  B-Roll tab then offers to build the Phase 2 storyboard from the script's own
+  timestamps, using the same visual rules as the master prompt.
 - **Text-to-Speech** preview via Google Cloud TTS.
 - Export to Markdown (`.md`), script (`.txt`), and B-Roll guide (`.csv`).
 - Client-side persistence: input draft, result, history, and competitor
