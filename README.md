@@ -25,7 +25,11 @@ inauthentic/repetitive-content patterns.
   Phase 1, so they never inflate the word count or the duration estimate; the
   B-Roll tab then offers to build the Phase 2 storyboard from the script's own
   timestamps, using the same visual rules as the master prompt.
-- **Text-to-Speech** preview via Google Cloud TTS.
+- **Text-to-Speech** preview via Google Cloud TTS, synthesised one beat per
+  timestamp so each cue's real duration is measured rather than assumed. One
+  button then rewrites the script, storyboard and description timestamps to the
+  audio that actually exists; a proportional fallback covers a voiceover
+  recorded elsewhere.
 - Export to Markdown (`.md`), script (`.txt`), and B-Roll guide (`.csv`).
 - Client-side persistence: input draft, result, history, and competitor
   watchlist are saved in `localStorage`.

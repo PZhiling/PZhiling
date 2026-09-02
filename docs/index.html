@@ -1852,6 +1852,7 @@ function renderWorkspace() {
   `;
   showView("all");
   renderQA();
+  renderTtsPanel();
   refreshKeyUI();
 }
 
@@ -2036,12 +2037,15 @@ $("#dlcsv").addEventListener("click", () => {
 });
 
 /* ── TTS: direct Google Cloud Text-to-Speech with the user's key ── */
-function scriptForTTS() {
+function narrationSource() {
   let t = current.phases.p3 || current.md;
   const di = t.search(/(?:^|\n)\s*(?:#+\s*|\*\*\s*)?(?:youtube\s*)?description\b/i);
   if (di > 0) t = t.slice(0, di);
   const fs = t.search(/full\s*script/i);
   if (fs >= 0) t = t.slice(fs).replace(/^full\s*script:?\**\s*/i, "");
+  return t;
+}
+function cleanNarration(t) {
   return t
     .split("\n").filter((l) => !/^\s*\|/.test(l)).join("\n")
     .replace(tsRe, " ")
@@ -2052,6 +2056,28 @@ function scriptForTTS() {
     .replace(/\n{2,}/g, "\n")
     .trim();
 }
+function scriptForTTS() { return cleanNarration(narrationSource()); }
+
+/* One entry per cue: the narration running from that cue to the next. The
+   storyboard is keyed to these boundaries, so synthesising per beat turns each
+   row's start time into a measurement instead of a 150-wpm guess. Text before
+   the first cue is front matter and is dropped, exactly as parseTs() ignores it. */
+function narrationBeats() {
+  const beats = [];
+  let cur = null;
+  for (const line of narrationSource().split("\n")) {
+    const m = line.match(TS_LINE);
+    if (m) {
+      const sec = m[3] !== undefined ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : (+m[1]) * 60 + (+m[2]);
+      if (!cur || cur.sec !== sec) { cur = { sec, lines: [] }; beats.push(cur); }
+    }
+    if (cur) cur.lines.push(line);
+  }
+  return beats
+    .map((b) => ({ sec: b.sec, text: cleanNarration(b.lines.join("\n")) }))
+    .filter((b) => b.text);
+}
+const cueOf = (sec) => { const t = Math.max(0, Math.round(sec)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
 function chunkText(t, max = 4200) {
   const out = [];
   let cur = "";
@@ -2087,30 +2113,146 @@ async function synthChunk(text, voice, key) {
   }
   return Uint8Array.from(atob(data.audioContent), (ch) => ch.charCodeAt(0));
 }
+/* ── syncing the storyboard to the audio that actually exists ──
+   Cue times in the script are written at a flat 150 wpm. A real voice does not
+   run at 150 wpm, and the error is systematic rather than random: every cue
+   drifts the same direction and the gap compounds, so the worst offset lands at
+   the end of the episode — exactly where the closing ANCHOR run needs the
+   picture to be on time. Both paths below replace the estimate with a
+   measurement. Neither touches the visuals: a beat's content is tied to the
+   script, and only its clock moves. */
+
+let lastVo = null; // { beats: [{ sec, start, dur }], real, est } from the last synthesis
+let _actx = null;
+const audioCtx = () => (_actx = _actx || new (window.AudioContext || window.webkitAudioContext)());
+async function mp3Seconds(bytes) {
+  // decodeAudioData detaches the buffer it is handed, and these same bytes are
+  // still needed for the concatenated download — so decode a copy.
+  const buf = await audioCtx().decodeAudioData(bytes.slice().buffer);
+  return buf.duration;
+}
+/* One pass with a callback, never a loop of replacements: a sequential rewrite
+   would re-map a cue that a previous step had already moved onto. */
+function retimeDocument(map) {
+  return current.md.replace(tsRe, (full, h, m, sec3) => {
+    const sec = sec3 !== undefined ? (+h) * 3600 + (+m) * 60 + (+sec3) : (+h) * 60 + (+m);
+    return map.has(sec) ? "[" + cueOf(map.get(sec)) + "]" : full;
+  });
+}
+function applyRetime(map, note) {
+  if (!map.size) return toast("ไม่มี timestamp ให้ปรับ");
+  const md = retimeDocument(map);
+  if (md === current.md) return toast("เวลาตรงอยู่แล้ว ไม่มีอะไรต้องปรับ");
+  $("#pastebox").value = md;
+  analyzeResult(md, true, { keepImgs: true });
+  toast(note);
+}
+/* Plan B: cumulative sums of the measured beats. */
+function retimeFromAudio() {
+  if (!lastVo) return;
+  applyRetime(new Map(lastVo.beats.map((b) => [b.sec, b.start])), "ปรับ timestamp ตามเสียงจริงแล้ว ✓");
+}
+/* Plan C: one ratio for the whole episode. Removes the systematic drift without
+   needing per-beat audio, so it also works for a voiceover recorded elsewhere.
+   It cannot correct local variance — a beat thick with numbers still reads long. */
+function retimeProportional(realTotalSec) {
+  const est = current.total;
+  if (!est || !realTotalSec) return toast("ยังไม่มีความยาวให้เทียบ");
+  const k = realTotalSec / est;
+  applyRetime(new Map(current.ts.map((t) => [t.sec, t.sec * k])),
+    `ปรับตามสัดส่วน ×${k.toFixed(3)} แล้ว ✓`);
+}
+
+const cueSecs = (str) => {
+  const m = String(str).trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return null;
+  return m[3] !== undefined ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : (+m[1]) * 60 + (+m[2]);
+};
+function renderTtsPanel() {
+  const el = $("#ttspanel");
+  if (!el) return;
+  if (!current) { el.innerHTML = ""; return; }
+  const v = lastVo;
+  let head = "";
+  if (v) {
+    const drift = v.real && v.est ? ((v.est - v.real) / v.est) * 100 : 0;
+    const cmp = v.real
+      ? `เสียงจริง <b>${cueOf(v.real)}</b> · ประมาณไว้ ${cueOf(v.est)} · ` +
+        (Math.abs(drift) < 0.5 ? "ตรงกัน" : `${drift > 0 ? "เสียงสั้นกว่า" : "เสียงยาวกว่า"} ${Math.abs(drift).toFixed(1)}%`)
+      : `${(v.size / 1048576).toFixed(1)} MB · สคริปต์ไม่มี timestamp จึงวัดรายบีตไม่ได้`;
+    head = `<div class="card" style="margin-top:4px">
+      <div class="eyebrow">Voiceover</div>
+      <audio controls src="${v.url}" style="width:100%"></audio>
+      <div class="btnrow">
+        <a class="btn small" href="${v.url}" download="podcast_voiceover.mp3">⬇ ดาวน์โหลด MP3</a>
+        ${v.beats.length ? `<button class="btn small primary" id="ttsretime">⏱ ปรับ timestamp ตามเสียงจริง (${v.beats.length} บีต)</button>` : ""}
+      </div>
+      <p class="hint" style="margin-top:6px">${cmp}</p>
+    </div>`;
+  }
+  const tail = `<div class="card" style="margin-top:8px">
+    <div class="eyebrow">Sync</div>
+    <p class="hint" style="margin-top:0">มีไฟล์เสียงอยู่แล้วจากที่อื่น? ใส่ความยาวจริงเพื่อดึง timestamp ทั้งชุดให้เข้าที่ตามสัดส่วน — แก้ความเพี้ยนสะสม แต่ไม่แก้ความแปรปรวนรายบีต</p>
+    <div class="btnrow" style="margin-top:8px">
+      <input type="text" id="ttsreal" placeholder="18:42" inputmode="numeric" style="width:110px" />
+      <button class="btn small" id="ttscalib">📐 ปรับตามสัดส่วน</button>
+      <span class="hint" style="margin:0; align-self:center">ตอนนี้สคริปต์ประมาณไว้ ${cueOf(current.total)}</span>
+    </div>
+  </div>`;
+  el.innerHTML = head + tail;
+  $("#ttsretime")?.addEventListener("click", retimeFromAudio);
+  $("#ttscalib")?.addEventListener("click", () => {
+    const sec = cueSecs($("#ttsreal").value);
+    if (sec === null) return toast("ใส่เวลาแบบ 18:42");
+    retimeProportional(sec);
+  });
+}
+
 $("#ttsbtn").addEventListener("click", async () => {
   if (!current || !hasTTS()) return;
   const b = $("#ttsbtn"); const old = b.textContent;
   b.disabled = true;
   try {
-    const text = scriptForTTS();
-    if (!text) throw new Error("ไม่พบเนื้อหาสคริปต์สำหรับพากย์");
-    const chunks = chunkText(text);
+    const voice = $("#ttsvoice").value, key = keys.tts.trim();
+    /* Synthesise one file per beat rather than per 4,200 characters. The old
+       chunking split on paragraphs, which had no relationship to the cues, so
+       nothing about the result could be tied back to a storyboard row. */
+    const beats = narrationBeats();
     const bufs = [];
-    for (let i = 0; i < chunks.length; i++) {
-      b.textContent = `⏳ พากย์ท่อน ${i + 1}/${chunks.length}...`;
-      bufs.push(await synthChunk(chunks[i], $("#ttsvoice").value, keys.tts.trim()));
+    const measured = [];
+    let clock = 0, timed = beats.length > 0;
+    if (beats.length) {
+      for (let i = 0; i < beats.length; i++) {
+        b.textContent = `⏳ พากย์บีต ${i + 1}/${beats.length}...`;
+        let dur = 0;
+        // A single beat is well inside the request limit, but a malformed script
+        // can put the whole episode in one — keep the splitter as a guard.
+        for (const part of chunkText(beats[i].text)) {
+          const bytes = await synthChunk(part, voice, key);
+          bufs.push(bytes);
+          try { dur += await mp3Seconds(bytes); } catch (err) { timed = false; }
+        }
+        measured.push({ sec: beats[i].sec, start: clock, dur });
+        clock += dur;
+      }
+    } else {
+      const chunks = chunkText(scriptForTTS());
+      for (let i = 0; i < chunks.length; i++) {
+        b.textContent = `⏳ พากย์ท่อน ${i + 1}/${chunks.length}...`;
+        bufs.push(await synthChunk(chunks[i], voice, key));
+      }
     }
     const blob = new Blob(bufs, { type: "audio/mpeg" });
-    const url = URL.createObjectURL(blob);
-    const mins = (text.split(/\s+/).length / 150).toFixed(1);
-    $("#ttspanel").innerHTML = `<div class="card" style="margin-top:4px">
-      <div class="eyebrow">Voiceover</div>
-      <audio controls src="${url}" style="width:100%"></audio>
-      <div class="btnrow">
-        <a class="btn small" href="${url}" download="podcast_voiceover.mp3">⬇ ดาวน์โหลด MP3</a>
-        <span class="hint" style="margin:0; align-self:center">~${mins} นาที · ${(blob.size / 1048576).toFixed(1)} MB · ${chunks.length} ท่อน</span>
-      </div></div>`;
-    toast("พากย์เสียงเสร็จแล้ว ✓");
+    if (lastVo?.url) URL.revokeObjectURL(lastVo.url);
+    lastVo = {
+      beats: timed ? measured : [],
+      real: timed ? clock : 0,
+      est: current.total,
+      size: blob.size,
+      url: URL.createObjectURL(blob),
+    };
+    renderTtsPanel();
+    toast(timed ? "พากย์เสร็จ วัดเวลาจริงแล้ว ✓" : "พากย์เสียงเสร็จแล้ว ✓");
   } catch (err) { alert(aiErrorThai(err)); }
   finally { b.disabled = false; b.textContent = old; }
 });
