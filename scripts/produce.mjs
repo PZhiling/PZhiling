@@ -29,7 +29,7 @@ import path from "node:path";
 
 /* ── arguments ───────────────────────────────────────────────────────────── */
 const argv = process.argv.slice(2);
-const VALUE_FLAGS = new Set(["provider", "voice", "out", "limit", "delay"]);
+const VALUE_FLAGS = new Set(["provider", "voice", "out", "limit", "delay", "qc-min", "dna"]);
 const flags = {};
 const positional = [];
 for (let i = 0; i < argv.length; i++) {
@@ -57,6 +57,12 @@ const opts = {
   delay: Number(flag("delay", 3000)),
   skipAudio: has("skip-audio"),
   skipImages: has("skip-images"),
+  skipPack: has("skip-pack"),
+  skipShorts: has("skip-shorts"),
+  makeStoryboard: has("make-storyboard"),
+  qcOnly: has("qc-only"),
+  qcMin: flags["qc-min"] ?? 0,
+  dna: flag("dna", null),
   force: has("force"),
 };
 if (!["gemini", "openai"].includes(opts.provider)) {
@@ -91,8 +97,20 @@ function cleanNarration(t) {
     .trim();
 }
 
+/* Read the narration out of Phase 3 when the document has phases. Scanning the
+   whole file instead picks up the storyboard table's timestamps as beats — once
+   a storyboard exists, Phase 2 sits above the script and its first cue would
+   start the count, leaving one more beat than the script has cues. */
+function narrationSource(doc) {
+  const p3 = doc.match(/(?:^|\n)[ \t]*(?:#{1,6}[ \t]*)?(?:\*{1,2}[ \t]*)?(?:Phase|Step|ส่วนที่|เฟส|ขั้นตอนที่|ตอนที่)[ \t]*3\b[\s\S]*$/i);
+  let t = p3 ? p3[0] : doc;
+  const di = t.search(/(?:^|\n)\s*(?:#+\s*|\*\*\s*)?(?:youtube\s*)?description\b/i);
+  if (di > 0) t = t.slice(0, di);
+  return t;
+}
+
 function narrationBeats(doc) {
-  const lines = doc.split("\n");
+  const lines = narrationSource(doc).split("\n");
   const first = lines.findIndex((l) => TS_LINE.test(l));
   let end = lines.length;
   if (first >= 0) {
@@ -112,6 +130,34 @@ function narrationBeats(doc) {
     if (cur) cur.lines.push(line);
   }
   return beats.map((b) => ({ sec: b.sec, text: cleanNarration(b.lines.join("\n")) })).filter((b) => b.text);
+}
+
+/* A hand-written script has no Phase headings, so the app's import wraps it
+   before anything reads it: notes to Phase 1, script to Phase 3, an empty
+   Phase 2 between. Do the same here or the gate scores a different document
+   than the Studio shows — the production notes at the bottom would be read as
+   part of the script, and its "## Description" heading counted as the episode
+   description. */
+const PHASE_HEAD = (n) => new RegExp(`(?:^|\\n)[ \\t]*(?:#{1,6}[ \\t]*)?(?:\\*{1,2}[ \\t]*)?(?:Phase|Step|ส่วนที่|ส่วน|เฟส|ขั้นตอนที่|ขั้นที่|ตอนที่)[ \\t]*${n}\\b`, "i");
+const hasPhases = (t) => [1, 2, 3].some((n) => PHASE_HEAD(n).test(t));
+
+function wrapBareScript(text) {
+  const lines = String(text).split("\n");
+  const first = lines.findIndex((l) => TS_LINE.test(l));
+  let end = lines.length;
+  if (first >= 0) {
+    for (let i = first + 1; i < lines.length; i++) {
+      if (TS_LINE.test(lines[i])) continue;
+      if (PACK_HEAD.test(lines[i])) { end = i; break; }
+    }
+  }
+  const body = lines.slice(0, end).join("\n").trim();
+  const pack = lines.slice(end).join("\n").trim();
+  return [
+    "## Phase 1: บันทึกการผลิต (นำเข้าจากไฟล์)", pack || "— ไม่มีบันทึกท้ายไฟล์ —",
+    "## Phase 2: Visual Storyboard", "ยังไม่มีตาราง Storyboard",
+    "## Phase 3: Script", body,
+  ].join("\n\n");
 }
 
 /* ── storyboard table — same column resolution as the Studio ─────────────── */
@@ -144,6 +190,191 @@ function storyboardRows(doc) {
       mode: /ANCHOR/.test(mode) ? "ANCHOR" : /SUPPORT/.test(mode) ? "SUPPORT" : "",
     };
   });
+}
+
+/* ── QC Gate ──
+   A port of the Studio's computeQC. The prompts below are read out of the app
+   file at run time so they cannot drift, but scoring is real code and has to
+   live in both places; scripts/test-qc-parity.mjs asserts the two agree on the
+   same document, so a change to one that is not mirrored fails loudly. */
+const AI_PHRASES = [
+  "in today's fast-paced world", "in today's world", "have you ever wondered",
+  "first and foremost", "moreover", "furthermore", "in conclusion",
+  "as we wrap up", "additionally", "another crucial aspect", "it's important to note",
+  "at the end of the day", "without further ado", "let's dive in", "dive deeper into",
+  "unlock the secrets", "game-changer", "in this video, we will", "buckle up", "picture this",
+];
+const GREETING = /^\s*(hi|hello|hey|welcome|what'?s up|good (morning|afternoon|evening)|greetings)\b/i;
+const SCRIPT_END = /^[ \t]*(?:#{1,6}[ \t]*)?(?:\*{1,2}[ \t]*)?(?:youtube[ \t]*)?(?:description|timestamps?|hashtags?|tags|website|cta|call[ \t]*to[ \t]*action|คำอธิบาย|แฮชแท็ก|แท็ก|เว็บไซต์)\b[ \t]*:?[ \t]*\*{0,2}[ \t]*$/i;
+
+function narrationOnly(text) {
+  const lines = String(text).split("\n");
+  const start = lines.findIndex((l) => TS_LINE.test(l));
+  if (start < 0) return String(text);
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (TS_LINE.test(lines[i])) continue;
+    if (SCRIPT_END.test(lines[i])) { end = i; break; }
+  }
+  return lines.slice(start, end).join("\n");
+}
+
+function rhythmStats(text) {
+  const clean = String(text).replace(/\[[\d:]+\]/g, " ");
+  const sents = clean.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter((x) => /[A-Za-z]/.test(x));
+  const lens = sents.map((x) => (x.match(/[A-Za-z][A-Za-z0-9'’-]*/g) || []).length).filter((n) => n > 0);
+  if (lens.length < 15) return null;
+  const mean = lens.reduce((a, b) => a + b, 0) / lens.length;
+  const sd = Math.sqrt(lens.reduce((a, b) => a + (b - mean) ** 2, 0) / lens.length);
+  const openers = {};
+  sents.forEach((x) => {
+    const w = (x.match(/[A-Za-z]+/) || [""])[0].toLowerCase();
+    if (w) openers[w] = (openers[w] || 0) + 1;
+  });
+  const top = Object.entries(openers).sort((a, b) => b[1] - a[1])[0] || ["-", 0];
+  return {
+    n: lens.length, mean: Math.round(mean * 10) / 10,
+    cv: mean ? sd / mean : 0, topWord: top[0],
+    topShare: top[1] / sents.length,
+    longShare: lens.filter((n) => n > 30).length / lens.length,
+  };
+}
+
+function parseTs(text) {
+  const out = new Map();
+  for (const m of text.matchAll(tsRe)) {
+    const sec = secOf(m[1], m[2], m[3]);
+    if (!out.has(sec)) out.set(sec, m[0]);
+  }
+  return [...out.entries()].map(([sec, label]) => ({ sec, label })).sort((a, b) => a.sec - b.sec);
+}
+
+/* The context computeQC reads, built the way analyzeResult builds it. */
+function analyze(doc) {
+  const p2 = doc.match(/(?:^|\n)[ \t]*(?:#{1,6}[ \t]*)?(?:\*{1,2}[ \t]*)?(?:Phase|ส่วนที่|ตอนที่)[ \t]*2\b[\s\S]*?(?=(?:\n[ \t]*(?:#{1,6}[ \t]*)?(?:\*{1,2}[ \t]*)?(?:Phase|ส่วนที่|ตอนที่)[ \t]*3\b)|$)/i)?.[0] ?? null;
+  const p3 = doc.match(/(?:^|\n)[ \t]*(?:#{1,6}[ \t]*)?(?:\*{1,2}[ \t]*)?(?:Phase|ส่วนที่|ตอนที่)[ \t]*3\b[\s\S]*$/i)?.[0] ?? null;
+  const scriptSrc = narrationOnly(p3 || doc);
+  const words = (scriptSrc.replace(tsRe, "").match(/[A-Za-z][A-Za-z'’-]*/g) || []).length;
+  const estSec = Math.round((words / 150) * 60);
+  const ts = parseTs(scriptSrc);
+  const total = Math.max(estSec, ts.length ? ts[ts.length - 1].sec + 15 : 0);
+  const segs = ts.map((t, i) => {
+    const gap = (i + 1 < ts.length ? ts[i + 1].sec : total) - t.sec;
+    return { sev: gap > 25 ? "crit" : gap > 18 ? "warn" : "good" };
+  });
+  const rows = storyboardRows(doc);
+  const sb = rows.length ? new Set(rows.map((r) => { const m = String(r.ts).match(/(\d{1,3}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : -1; })) : null;
+  const coverage = sb && ts.length ? Math.round(((ts.length - ts.filter((t) => !sb.has(t.sec)).length) / ts.length) * 100) : null;
+  return { md: doc, phases: { p2, p3 }, words, ts, segs, sb, coverage, rows };
+}
+
+function computeQC(c, dnaText) {
+  const script = c.phases.p3 || c.md;
+  const low = script.toLowerCase();
+  const checks = [];
+
+  const found = AI_PHRASES.filter((ph) => low.includes(ph));
+  const dnaLine = (dnaText || "").match(/banned words:?\s*([^\n]+)/i);
+  const dnaBanned = dnaLine ? dnaLine[1].split(/,\s*/).map((w) => w.trim().toLowerCase()).filter(Boolean) : [];
+  const foundDna = dnaBanned.filter((w) =>
+    new RegExp("\\b" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(script));
+  const allFound = [...found, ...foundDna.map((w) => w + " (DNA)")];
+  checks.push({
+    name: "ภาษาเหมือนมนุษย์ (Pattern AI + คำต้องห้ามใน Brand DNA)", max: 2,
+    score: Math.max(0, 2 - allFound.length * 0.5),
+    detail: allFound.length ? `พบ ${allFound.length} จุด: ${allFound.slice(0, 6).join(", ")}` : "ไม่พบวลี Pattern AI",
+  });
+
+  const rh = rhythmStats(narrationOnly(c.phases.p3 || c.md));
+  if (!rh) checks.push({ name: "จังหวะประโยคเหมือนมนุษย์", max: 1.5, score: 0, na: true, detail: "สคริปต์สั้นเกินไป" });
+  else {
+    let sc = 0;
+    if (rh.cv >= 0.45) sc += 0.7; else if (rh.cv >= 0.3) sc += 0.35;
+    if (rh.topShare < 0.3) sc += 0.5; else if (rh.topShare < 0.45) sc += 0.25;
+    if (rh.longShare <= 0.05) sc += 0.3; else if (rh.longShare <= 0.15) sc += 0.15;
+    checks.push({
+      name: "จังหวะประโยคเหมือนมนุษย์", max: 1.5, score: Math.round(sc * 100) / 100,
+      detail: `${rh.n} ประโยค เฉลี่ย ${rh.mean} คำ · ความแปรผัน ${rh.cv.toFixed(2)} · "${rh.topWord}" ขึ้นต้น ${Math.round(rh.topShare * 100)}%`,
+    });
+  }
+
+  let cold = 0; const coldNotes = [];
+  const zi = script.indexOf("[0:00]");
+  const open = (zi >= 0 ? script.slice(zi + 6, zi + 700) : script.slice(0, 700)).trim();
+  if (zi >= 0) cold += 0.5; else coldNotes.push("ไม่พบ [0:00]");
+  if (!GREETING.test(open)) cold += 0.5; else coldNotes.push("เปิดด้วยคำทักทาย");
+  if (/\d/.test(open.slice(0, 280)) || /\?/.test(open.slice(0, 280)) ||
+      /(never|nobody|wrong|mistake|secret|stop|worst|lie|myth|percent)/i.test(open.slice(0, 280))) cold += 1;
+  else coldNotes.push("60 วิแรกยังไม่เห็นสัญญาณ hook");
+  checks.push({ name: "Cold Open มี Hook ใน 60 วิแรก", max: 2, score: cold, detail: coldNotes.join(" · ") || "เปิดด้วย hook ทันที" });
+
+  let pace = 0;
+  if (c.segs.length) pace = (c.segs.reduce((s, g) => s + (g.sev === "good" ? 1 : g.sev === "warn" ? 0.5 : 0), 0) / c.segs.length) * 2;
+  checks.push({
+    name: "จังหวะ Timestamp ถี่พอ (กันภาพค้าง)", max: 2, score: pace,
+    detail: c.segs.length ? `${c.segs.filter((s) => s.sev === "good").length}/${c.segs.length} ช่วงอยู่ในเกณฑ์ ≤18 วิ` : "ไม่พบ Timestamp",
+  });
+
+  checks.push({
+    name: "คิวภาพ Storyboard ครบทุก Timestamp", max: 1.5,
+    score: c.sb === null ? 0 : ((c.coverage ?? 0) / 100) * 1.5,
+    detail: c.sb === null ? "ไม่พบตาราง Storyboard ใน Phase 2" : `คิวภาพครอบคลุม ${c.coverage}%`,
+  });
+
+  const sbAll = c.rows;
+  if (!sbAll.some((r) => r.mode)) {
+    checks.push({ name: "ซีเควนซ์ ANCHOR ที่จุดวิกฤต Retention", max: 1.5, score: 0, na: true, detail: "ไม่พบคอลัมน์ Visual Mode" });
+  } else {
+    const at = sbAll.filter((r) => r.mode === "ANCHOR")
+      .map((r) => { const m = String(r.ts).match(/(\d{1,3}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; })
+      .filter((s) => s !== null);
+    const dur = (c.ts.length ? c.ts[c.ts.length - 1].sec : 0) + 20;
+    const zones = [
+      { label: "Cold Open", from: 0, to: Math.max(45, dur * 0.08) },
+      { label: "Mid re-hook (35–55%)", from: dur * 0.35, to: dur * 0.55 },
+      { label: "Resolution (ท้ายคลิป)", from: dur * 0.8, to: Infinity },
+    ].map((z) => ({ ...z, ok: at.some((s) => s >= z.from && s <= z.to) }));
+    const miss = zones.filter((z) => !z.ok).map((z) => z.label);
+    checks.push({
+      name: "ซีเควนซ์ ANCHOR ที่จุดวิกฤต Retention", max: 1.5, score: ((3 - miss.length) / 3) * 1.5,
+      detail: `ครบ ${3 - miss.length}/3 จุด${miss.length ? " · ขาด: " + miss.join(", ") : ""} · สัดส่วน ANCHOR ${Math.round((at.length / sbAll.length) * 100)}%`,
+    });
+  }
+
+  const dm = script.match(/(?:^|\n)\s*(?:#+\s*|\*\*\s*)?(?:youtube\s*)?description\b[\s\S]*$/i);
+  let descScore = 0, descDetail = "ไม่พบส่วน Description", descText = "";
+  if (dm) {
+    descText = dm[0];
+    const dts = parseTs(descText);
+    if (!dts.length) { descScore = 0.5; descDetail = "มี Description แต่ไม่มี Timestamps"; }
+    else {
+      const sset = new Set(c.ts.map((t) => t.sec));
+      const ok = dts.filter((t) => sset.has(t.sec)).length;
+      descScore = (ok / dts.length) * 1.5;
+      descDetail = `Timestamps ตรงกับสคริปต์ ${ok}/${dts.length} ตัว`;
+    }
+  }
+  checks.push({ name: "Description มี Timestamps ตรงสคริปต์", max: 1.5, score: descScore, detail: descDetail });
+
+  const target = descText || script;
+  let cta = 0; const ctaNotes = [];
+  if (/https?:\/\//i.test(target)) cta += 0.7; else ctaNotes.push("ไม่มีลิงก์ Backlink");
+  if (/#[^\s#]/.test(target)) cta += 0.3; else ctaNotes.push("ไม่มี Hashtags");
+  checks.push({ name: "Backlink + Hashtags ใน Description", max: 1, score: cta, detail: ctaNotes.join(" · ") || "ครบ" });
+
+  const live = checks.filter((k) => !k.na);
+  const maxSum = live.reduce((s, k) => s + k.max, 0) || 1;
+  const total = Math.round((live.reduce((s, k) => s + k.score, 0) / maxSum) * 100) / 10;
+  return { total, checks };
+}
+
+function printQC(qc, label) {
+  log(`\n  ${label}: ${qc.total.toFixed(1)} / 10`);
+  for (const k of qc.checks) {
+    const mark = k.na ? "–" : k.score >= k.max - 0.01 ? "✓" : k.score > 0 ? "~" : "✗";
+    log(`   ${mark} ${k.score.toFixed(2)}/${k.max}  ${k.name}`);
+    if (k.detail) log(`        ${k.detail}`);
+  }
 }
 
 /* ── MP3 duration by frame header, so no ffmpeg has to be installed ──────── */
@@ -348,31 +579,128 @@ async function runImages(rows, dir) {
   return { made, cached, failed };
 }
 
+/* ── prompts come from the app file, never a second copy ──
+   The Studio's Phase 2 rules, packaging and Shorts instructions are long and
+   are edited as the show's voice changes. Reading them out of
+   artifact/podcast-seo-studio.html at run time means the CLI cannot fall
+   behind the app the way a pasted duplicate would. */
+const REPO = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+let _app = null;
+async function appSource() {
+  if (_app === null) _app = await readFile(path.join(REPO, "artifact/podcast-seo-studio.html"), "utf8");
+  return _app;
+}
+function extractTemplate(src, name) {
+  const open = `const ${name} = \``;
+  const i = src.indexOf(open);
+  if (i < 0) return null;
+  const end = src.indexOf("`;", i + open.length);
+  return end < 0 ? null : src.slice(i + open.length, end);
+}
+function phase2Spec(src) {
+  const m = src.match(/(?:^|\n)##[ \t]*Phase[ \t]*2\b[\s\S]*?(?=\n##[ \t]*Phase[ \t]*3\b|$)/);
+  return m ? m[0].trim() : "";
+}
+
+async function gemini(prompt, temp = 0.7) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("ไม่มี GEMINI_API_KEY ใน environment");
+  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: temp } }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+  const out = (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
+  if (!out) throw new Error("ผลลัพธ์ว่างเปล่า");
+  return out;
+}
+const dnaSuffix = (dna) => (dna ? "\n\n---\nBrand DNA ที่ต้องยึด:\n" + dna : "");
+
+/* Build the Phase 2 table from the cues the script already carries, so a
+   hand-written script does not have to be taken back into the app to get one. */
+async function makeStoryboard(doc, ctx, dna) {
+  const src = await appSource();
+  const script = (ctx.phases.p3 || doc).slice(0, 14000);
+  const cues = ctx.ts.map((t) => t.label).join(" ");
+  const table = await gemini(
+    `${script}\n\n---\n\nจากสคริปต์ด้านบน สร้างเฉพาะ "ตาราง Visual Storyboard" ตามกติกาด้านล่าง\n` +
+    `ตอบกลับเป็นตาราง Markdown ล้วนๆ ห้ามมีคำอธิบายก่อนหรือหลังตาราง\n` +
+    `ต้องครบทุก Timestamp ต่อไปนี้ เรียงตามลำดับ ห้ามขาดห้ามเกิน:\n${cues}\n\n${phase2Spec(src)}${dnaSuffix(dna)}`);
+  if (!table.split("\n").some(isTableLine)) throw new Error("ผลลัพธ์ไม่ใช่ตาราง Markdown");
+  const p2 = "## Phase 2: Visual Storyboard\n\n" + table.trim();
+  if (ctx.phases.p2) return doc.replace(ctx.phases.p2, () => p2 + "\n\n");
+  if (ctx.phases.p3) return doc.replace(ctx.phases.p3, () => p2 + "\n\n" + ctx.phases.p3);
+  return doc + "\n\n" + p2;
+}
+
 /* ── main ────────────────────────────────────────────────────────────────── */
-const doc = await readFile(scriptPath, "utf8");
-const beats = narrationBeats(doc);
-const rows = storyboardRows(doc);
+let doc = await readFile(scriptPath, "utf8");
+if (!hasPhases(doc)) doc = wrapBareScript(doc);
+const dna = opts.dna ? await readFile(opts.dna, "utf8") : null;
 await mkdir(opts.outDir, { recursive: true });
 
+let ctx = analyze(doc);
 log(`\n${path.basename(scriptPath)}`);
-log(`  บีต ${beats.length} · แถว storyboard ${rows.length} · provider ${opts.provider} · เสียง ${opts.voice}`);
-log(`  เขียนลง ${opts.outDir}\n`);
-if (!beats.length) log("  ! ไม่พบ timestamp [M:SS] ในสคริปต์ — ข้ามขั้นเสียง");
+log(`  บีต ${narrationBeats(doc).length} · แถว storyboard ${ctx.rows.length} · provider ${opts.provider} · เสียง ${opts.voice}`);
+log(`  เขียนลง ${opts.outDir}`);
+
+/* The gate runs before anything is spent. An episode that is not ready costs
+   74 TTS calls and 74 image calls to find that out any later. */
+let qc = computeQC(ctx, dna);
+printQC(qc, "QC ก่อนผลิต");
+const qcMin = Number(opts.qcMin) || 0;
+if (opts.qcOnly) {
+  // The parity test scores this same context with the app's own functions.
+  await writeFile(path.join(opts.outDir, "qc-context.json"), JSON.stringify({
+    md: ctx.md, phases: ctx.phases, ts: ctx.ts, segs: ctx.segs,
+    sb: ctx.sb ? [...ctx.sb] : null, coverage: ctx.coverage,
+  }));
+  log("");
+  process.exit(qcMin && qc.total < qcMin ? 1 : 0);
+}
+if (qcMin && qc.total < qcMin) {
+  log(`\n  หยุด: QC ${qc.total.toFixed(1)} ต่ำกว่าเกณฑ์ ${qcMin} — ยังไม่ได้ใช้โควตาสักครั้ง`);
+  log(`  แก้สคริปต์แล้วรันใหม่ หรือลด --qc-min ถ้าจงใจปล่อยผ่าน\n`);
+  process.exit(1);
+}
 
 const manifest = {
   script: scriptPath, generatedAt: new Date().toISOString(),
   provider: opts.provider, voice: opts.voice,
-  beats: beats.length, storyboardRows: rows.length,
+  qcBefore: { total: qc.total, checks: qc.checks.map((k) => ({ name: k.name, score: +k.score.toFixed(2), max: k.max, na: !!k.na })) },
 };
+
+if (opts.makeStoryboard && !ctx.rows.length) {
+  log("\n  สร้าง Storyboard จากสคริปต์...");
+  doc = await makeStoryboard(doc, ctx, dna);
+  const sbName = path.basename(scriptPath).replace(/\.mdx?$/i, "") + ".storyboard.md";
+  await writeFile(path.join(opts.outDir, sbName), doc);
+  ctx = analyze(doc);
+  qc = computeQC(ctx, dna);
+  printQC(qc, "QC หลังใส่ Storyboard");
+  manifest.storyboardScript = sbName;
+  manifest.qcAfterStoryboard = { total: qc.total };
+} else if (opts.makeStoryboard) {
+  log("  มีตาราง Storyboard อยู่แล้ว — ข้าม --make-storyboard");
+}
+
+const beats = narrationBeats(doc);
+if (!beats.length) log("\n  ! ไม่พบ timestamp [M:SS] — ข้ามขั้นเสียง");
+manifest.beats = beats.length;
+manifest.storyboardRows = ctx.rows.length;
 
 let audio = null;
 if (!opts.skipAudio && beats.length) {
+  log("");
   audio = await runAudio(doc, beats, opts.outDir);
   const map = new Map(audio.measured.map((b) => [b.sec, b.start]));
-  const retimed = retime(doc, map);
+  doc = retime(doc, map);
   const outName = path.basename(scriptPath).replace(/\.mdx?$/i, "") + ".retimed.md";
-  await writeFile(path.join(opts.outDir, outName), retimed);
-  const est = beats.length ? beats[beats.length - 1].sec : 0;
+  await writeFile(path.join(opts.outDir, outName), doc);
+  ctx = analyze(doc);
+  const est = beats[beats.length - 1].sec;
   const words = beats.reduce((a, b) => a + b.text.split(/\s+/).length, 0);
   manifest.audio = {
     realSeconds: +audio.total.toFixed(2), realClock: cue(audio.total),
@@ -383,13 +711,38 @@ if (!opts.skipAudio && beats.length) {
   log(`  เสียงจริง ${cue(audio.total)} · สคริปต์เขียนไว้ ${cue(est)} · ${manifest.audio.wpm} คำ/นาที`);
 }
 
-if (!opts.skipImages && rows.length) {
-  // Images key off the storyboard rows, so retiming the cues does not change
-  // which frame goes where — only when it appears.
-  manifest.images = await runImages(rows, opts.outDir);
+if (!opts.skipImages && ctx.rows.length) {
+  log("");
+  manifest.images = await runImages(ctx.rows, opts.outDir);
 } else if (!opts.skipImages) {
-  log("  ! ไม่พบตาราง storyboard ในสคริปต์ — ข้ามขั้นภาพ");
+  log("\n  ! ไม่พบตาราง storyboard — ข้ามขั้นภาพ (ใส่ --make-storyboard เพื่อให้สร้างเอง)");
 }
 
+/* Packaging and Shorts run last: both read the finished document, and the
+   description they produce should carry the retimed cues, not the estimates. */
+const src = await appSource();
+if (!opts.skipPack) {
+  try {
+    log("\n  สร้าง Packaging (title / thumbnail / tags)...");
+    const raw = await gemini(doc.slice(0, 14000) + "\n\n---\n\n" + extractTemplate(src, "PACK_INSTRUCTION") + dnaSuffix(dna), 0.9);
+    const json = raw.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
+    await writeFile(path.join(opts.outDir, "packaging.json"), json);
+    const parsed = JSON.parse(json);
+    manifest.packaging = { titles: parsed.titles?.length ?? 0, thumbnails: parsed.thumbnails?.length ?? 0, tags: parsed.tags?.length ?? 0 };
+    log(`    title ${manifest.packaging.titles} · thumbnail ${manifest.packaging.thumbnails} · tag ${manifest.packaging.tags}`);
+  } catch (err) { log(`    ✗ ${err.message}`); manifest.packaging = { error: String(err.message) }; }
+}
+
+if (!opts.skipShorts) {
+  try {
+    log("  สร้างสคริปต์ Shorts...");
+    const out = await gemini(doc.slice(0, 14000) + "\n\n---\n\n" + extractTemplate(src, "SHORTS_INSTRUCTION") + dnaSuffix(dna), 0.8);
+    await writeFile(path.join(opts.outDir, "shorts.md"), out);
+    manifest.shorts = { clips: (out.match(/^##\s*Short\s*\d/gim) || []).length, file: "shorts.md" };
+    log(`    ${manifest.shorts.clips} คลิป → shorts.md`);
+  } catch (err) { log(`    ✗ ${err.message}`); manifest.shorts = { error: String(err.message) }; }
+}
+
+manifest.qcFinal = { total: computeQC(ctx, dna).total };
 await writeFile(path.join(opts.outDir, "manifest.json"), JSON.stringify(manifest, null, 2));
-log(`\nเสร็จแล้ว → ${opts.outDir}/manifest.json\n`);
+log(`\nเสร็จแล้ว → ${opts.outDir}/manifest.json  ·  QC ${manifest.qcFinal.total.toFixed(1)}/10\n`);
