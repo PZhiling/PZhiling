@@ -34,6 +34,34 @@ inauthentic/repetitive-content patterns.
 - Client-side persistence: input draft, result, history, and competitor
   watchlist are saved in `localStorage`.
 
+## Produce an episode without a browser
+
+`scripts/produce.mjs` runs the pipeline on a machine instead of in a tab, which
+is what a 74-beat episode needs: nothing dies when a phone locks, images do not
+compete with the browser's storage quota, and every artefact is written to disk
+as it is produced, so an interrupted run resumes instead of restarting.
+
+```bash
+export GOOGLE_TTS_API_KEY=... GEMINI_API_KEY=...   # OPENAI_API_KEY for --provider openai
+node scripts/produce.mjs plans/scripts/ep01-the-competence-trap.md
+```
+
+It splits the script on its cues, synthesises one audio file per beat, measures
+each one, rewrites the script, storyboard and description timestamps onto the
+real audio, and generates the storyboard frames — chaining a reference frame
+through each ANCHOR run so consecutive frames read as one place.
+
+| Flag | |
+| --- | --- |
+| `--provider gemini\|openai` | image model, `gemini-2.5-flash-image` or `gpt-image-2` |
+| `--only-anchors`, `--limit n` | narrow a run — useful for comparing providers on one ANCHOR run |
+| `--voice`, `--delay`, `--out` | TTS voice, pause between image calls, output directory |
+| `--skip-audio`, `--skip-images`, `--force` | run one half, or regenerate what is cached |
+
+Output lands in `out/<script>/`: per-beat audio, a concatenated `voiceover.mp3`,
+`images/<provider>/`, the retimed script, and `manifest.json` with the measured
+timeline. MP3 durations are read from frame headers, so ffmpeg is not required.
+
 ## Architecture
 
 - **Client** — React 19 + Vite + TypeScript + Tailwind CSS v4.
