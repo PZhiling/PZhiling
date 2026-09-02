@@ -23,7 +23,7 @@
  * Keys come from the environment, never from a flag, so they stay out of shell
  * history: GOOGLE_TTS_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY.
  */
-import { readFile, writeFile, mkdir, readdir, stat } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
