@@ -9,7 +9,7 @@ GitHub Pages แล้วเรียก Gemini/TTS ตรงจากเบร�
 
 1. เปิด repo บน **github.com** → **Settings** → **Pages**
 2. Source: **Deploy from a branch** → Branch:
-   `claude/file-reading-zip-creation-dmdarb` + โฟลเดอร์ **/docs** → **Save**
+   `main` + โฟลเดอร์ **/docs** → **Save**
 3. รอ ~1 นาที ได้ URL: **https://pzhiling.github.io/PZhiling/**
 4. เปิด URL → กล่อง **🔑 API Keys** → ใส่ `GEMINI_API_KEY`
    (ขอฟรีที่ aistudio.google.com/apikey) และ `GOOGLE_TTS_API_KEY` ถ้าใช้เสียง
@@ -54,7 +54,7 @@ repo นี้มี `Dockerfile` พร้อม deploy แล้ว ทำจ�
 2. เมนู ☰ → **Cloud Run** → **Create service** →
    เลือก **"Continuously deploy from a repository"** → **Set up with Cloud Build**
 3. เชื่อมบัญชี GitHub → เลือก repo **`PZhiling/PZhiling`**
-   → branch **`claude/file-reading-zip-creation-dmdarb`**
+   → branch **`main`**
    → Build type: **Dockerfile** (ระบบเจอไฟล์ให้อัตโนมัติ)
 4. ตั้งค่า service:
    - Region: **asia-southeast1 (Singapore)** — ใกล้ไทยสุด
