@@ -1812,7 +1812,14 @@ function analyzeResult(md, save, opts) {
   const words = (scriptSrc.replace(tsRe, "").match(/[A-Za-z][A-Za-z'’-]*/g) || []).length;
   const estSec = Math.round((words / 150) * 60);
   const ts = parseTs(scriptSrc);
-  const total = Math.max(estSec, ts.length ? ts[ts.length - 1].sec + 15 : 0);
+  /* Once the cues have been retimed to real audio the tail is known, not
+     guessed — keeping the 150-wpm figure here would leave `total` longer than
+     the voiceover and flag the closing beat as a visual freeze that does not
+     exist. Match on the last cue so this only applies to the retimed document. */
+  const voReal = lastVo && lastVo.applied && ts.length && lastVo.beats.length
+    && Math.abs(ts[ts.length - 1].sec - lastVo.beats[lastVo.beats.length - 1].start) < 2
+    ? lastVo.real : 0;
+  const total = voReal || Math.max(estSec, ts.length ? ts[ts.length - 1].sec + 15 : 0);
   const segs = ts.map((t, i) => {
     const end = i + 1 < ts.length ? ts[i + 1].sec : total;
     const gap = end - t.sec;
@@ -1827,7 +1834,7 @@ function analyzeResult(md, save, opts) {
   const sb = storyboardTs(phases.p2 || md);
   const missing = sb ? ts.filter((t) => !sb.has(t.sec)) : [];
   const coverage = sb && ts.length ? Math.round(((ts.length - missing.length) / ts.length) * 100) : null;
-  current = { md, phases, words, estSec, ts, total, segs, sb, missing, coverage, brollImgs: keptImgs || {}, ...(keptGen || {}) };
+  current = { md, phases, words, estSec, voReal, ts, total, segs, sb, missing, coverage, brollImgs: keptImgs || {}, ...(keptGen || {}) };
   // The working document and its images survive a reload (restoreWorkdoc)
   store.set("workdoc", md);
   if (keptImgs) saveBrollImgs(); else idb.del("brollImgs");
@@ -1839,13 +1846,13 @@ function analyzeResult(md, save, opts) {
 function renderWorkspace() {
   const c = current;
   $("#workspace").hidden = false;
-  const mins = c.estSec ? (c.estSec / 60).toFixed(1) : "–";
+  const mins = c.voReal ? (c.voReal / 60).toFixed(1) : c.estSec ? (c.estSec / 60).toFixed(1) : "–";
   const freezes = c.segs.filter((s) => s.sev === "crit").length;
   const qcls = c.qc.total >= 8.5 ? "good" : c.qc.total >= 7 ? "warn" : "crit";
   $("#tiles").innerHTML = `
     <div class="tile ${qcls}"><div class="v">${c.qc.total.toFixed(1)}</div><div class="l">คะแนน QC /10</div></div>
     <div class="tile"><div class="v">${c.words.toLocaleString()}</div><div class="l">คำ (สคริปต์ EN)</div></div>
-    <div class="tile"><div class="v">${mins}</div><div class="l">นาทีโดยประมาณ @150 คำ/นาที</div></div>
+    <div class="tile"><div class="v">${mins}</div><div class="l">${c.voReal ? "นาทีจากเสียงจริง" : "นาทีโดยประมาณ @150 คำ/นาที"}</div></div>
     <div class="tile"><div class="v">${c.ts.length}</div><div class="l">Timestamp ในสคริปต์</div></div>
     <div class="tile ${freezes ? "crit" : "good"}"><div class="v">${freezes}</div><div class="l">จุดเสี่ยงภาพค้าง</div></div>
     ${c.coverage !== null ? `<div class="tile ${c.coverage === 100 ? "good" : c.coverage >= 70 ? "warn" : "crit"}"><div class="v">${c.coverage}%</div><div class="l">คิวภาพครอบคลุมสคริปต์</div></div>` : ""}
@@ -2150,6 +2157,7 @@ function applyRetime(map, note) {
 /* Plan B: cumulative sums of the measured beats. */
 function retimeFromAudio() {
   if (!lastVo) return;
+  lastVo.applied = true;
   applyRetime(new Map(lastVo.beats.map((b) => [b.sec, b.start])), "ปรับ timestamp ตามเสียงจริงแล้ว ✓");
 }
 /* Plan C: one ratio for the whole episode. Removes the systematic drift without
