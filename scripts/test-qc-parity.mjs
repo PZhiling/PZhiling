@@ -16,38 +16,10 @@
 import { execFileSync } from "node:child_process";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { REPO, appSource, lift } from "./lib/app-source.mjs";
 
-const REPO = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const scriptPath = process.argv[2] || path.join(REPO, "plans/scripts/ep01-the-competence-trap.md");
-const app = await readFile(path.join(REPO, "artifact/podcast-seo-studio.html"), "utf8");
-
-/* Pull a top-level declaration out of the app source. Functions are taken by
-   matching braces from the header; consts by scanning to the semicolon that
-   closes them, which is enough for the array and regex literals used here. */
-function lift(src, name) {
-  let i = src.indexOf(`function ${name}(`);
-  if (i >= 0) {
-    const open = src.indexOf("{", i);
-    let depth = 0;
-    for (let j = open; j < src.length; j++) {
-      if (src[j] === "{") depth++;
-      else if (src[j] === "}" && --depth === 0) return src.slice(i, j + 1);
-    }
-  }
-  i = src.search(new RegExp(`^const ${name} = `, "m"));
-  if (i < 0) throw new Error(`หา ${name} ในไฟล์แอปไม่เจอ`);
-  /* Stop at the first ";" that closes a parsable declaration. Counting braces
-     instead would trip over regex quantifiers like {1,6}; an arrow body simply
-     needs a later semicolon than the naive first one. */
-  let end = i;
-  for (let n = 0; n < 40; n++) {
-    end = src.indexOf(";\n", end + 1);
-    if (end < 0) break;
-    const slice = src.slice(i, end + 1);
-    try { new Function(slice); return slice; } catch { /* keep extending */ }
-  }
-  throw new Error(`ตัด ${name} ออกมาแล้วไม่เป็นโค้ดที่ถูกต้อง`);
-}
+const app = await appSource();
 
 const NEEDED = ["AI_PHRASES", "GREETING", "TS_LINE", "SCRIPT_END", "tsRe",
   "narrationOnly", "rhythmStats", "parseTs", "isTableLine", "splitRow", "isSepRow",

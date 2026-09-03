@@ -11,7 +11,9 @@
  *   node scripts/produce.mjs plans/scripts/ep01-the-competence-trap.md
  *
  * Flags
- *   --provider gemini|openai   image model (default gemini)
+ *   --provider manual|gemini|openai
+ *                              manual (default) writes a ChatGPT prompt pack and
+ *                              generates nothing; the other two call the image API
  *   --voice <name>             TTS voice (default en-US-Journey-D)
  *   --out <dir>                output directory (default out/<script name>)
  *   --only-anchors             generate images for ANCHOR rows only
@@ -26,6 +28,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { REPO, appSource, extractTemplate, phase2Spec, liftAll } from "./lib/app-source.mjs";
 
 /* ── arguments ───────────────────────────────────────────────────────────── */
 const argv = process.argv.slice(2);
@@ -49,7 +52,7 @@ if (!scriptPath) {
 }
 
 const opts = {
-  provider: flag("provider", "gemini"),
+  provider: flag("provider", "manual"),
   voice: flag("voice", "en-US-Journey-D"),
   outDir: flag("out", path.join("out", path.basename(scriptPath).replace(/\.mdx?$/i, ""))),
   onlyAnchors: has("only-anchors"),
@@ -65,8 +68,8 @@ const opts = {
   dna: flag("dna", null),
   force: has("force"),
 };
-if (!["gemini", "openai"].includes(opts.provider)) {
-  console.error(`--provider ต้องเป็น gemini หรือ openai (ได้รับ "${opts.provider}")`);
+if (!["manual", "gemini", "openai"].includes(opts.provider)) {
+  console.error(`--provider ต้องเป็น manual, gemini หรือ openai (ได้รับ "${opts.provider}")`);
   process.exit(1);
 }
 
@@ -538,6 +541,73 @@ async function imageOpenAI(prompt, ref) {
 
 const IMAGE_PROVIDERS = { gemini: imageGemini, openai: imageOpenAI };
 
+/* Images are the one step where the API is the expensive way round: a ChatGPT
+   subscription generates them at no per-image cost, and an episode is 74 of
+   them. So the default stops here and hands over a prompt pack instead. The
+   batching, the continuation wording and the rule that a batch never cuts
+   through an ANCHOR run all come from the app, lifted rather than restated. */
+async function runManual(rows, dir) {
+  const src = await appSource();
+  const { cgptPrompt, cgptBatches, cgptBatchPrompt } = liftAll(src, ["cgptPrompt", "cgptBatches", "cgptBatchPrompt"]);
+
+  // ANCHOR run membership, the same grouping renderBroll computes
+  let runId = 0;
+  const seq = rows.map((r, i) => {
+    if (r.mode !== "ANCHOR") return 0;
+    if (i === 0 || rows[i - 1].mode !== "ANCHOR") runId++;
+    return runId;
+  });
+  const runPos = {}, pos = [];
+  seq.forEach((s, i) => { if (s) { runPos[s] = (runPos[s] || 0) + 1; pos[i] = runPos[s]; } });
+
+  const outDir = path.join(dir, "images", "manual");
+  const promptDir = path.join(outDir, "prompts");
+  await mkdir(promptDir, { recursive: true });
+
+  const batches = cgptBatches(rows, seq, pos, 8);
+  for (let k = 0; k < batches.length; k++) {
+    await writeFile(path.join(promptDir, `batch-${pad(k + 1)}.txt`),
+      cgptBatchPrompt(rows, batches[k], seq, pos, k + 1, batches.length));
+  }
+  // one file per row too, for redoing a single frame later
+  for (let i = 0; i < rows.length; i++) {
+    await writeFile(path.join(promptDir, `row-${pad(i)}.txt`), cgptPrompt(rows[i], pos[i] > 1));
+  }
+
+  const missing = rows.map((_, i) => i).filter((i) => !existsSync(path.join(outDir, `row-${pad(i)}.png`)));
+  const lines = [
+    "# ภาพของตอนนี้ — เจนมือใน ChatGPT",
+    "",
+    `${rows.length} ภาพ · ${batches.length} ชุด · ยังขาด ${missing.length} ภาพ`,
+    "",
+    "## วิธีทำ",
+    "",
+    `1. เปิด \`prompts/batch-${pad(1)}.txt\` คัดลอก**ทั้งไฟล์** ไปวางในแชท ChatGPT`,
+    "2. ทำครบชุดในแชทเดียว — เฟรมที่ 2 เป็นต้นไปของชุด ANCHOR อ้างภาพก่อนหน้าในแชทนั้น เปิดแชทใหม่แล้วโมทีฟจะหลุด",
+    "3. ถ้ามันสร้างไม่ครบในทีเดียว พิมพ์ว่า \"ทำต่อ\" — prompt สั่งไว้แล้วว่าห้ามข้ามหมายเลข",
+    "4. เซฟภาพลงโฟลเดอร์นี้ตามชื่อในตารางข้างล่าง",
+    "5. รัน produce.mjs ซ้ำเพื่อดูว่ายังขาดภาพไหน",
+    "",
+    "ชุดถัดไปเปิดแชทใหม่ได้ เพราะชุดไม่เคยตัดกลางซีเควนซ์ ANCHOR",
+    "",
+    "## เซฟภาพชื่ออะไร",
+    "",
+    "| ชุด | ภาพที่ | เซฟเป็น | Timestamp | โหมด |",
+    "|---|---|---|---|---|",
+  ];
+  batches.forEach((idxs, k) => idxs.forEach((i, n) => {
+    lines.push(`| ${k + 1} | ${n + 1} | \`row-${pad(i)}.png\` | ${String(rows[i].ts).replace(/[\[\]]/g, "")} | ${rows[i].mode === "ANCHOR" ? `ANCHOR ชุด ${seq[i]} เฟรม ${pos[i]}` : "SUPPORT"} |`);
+  }));
+  lines.push("", "แก้ภาพเดียวทีหลัง: ใช้ `prompts/row-<เลขเดียวกับชื่อไฟล์ภาพ>.txt`");
+  await writeFile(path.join(outDir, "README.md"), lines.join("\n") + "\n");
+
+  log(`  ภาพ (เจนมือ): เขียน ${batches.length} ชุด · ${rows.length} prompt รายภาพ`);
+  log(`    → ${path.join(outDir, "README.md")}`);
+  if (missing.length) log(`    ยังขาด ${missing.length}/${rows.length} ภาพ`);
+  else log(`    ครบทุกภาพแล้ว ✓`);
+  return { mode: "manual", batches: batches.length, rows: rows.length, missing: missing.length };
+}
+
 async function runImages(rows, dir) {
   const gen = IMAGE_PROVIDERS[opts.provider];
   const outDir = path.join(dir, "images", opts.provider);
@@ -577,29 +647,6 @@ async function runImages(rows, dir) {
   log(`  ภาพ (${opts.provider}): เจนใหม่ ${made} · ใช้ของเดิม ${cached} · ล้มเหลว ${failed.length}`);
   failed.forEach((f) => log(`    ✗ ${f}`));
   return { made, cached, failed };
-}
-
-/* ── prompts come from the app file, never a second copy ──
-   The Studio's Phase 2 rules, packaging and Shorts instructions are long and
-   are edited as the show's voice changes. Reading them out of
-   artifact/podcast-seo-studio.html at run time means the CLI cannot fall
-   behind the app the way a pasted duplicate would. */
-const REPO = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-let _app = null;
-async function appSource() {
-  if (_app === null) _app = await readFile(path.join(REPO, "artifact/podcast-seo-studio.html"), "utf8");
-  return _app;
-}
-function extractTemplate(src, name) {
-  const open = `const ${name} = \``;
-  const i = src.indexOf(open);
-  if (i < 0) return null;
-  const end = src.indexOf("`;", i + open.length);
-  return end < 0 ? null : src.slice(i + open.length, end);
-}
-function phase2Spec(src) {
-  const m = src.match(/(?:^|\n)##[ \t]*Phase[ \t]*2\b[\s\S]*?(?=\n##[ \t]*Phase[ \t]*3\b|$)/);
-  return m ? m[0].trim() : "";
 }
 
 async function gemini(prompt, temp = 0.7) {
@@ -713,7 +760,9 @@ if (!opts.skipAudio && beats.length) {
 
 if (!opts.skipImages && ctx.rows.length) {
   log("");
-  manifest.images = await runImages(ctx.rows, opts.outDir);
+  manifest.images = opts.provider === "manual"
+    ? await runManual(ctx.rows, opts.outDir)
+    : await runImages(ctx.rows, opts.outDir);
 } else if (!opts.skipImages) {
   log("\n  ! ไม่พบตาราง storyboard — ข้ามขั้นภาพ (ใส่ --make-storyboard เพื่อให้สร้างเอง)");
 }
