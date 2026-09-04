@@ -189,7 +189,8 @@ function storyboardRows(doc) {
   if (board) {
     return board.shots.map((sh, i) => {
       const prev = board.shots[i - 1], next = board.shots[i + 1];
-      const declared = String(sh.mode || "").toUpperCase();
+      // a person's override in the Studio wins over the planner's A/B/C mode
+      const declared = String(sh.mode_override || sh.mode || "").toUpperCase();
       // a run's opening frame belongs to the run, or nothing chains off it
       const continues = !!sh.continuity_id && (
         (prev && prev.continuity_id === sh.continuity_id) ||
@@ -585,7 +586,8 @@ const IMAGE_PROVIDERS = { gemini: imageGemini, openai: imageOpenAI };
    through an ANCHOR run all come from the app, lifted rather than restated. */
 async function runManual(rows, dir) {
   const src = await appSource();
-  const { cgptPrompt, cgptBatches, cgptBatchPrompt } = liftAll(src, ["cgptPrompt", "cgptBatches", "cgptBatchPrompt"]);
+  const { cgptPrompt, cgptBatches, cgptBatchPrompt, reusePlan } =
+    liftAll(src, ["cgptPrompt", "cgptBatches", "cgptBatchPrompt", "reusePlan"]);
 
   // ANCHOR run membership, the same grouping renderBroll computes
   let runId = 0;
@@ -601,7 +603,12 @@ async function runManual(rows, dir) {
   const promptDir = path.join(outDir, "prompts");
   await mkdir(promptDir, { recursive: true });
 
-  const batches = cgptBatches(rows, seq, pos, 8);
+  /* A shot carrying reuse_of is a copy of an earlier frame, so it never goes
+     into a batch: asking ChatGPT for it again returns something close but not
+     the same, which is exactly what reuse exists to avoid. */
+  const reuse = reusePlan(rows);
+  const reuseIdx = Object.keys(reuse).map(Number);
+  const batches = cgptBatches(rows, seq, pos, 8, reuse);
   for (let k = 0; k < batches.length; k++) {
     await writeFile(path.join(promptDir, `batch-${pad(k + 1)}.txt`),
       cgptBatchPrompt(rows, batches[k], seq, pos, k + 1, batches.length));
@@ -611,11 +618,14 @@ async function runManual(rows, dir) {
     await writeFile(path.join(promptDir, `row-${pad(i)}.txt`), cgptPrompt(rows[i], pos[i] > 1));
   }
 
-  const missing = rows.map((_, i) => i).filter((i) => !existsSync(path.join(outDir, `row-${pad(i)}.png`)));
+  const wanted = rows.map((_, i) => i).filter((i) => reuse[i] === undefined);
+  const missing = wanted.filter((i) => !existsSync(path.join(outDir, `row-${pad(i)}.png`)));
   const lines = [
     "# ภาพของตอนนี้ — เจนมือใน ChatGPT",
     "",
-    `${rows.length} ภาพ · ${batches.length} ชุด · ยังขาด ${missing.length} ภาพ`,
+    `คิว ${rows.length} · ต้องเจนจริง ${wanted.length} ภาพ` +
+      (reuseIdx.length ? ` · ใช้ภาพซ้ำ ${reuseIdx.length}` : "") +
+      ` · ${batches.length} ชุด · ยังขาด ${missing.length} ภาพ`,
     "",
     "## วิธีทำ",
     "",
@@ -635,14 +645,22 @@ async function runManual(rows, dir) {
   batches.forEach((idxs, k) => idxs.forEach((i, n) => {
     lines.push(`| ${k + 1} | ${n + 1} | \`row-${pad(i)}.png\` | ${String(rows[i].ts).replace(/[\[\]]/g, "")} | ${rows[i].mode === "ANCHOR" ? `ANCHOR ชุด ${seq[i]} เฟรม ${pos[i]}` : "SUPPORT"} |`);
   }));
+  if (reuseIdx.length) {
+    lines.push("", "## คิวที่ใช้ภาพซ้ำ (ไม่ต้องเจนใหม่)", "",
+      "| Timestamp | ก๊อปไฟล์ | มาเป็น |", "|---|---|---|");
+    reuseIdx.forEach((i) => lines.push(
+      `| ${String(rows[i].ts).replace(/[\[\]]/g, "")} | \`row-${pad(reuse[i])}.png\` | \`row-${pad(i)}.png\` |`));
+  }
   lines.push("", "แก้ภาพเดียวทีหลัง: ใช้ `prompts/row-<เลขเดียวกับชื่อไฟล์ภาพ>.txt`");
   await writeFile(path.join(outDir, "README.md"), lines.join("\n") + "\n");
 
-  log(`  ภาพ (เจนมือ): เขียน ${batches.length} ชุด · ${rows.length} prompt รายภาพ`);
+  log(`  ภาพ (เจนมือ): เขียน ${batches.length} ชุด · ${rows.length} prompt รายภาพ` +
+    (reuseIdx.length ? ` · ใช้ภาพซ้ำ ${reuseIdx.length} คิว` : ""));
   log(`    → ${path.join(outDir, "README.md")}`);
   if (missing.length) log(`    ยังขาด ${missing.length}/${rows.length} ภาพ`);
   else log(`    ครบทุกภาพแล้ว ✓`);
-  return { mode: "manual", batches: batches.length, rows: rows.length, missing: missing.length };
+  return { mode: "manual", batches: batches.length, rows: rows.length,
+    generate: wanted.length, reuse: reuseIdx.length, missing: missing.length };
 }
 
 async function runImages(rows, dir) {

@@ -794,6 +794,15 @@ HUMAN 25% · ENVIRONMENT 25% · METAPHOR 20% · DATA 15% · OBJECT 15%
 .vt-OBJECT{background:#3d3730;color:#e6dccd}.vt-NA{background:var(--panel2);color:var(--muted)}
 .vbar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:6px 0 2px}
 .vbar>span{display:block}
+.vqrow{display:grid;grid-template-columns:20px minmax(140px,220px) 1fr;gap:9px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line)}
+.vqrow:last-child{border-bottom:0}
+.vqrow .vqdot{font-weight:700;text-align:center;line-height:1.2}
+.vqrow .vqname{font-size:.8rem;font-weight:600}
+.vqrow .vqdet{font-size:.78rem;color:var(--muted)}
+.vq-ok .vqdot{color:var(--good)}
+.vq-warn .vqdot{color:var(--warn)}
+.vq-fail .vqdot{color:var(--crit)}
+.vq-fail .vqname{color:var(--crit)}
 .vprio{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
 </style>
 <script type="text/plain" id="visualdnadefault">
@@ -2599,7 +2608,10 @@ function storyboardRows() {
       const continues = !!sh.continuity_id && (
         (prev && prev.continuity_id === sh.continuity_id) ||
         (next && next.continuity_id === sh.continuity_id));
-      const declared = String(sh.mode || "").toUpperCase();
+      /* The planner writes mode A/B/C (§21); ANCHOR/SUPPORT is derived from
+         continuity. A person who overrides it in the editor writes a separate
+         field, so their choice wins without erasing what the planner decided. */
+      const declared = String(sh.mode_override || sh.mode || "").toUpperCase();
       return {
         ts: String(sh.timecode || ""),
         visual: String(sh.shot_description || ""),
@@ -2683,6 +2695,202 @@ function sbNextTs(ts) {
   const s = (+m[1]) * 60 + (+m[2]) + 15;
   return `[${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}]`;
 }
+/* ── Editing a JSON board (§24) ──
+   The table editor rewrites one markdown line; a JSON board has no line to
+   rewrite, so it needs its own commit path. Everything the planner decided is
+   editable here — type, function, priority, camera, lens, hold and its reason,
+   continuity, reuse, both prompts — plus three locks that say "this was
+   decided, leave it alone" when the board is regenerated. Serialising with two
+   spaces keeps the fence readable if it is ever edited by hand. */
+function sbJsonDoc() {
+  const src = current.phases.p2 || current.md;
+  const m = src.match(/```storyboard\s*([\s\S]*?)```/);
+  if (!m) return null;
+  try { return { doc: JSON.parse(m[1]), body: m[1], full: m[0] }; } catch { return null; }
+}
+function sbCommitJson(mutate) {
+  const j = sbJsonDoc();
+  if (!j) { toast("อ่าน Storyboard JSON ไม่ได้ — กดวิเคราะห์ใหม่แล้วลองอีกครั้ง"); return false; }
+  if (mutate(j.doc) === false) return false;
+  const fence = "```storyboard\n" + JSON.stringify(j.doc, null, 2) + "\n```";
+  if (!current.md.includes(j.full)) { toast("หากระดานเดิมในเอกสารไม่เจอ — กดวิเคราะห์ใหม่"); return false; }
+  const md = current.md.replace(j.full, () => fence);
+  const btn = $("#subtabs button[aria-selected='true']");
+  const view = btn ? btn.dataset.view : "broll";
+  $("#pastebox").value = md;
+  analyzeResult(md, false, { keepImgs: true });
+  showView(view);
+  return true;
+}
+const SB_LOCKS = [
+  ["lock_continuity", "ล็อกความต่อเนื่อง"],
+  ["lock_character", "ล็อกตัวละคร"],
+  ["lock_location", "ล็อกสถานที่"],
+];
+const SB_FLAGS = [
+  ["reusable", "ใช้ซ้ำได้"],
+  ["mandatory", "ต้องมี"],
+  ["optional", "ตัดได้ถ้าเวลาไม่พอ"],
+];
+function sbEditJsonForm(i, sh, mode) {
+  const t = (id, label, val, rows) => `<label class="f" for="sbj-${id}-${i}">${label}</label>` +
+    (rows ? `<textarea id="sbj-${id}-${i}" rows="${rows}">${esc(String(val ?? ""))}</textarea>`
+          : `<input type="text" id="sbj-${id}-${i}" value="${esc(String(val ?? ""))}" />`);
+  /* An unset field keeps a blank option so opening the editor cannot silently
+     assign the first value in the list to a shot nobody typed one for. */
+  const sel = (id, label, val, opts) => {
+    const cur = String(val || "").toUpperCase();
+    const known = opts.includes(cur);
+    return `<label class="f" for="sbj-${id}-${i}">${label}</label>
+    <select id="sbj-${id}-${i}">${known ? "" : `<option value="" selected>— ไม่ระบุ —</option>`}${
+      opts.map((o) => `<option${cur === o ? " selected" : ""}>${o}</option>`).join("")}</select>`;
+  };
+  const box = (list, obj) => `<div class="hint" style="display:flex;gap:12px;flex-wrap:wrap;margin:6px 0">` +
+    list.map(([k, lbl]) => `<label><input type="checkbox" id="sbj-${k}-${i}"${obj[k] ? " checked" : ""} /> ${lbl}</label>`).join("") + `</div>`;
+  return `
+    ${t("timecode", "Timecode", sh.timecode)}
+    ${sel("visual_type", "ประเภทภาพ", sh.visual_type || "", VTYPES)}
+    ${t("visual_function", "หน้าที่ของภาพ", sh.visual_function)}
+    ${t("visual_priority", "ลำดับความสำคัญ (1–5)", sh.visual_priority)}
+    ${t("shot_description", "คำอธิบายช็อต", sh.shot_description, 2)}
+    ${t("camera", "การเคลื่อนกล้อง", sh.camera)}
+    ${t("lens", "เลนส์", sh.lens)}
+    ${t("hold_seconds", "ถือภาพ (วินาที)", sh.hold_seconds)}
+    ${t("hold_reason", "ทำไมถือเท่านี้", sh.hold_reason, 2)}
+    ${t("continuity_id", "Continuity ID", sh.continuity_id)}
+    ${t("location", "สถานที่", sh.location)}
+    ${t("characters", "ตัวละคร (คั่นด้วยจุลภาค)", [].concat(sh.characters || []).join(", "))}
+    ${t("reuse_of", "ใช้ภาพซ้ำจากช็อต id", sh.reuse_of)}
+    ${t("image_prompt", "Image Prompt", sh.image_prompt, 5)}
+    ${t("video_prompt", "Video Prompt", sh.video_prompt || sh.motion_prompt, 3)}
+    ${sel("mode_override", "Visual Mode (บังคับทับค่าที่ระบบคิดให้)", sh.mode_override || "", ["ANCHOR", "SUPPORT"])}
+    <div class="hint" style="margin:8px 0 0">ล็อกไว้ไม่ให้ถูกเขียนทับเมื่อสร้างกระดานใหม่</div>
+    ${box(SB_LOCKS, sh)}
+    <div class="hint" style="margin:0">สถานะของช็อต</div>
+    ${box(SB_FLAGS, sh)}
+    <div class="btnrow">
+      <button class="btn small" data-sbsave="${i}">💾 บันทึก</button>
+      <button class="btn small" data-sbdup="${i}">⧉ ทำสำเนา</button>
+      <button class="btn small" data-sbsplit="${i}">✂️ แยกเป็นสองช็อต</button>
+      <button class="btn small" data-sbmerge="${i}">⇥ รวมกับช็อตถัดไป</button>
+      <button class="btn small" data-sbadd="${i}">➕ แทรกช็อตถัดไป</button>
+      <button class="btn small" data-sbdel="${i}">🗑 ลบช็อตนี้</button>
+    </div>`;
+}
+const sbv = (id, i) => ($("#sbj-" + id + "-" + i)?.value ?? "").trim();
+const sbc = (id, i) => !!$("#sbj-" + id + "-" + i)?.checked;
+function sbSaveJson(i) {
+  const ok = sbCommitJson((doc) => {
+    const sh = doc.shots[i];
+    if (!sh) { toast("หาช็อตเดิมไม่เจอ"); return false; }
+    sh.timecode = sbv("timecode", i);
+    sh.visual_type = sbv("visual_type", i);
+    sh.visual_function = sbv("visual_function", i);
+    const p = Number(sbv("visual_priority", i));
+    if (p) sh.visual_priority = p; else delete sh.visual_priority;
+    sh.shot_description = sbv("shot_description", i);
+    sh.camera = sbv("camera", i);
+    sh.lens = sbv("lens", i);
+    const h = Number(sbv("hold_seconds", i));
+    if (h) sh.hold_seconds = h; else delete sh.hold_seconds;
+    sh.hold_reason = sbv("hold_reason", i);
+    sh.continuity_id = sbv("continuity_id", i);
+    sh.location = sbv("location", i);
+    const chars = sbv("characters", i).split(/\s*,\s*/).filter(Boolean);
+    if (chars.length) sh.characters = chars; else delete sh.characters;
+    const reuse = sbv("reuse_of", i);
+    if (reuse) sh.reuse_of = reuse; else delete sh.reuse_of;
+    sh.image_prompt = sbv("image_prompt", i);
+    sh.video_prompt = sbv("video_prompt", i);
+    const mo = sbv("mode_override", i);
+    if (mo) sh.mode_override = mo; else delete sh.mode_override;
+    [...SB_LOCKS, ...SB_FLAGS].forEach(([k]) => { if (sbc(k, i)) sh[k] = true; else delete sh[k]; });
+  });
+  if (ok) toast("บันทึกช็อตแล้ว ✓");
+}
+/* A new shot inherits the look of the one it follows — same continuity, camera
+   and lens — because a shot inserted into a run almost always belongs to it.
+   The prompt starts empty on purpose: an inherited prompt would generate a
+   near-duplicate and read as finished when it is not. */
+function sbInsertJson(i, over) {
+  const ts = window.prompt("Timecode ของช็อตใหม่", sbNextTs((storyboardRows() || [])[i]?.ts) || "[0:00]");
+  if (!ts) return;
+  const ok = sbCommitJson((doc) => {
+    const src = doc.shots[i] || {};
+    doc.shots.splice(i + 1, 0, Object.assign({
+      id: "s" + Date.now().toString(36),
+      timecode: ts.trim(),
+      visual_type: src.visual_type || "",
+      visual_function: "",
+      shot_description: "",
+      camera: src.camera || "",
+      lens: src.lens || "",
+      continuity_id: src.continuity_id || "",
+      location: src.location || "",
+      image_prompt: "",
+      video_prompt: "",
+      mode: src.mode || "SUPPORT",
+    }, over || {}));
+  });
+  if (ok) { shiftBrollImgs(i + 1, +1); toast("แทรกช็อต " + ts.trim() + " แล้ว"); }
+}
+function sbAddJson(i) { sbInsertJson(i); }
+function sbDupJson(i) {
+  const ok = sbCommitJson((doc) => {
+    const src = doc.shots[i];
+    if (!src) return false;
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = "s" + Date.now().toString(36);
+    copy.timecode = sbNextTs(src.timecode) || src.timecode;
+    // a duplicate is a reuse by definition — say so, so it is never billed twice
+    copy.reuse_of = src.id || copy.reuse_of || "";
+    doc.shots.splice(i + 1, 0, copy);
+  });
+  if (ok) { shiftBrollImgs(i + 1, +1); toast("ทำสำเนาช็อตแล้ว — ตั้งไว้เป็นใช้ภาพซ้ำ ✓"); }
+}
+/* Splitting means the beat needs two images, so the second half starts blank
+   and inherits nothing but the scene it lives in. Merging is the reverse: the
+   later shot's time disappears and its description is folded in. */
+function sbSplitJson(i) {
+  const r = (storyboardRows() || [])[i];
+  if (!r) return;
+  const half = Math.max(1, Math.round((Number(r.shot?.hold_seconds) || 8) / 2));
+  const ok = sbCommitJson((doc) => {
+    const src = doc.shots[i];
+    if (!src) return false;
+    if (src.hold_seconds) src.hold_seconds = half;
+    const b = JSON.parse(JSON.stringify(src));
+    b.id = "s" + Date.now().toString(36);
+    b.timecode = sbNextTs(src.timecode) || src.timecode;
+    b.shot_description = "";
+    b.image_prompt = "";
+    b.video_prompt = "";
+    delete b.reuse_of;
+    doc.shots.splice(i + 1, 0, b);
+  });
+  if (ok) { shiftBrollImgs(i + 1, +1); toast("แยกเป็นสองช็อตแล้ว — เติมรายละเอียดครึ่งหลัง"); }
+}
+function sbMergeJson(i) {
+  const rows = storyboardRows() || [];
+  if (!rows[i + 1]) { toast("ไม่มีช็อตถัดไปให้รวม"); return; }
+  if (!confirm("รวมช็อต " + rows[i + 1].ts + " เข้ากับ " + rows[i].ts + " ? ช็อตถัดไปจะถูกลบ")) return;
+  const ok = sbCommitJson((doc) => {
+    const a = doc.shots[i], b = doc.shots[i + 1];
+    if (!a || !b) return false;
+    a.hold_seconds = (Number(a.hold_seconds) || 0) + (Number(b.hold_seconds) || 0) || a.hold_seconds;
+    if (b.shot_description && b.shot_description !== a.shot_description) {
+      a.shot_description = [a.shot_description, b.shot_description].filter(Boolean).join(" → ");
+    }
+    doc.shots.splice(i + 1, 1);
+  });
+  if (ok) { shiftBrollImgs(i + 2, -1, i + 1); toast("รวมช็อตแล้ว ✓"); }
+}
+function sbDelJson(i) {
+  const r = (storyboardRows() || [])[i];
+  if (!r || !confirm("ลบช็อต " + r.ts + " ออกจาก Storyboard?")) return;
+  const ok = sbCommitJson((doc) => { doc.shots.splice(i, 1); });
+  if (ok) { shiftBrollImgs(i + 1, -1, i); toast("ลบช็อตแล้ว ✓"); }
+}
 function sbToggleEdit(i) {
   const box = $("#sbedit-" + i);
   if (!box) return;
@@ -2696,6 +2904,9 @@ function sbToggleEdit(i) {
   if (!r) return;
   box.dataset.open = "1";
   if (card) card.classList.add("editing");
+  // a JSON board carries fields the six-column table never had, so it gets the
+  // fuller form; the table editor stays exactly as it was for legacy documents
+  if (r.shot) { box.innerHTML = sbEditJsonForm(i, r.shot, r.mode); wireSbEdit(); return; }
   box.innerHTML = `
     <label class="f" for="sbe-v-${i}">Visual Suggestion</label>
     <textarea id="sbe-v-${i}" rows="2">${esc(r.visual)}</textarea>
@@ -2757,10 +2968,14 @@ function sbDel(i) {
   if (ok) { shiftBrollImgs(i + 1, -1, i); toast("ลบแถวแล้ว ✓"); }
 }
 function wireSbEdit() {
+  const json = !!storyboardShots();
   $$("#brollbody [data-sbedit]").forEach((b) => b.onclick = () => sbToggleEdit(+b.dataset.sbedit));
-  $$("#brollbody [data-sbsave]").forEach((b) => b.onclick = () => sbSave(+b.dataset.sbsave));
-  $$("#brollbody [data-sbadd]").forEach((b) => b.onclick = () => sbAdd(+b.dataset.sbadd));
-  $$("#brollbody [data-sbdel]").forEach((b) => b.onclick = () => sbDel(+b.dataset.sbdel));
+  $$("#brollbody [data-sbsave]").forEach((b) => b.onclick = () => (json ? sbSaveJson : sbSave)(+b.dataset.sbsave));
+  $$("#brollbody [data-sbadd]").forEach((b) => b.onclick = () => (json ? sbAddJson : sbAdd)(+b.dataset.sbadd));
+  $$("#brollbody [data-sbdel]").forEach((b) => b.onclick = () => (json ? sbDelJson : sbDel)(+b.dataset.sbdel));
+  $$("#brollbody [data-sbdup]").forEach((b) => b.onclick = () => sbDupJson(+b.dataset.sbdup));
+  $$("#brollbody [data-sbsplit]").forEach((b) => b.onclick = () => sbSplitJson(+b.dataset.sbsplit));
+  $$("#brollbody [data-sbmerge]").forEach((b) => b.onclick = () => sbMergeJson(+b.dataset.sbmerge));
 }
 /* ───────── ChatGPT image prompts ─────────
    GPT Image reads instructions, not comma-separated tags, and it silently adds
@@ -2861,6 +3076,45 @@ function brollName(r, i, seqNo, posNo) {
   const tail = r.mode === "ANCHOR" && seqNo ? "-s" + seqNo + "f" + posNo : "";
   return String(i + 1).padStart(2, "0") + "_" + ts + "_" + (r.mode || "CUE") + tail + ".png";
 }
+/* ── Reuse (§17): an image asked for twice should be paid for once ──
+   A shot may carry reuse_of naming an earlier shot's id. That is a plan
+   decision, not a shortcut: an establishing shot returning at the close means
+   something precisely because it is the same frame. We resolve those
+   references to row indices, generate only the sources, and copy the pixels
+   across afterwards. A reference that points forward, at itself, or at nothing
+   is ignored rather than guessed at. */
+function reusePlan(rows) {
+  const byId = new Map();
+  rows.forEach((r, i) => { const id = r.shot?.id; if (id && !byId.has(String(id))) byId.set(String(id), i); });
+  const from = {};
+  rows.forEach((r, i) => {
+    const ref = String(r.shot?.reuse_of || "").trim();
+    if (!ref) return;
+    const src = byId.get(ref);
+    if (src === undefined || src >= i) return;   // must resolve, and must come first
+    from[i] = from[src] !== undefined ? from[src] : src;  // collapse chains to the original
+  });
+  return from;
+}
+
+/* Cost is an estimate and says so. The rate moves and differs by provider and
+   resolution; what matters here is the order of magnitude and, more than that,
+   the count — reuse and already-generated rows are the two numbers that
+   actually change the bill. */
+const IMG_RATE_USD = 0.04;   // Gemini/Imagen and GPT Image both sit near this at standard size
+const USD_THB = 36;
+function costPlan(rows, reuse, skipExisting) {
+  let gen = 0, reused = 0, have = 0;
+  rows.forEach((_, i) => {
+    if (reuse[i] !== undefined) { reused++; return; }
+    if (skipExisting && current.brollImgs?.[i]) { have++; return; }
+    gen++;
+  });
+  const usd = gen * IMG_RATE_USD;
+  return { gen, reused, have,
+    usd, costText: `~$${usd.toFixed(2)} (≈ ${Math.round(usd * USD_THB)} บาท ที่ $${IMG_RATE_USD}/ภาพ)` };
+}
+
 let brollBatch = null;
 window.addEventListener("beforeunload", (e) => {
   if (brollBatch) { e.preventDefault(); e.returnValue = ""; }
@@ -2870,6 +3124,19 @@ async function runBrollBatch(rows, pos) {
   const stat = $("#batchstat");
   const skip = $("#batchskip").checked, chain = $("#batchchain").checked;
   const delay = Math.max(0, Number($("#batchdelay").value) || 0) * 1000;
+  const reuse = reusePlan(rows);
+  /* Approval gate (§23): the last moment this costs nothing. Say plainly how
+     many images will actually be billed and what that comes to, then wait to
+     be told to go ahead. */
+  const plan = costPlan(rows, reuse, skip);
+  if (!confirm(`กำลังจะเจนภาพจริง\n\n` +
+    `คิวทั้งหมด ${rows.length}\n` +
+    `เจนจริง ${plan.gen} ภาพ\n` +
+    (plan.reused ? `ใช้ภาพซ้ำ ${plan.reused} คิว (ไม่เสียเงิน)\n` : "") +
+    (plan.have ? `มีภาพแล้ว ${plan.have} คิว (ข้าม)\n` : "") +
+    `\nประมาณการค่าใช้จ่าย ${plan.costText}\n` +
+    `เวลาโดยประมาณ ${fmtMMSS(plan.gen * (6 + (Math.max(0, Number($("#batchdelay").value) || 0))))}\n\n` +
+    `ตรวจ Visual QC แล้วใช่ไหม? กด OK เพื่อเริ่ม`)) return;
   brollBatch = { stop: false };
   $("#batchrun").disabled = true;
   $("#batchstop").hidden = false;
@@ -2878,6 +3145,16 @@ async function runBrollBatch(rows, pos) {
   for (let i = 0; i < rows.length; i++) {
     if (brollBatch.stop) break;
     if (skip && current.brollImgs[i]) { skipped++; continue; }
+    // a reuse row is a copy, not a generation — no API call, no cost
+    if (reuse[i] !== undefined) {
+      if (current.brollImgs[reuse[i]]) {
+        current.brollImgs[i] = current.brollImgs[reuse[i]];
+        const rslot = $("[data-imgslot='" + i + "']");
+        if (rslot) rslot.innerHTML = `<img src="${current.brollImgs[i]}" alt="b-roll" />`;
+        saveBrollImgs();
+      }
+      skipped++; continue;
+    }
     // chain within an ANCHOR run only — a SUPPORT frame stands on its own
     const ref = chain && pos[i] > 1 ? current.brollImgs[i - 1] : null;
     let ok = false;
@@ -2929,9 +3206,12 @@ function downloadBrollZip(rows, seq, pos) {
    Group first (each ANCHOR run is one indivisible group, each SUPPORT row its
    own), then pack groups up to the batch size — inside a batch the references
    become "same scene as image N", which resolves within the single message. */
-function cgptBatches(rows, seq, pos, size) {
+function cgptBatches(rows, seq, pos, size, skip) {
   const groups = [];
   rows.forEach((r, i) => {
+    // a reuse row is an existing image under a second timecode; asking for it
+    // again would produce a near-match, which is worse than the copy
+    if (skip && skip[i] !== undefined) return;
     if (r.mode === "ANCHOR" && seq[i] && pos[i] > 1 && groups.length) groups[groups.length - 1].push(i);
     else groups.push([i]);
   });
@@ -3072,6 +3352,170 @@ function visualRhythm(rows) {
   return { notes, avgHold: avg, typed: known.length };
 }
 
+/* ── Visual QC (§19): fourteen checks on the plan, not on the pictures ──
+   Every one of these is answerable before a single image is generated, which
+   is the point: a board that fails here fails cheaply. Each check reports
+   ok / warn / fail plus the shots responsible, so a fix is one click away in
+   the B-Roll tab. Nothing here rewrites the board. */
+function visualQC(rows, parsed) {
+  const shots = rows.map((r) => r.shot || {});
+  const n = rows.length;
+  const meta = parsed?.meta || {};
+  const label = (i) => String(rows[i].ts).replace(/[\[\]]/g, "") || "#" + (i + 1);
+  const out = [];
+  const add = (name, bad, msg, okMsg, hard) => out.push({
+    name,
+    state: !bad.length ? "ok" : hard ? "fail" : "warn",
+    detail: bad.length ? msg(bad) : okMsg,
+    where: bad.map(label),
+  });
+  const idx = (fn) => rows.map((_, i) => i).filter(fn);
+
+  // 1 — every shot is anchored to a moment in the script
+  add("ทุกช็อตมี Timecode",
+    idx((i) => !/\d{1,3}:\d{2}/.test(String(rows[i].ts))),
+    (b) => `${b.length} ช็อตไม่มีเวลากำกับ — วางลงไทม์ไลน์ไม่ได้`,
+    `ครบทั้ง ${n} ช็อต`, true);
+
+  // 2 — the shot knows what kind of image it is
+  add("ระบุประเภทภาพ (visual_type)",
+    idx((i) => !vtypeOf(rows[i])),
+    (b) => `${b.length} ช็อตไม่ได้ระบุประเภท หรือระบุนอกชุดที่รู้จัก`,
+    "ระบุครบ", true);
+
+  // 3 — and why it exists
+  add("ระบุหน้าที่ของภาพ (visual_function)",
+    idx((i) => !String(shots[i].visual_function || "").trim()),
+    (b) => `${b.length} ช็อตไม่บอกว่าภาพนี้ทำหน้าที่อะไรกับเรื่อง`,
+    "ระบุครบ");
+
+  // 4 — how long it holds, and on what grounds
+  add("ระยะถือภาพมีเหตุผลกำกับ",
+    idx((i) => !(Number(shots[i].hold_seconds) > 0) || !String(shots[i].hold_reason || "").trim()),
+    (b) => `${b.length} ช็อตขาด hold_seconds หรือ hold_reason — ระยะถือภาพกลายเป็นค่าเริ่มต้น`,
+    "ทุกช็อตบอกได้ว่าทำไมถือเท่านี้");
+
+  // 5 — a prompt short enough to be generic will generate something generic
+  add("Prompt ละเอียดพอจะเจนได้",
+    idx((i) => String(shots[i].image_prompt || rows[i].prompt || "").trim().length < 120),
+    (b) => `${b.length} ช็อตมี prompt สั้นกว่า 120 ตัวอักษร — จะได้ภาพกลาง ๆ ที่ใช้แทนกันได้หมด`,
+    "ยาวพอทุกช็อต");
+
+  // 6 — two identical prompts mean one of them was never planned
+  (() => {
+    const seen = new Map(), dup = [];
+    rows.forEach((r, i) => {
+      const k = String(shots[i].image_prompt || r.prompt || "").trim().toLowerCase();
+      if (!k) return;
+      if (seen.has(k)) dup.push(i); else seen.set(k, i);
+    });
+    add("ไม่มี Prompt ซ้ำคำต่อคำ", dup,
+      (b) => `${b.length} ช็อตใช้ prompt เดียวกับช็อตก่อนหน้า — ถ้าตั้งใจใช้ซ้ำ ให้ใส่ reuse_of แทน`,
+      "ไม่พบ prompt ซ้ำ");
+  })();
+
+  // 7 — a continuity run has to actually chain
+  (() => {
+    const bad = idx((i) => {
+      if (rows[i].mode !== "ANCHOR") return false;
+      const id = shots[i].continuity_id;
+      if (!id) return true;
+      const prevSame = i > 0 && shots[i - 1].continuity_id === id;
+      return prevSame && !String(shots[i].reuse_of || shots[i].continuity_id || "").trim();
+    });
+    add("ชุด ANCHOR ต่อเนื่องกันจริง", bad,
+      (b) => `${b.length} ช็อตในชุดต่อเนื่องไม่มี continuity_id — เฟรมถัดไปจะไม่รู้ว่าต้องอ้างภาพไหน`,
+      "ทุกชุดมีสายต่อเนื่องครบ", true);
+  })();
+
+  // 8 — people who appear must be described once, centrally
+  (() => {
+    const chars = (meta.continuity?.characters || []).map((c) => String(c.id || c.name || c).toLowerCase());
+    const bad = idx((i) => {
+      // explicit list if present, otherwise the "character@location" convention
+      // the Phase 2 schema uses for continuity_id
+      // an id without "@" names a scene, not a person — infer nothing from it
+      const cid = String(shots[i].continuity_id || "");
+      const ids = shots[i].characters ? [].concat(shots[i].characters)
+        : cid.includes("@") ? [cid.split("@")[0]] : [];
+      return ids.map((c) => String(c).trim().toLowerCase()).filter(Boolean)
+        .some((c) => !chars.includes(c));
+    });
+    add("ตัวละครถูกประกาศไว้ส่วนกลาง", bad,
+      (b) => `${b.length} ช็อตอ้างตัวละครที่ไม่ได้อยู่ใน continuity.characters — หน้าตาจะเพี้ยนข้ามช็อต`,
+      chars.length ? `ประกาศไว้ ${chars.length} ตัว` : "ตอนนี้ไม่มีตัวละครซ้ำข้ามช็อต");
+  })();
+
+  // 9 — same for places
+  (() => {
+    const locs = (meta.continuity?.locations || []).map((l) => String(l.id || l.name || l).toLowerCase());
+    const bad = idx((i) => {
+      const parts = String(shots[i].continuity_id || "").split("@");
+      const id = String(shots[i].location || parts[1] || "").trim().toLowerCase();
+      return id && locs.length && !locs.includes(id);
+    });
+    add("สถานที่ถูกประกาศไว้ส่วนกลาง", bad,
+      (b) => `${b.length} ช็อตอ้างสถานที่ที่ไม่ได้ประกาศไว้`,
+      locs.length ? `ประกาศไว้ ${locs.length} แห่ง` : "ตอนนี้ไม่มีสถานที่ซ้ำข้ามช็อต");
+  })();
+
+  // 10 — camera language is a decision, so it has to be stated
+  add("ระบุภาษากล้อง",
+    idx((i) => !String(shots[i].camera || "").trim()),
+    (b) => `${b.length} ช็อตไม่ระบุการเคลื่อนกล้อง`,
+    "ระบุครบ");
+
+  // 11 — anchors carry the motion, so they need a video prompt
+  (() => {
+    const anchors = idx((i) => rows[i].mode === "ANCHOR");
+    const bad = anchors.filter((i) => !String(shots[i].video_prompt || shots[i].motion_prompt || "").trim());
+    add("ช็อต ANCHOR มี Video Prompt", bad,
+      (b) => `${b.length}/${anchors.length} ช็อต ANCHOR ยังไม่มี prompt สำหรับวิดีโอ`,
+      anchors.length ? `ครบทั้ง ${anchors.length} ช็อต` : "ตอนนี้ไม่มีช็อต ANCHOR");
+  })();
+
+  // 12 — the board has to cover the script it illustrates
+  out.push({
+    name: "คิวภาพครอบคลุมสคริปต์",
+    state: current.coverage === null ? "warn" : current.coverage >= 90 ? "ok" : current.coverage >= 70 ? "warn" : "fail",
+    detail: current.coverage === null ? "เทียบกับ Timestamp ในสคริปต์ไม่ได้"
+      : `ครอบคลุม ${current.coverage}% ของ Timestamp ในสคริปต์`,
+    where: (current.missing || []).slice(0, 8).map((t) => String(t).replace(/[\[\]]/g, "")),
+  });
+
+  // 13 — a long stretch with no new image is a stretch the viewer leaves
+  (() => {
+    const secs = rows.map((r) => { const m = String(r.ts).match(/(\d{1,3}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; })
+      .filter((s) => s !== null).sort((a, b) => a - b);
+    const gaps = [];
+    for (let i = 1; i < secs.length; i++) if (secs[i] - secs[i - 1] > 45) gaps.push(fmtMMSS(secs[i - 1]));
+    out.push({
+      name: "ไม่มีช่วงภาพนิ่งยาวเกิน 45 วิ",
+      state: !gaps.length ? "ok" : gaps.length > 3 ? "fail" : "warn",
+      detail: gaps.length ? `พบ ${gaps.length} ช่วงที่ภาพค้างนานเกินไป` : "ไม่พบช่วงที่ภาพค้างนาน",
+      where: gaps.slice(0, 8),
+    });
+  })();
+
+  // 14 — the holds should add up to roughly the episode
+  (() => {
+    const sum = shots.reduce((a, s) => a + (Number(s.hold_seconds) || 0), 0);
+    const target = current.voReal || current.total || current.estSec || 0;
+    const off = target ? Math.abs(sum - target) / target : 0;
+    out.push({
+      name: "ระยะถือภาพรวมเท่ากับความยาวตอน",
+      state: !sum || !target ? "warn" : off <= 0.2 ? "ok" : off <= 0.35 ? "warn" : "fail",
+      detail: !sum ? "ยังไม่มี hold_seconds ให้รวม" : !target ? "ยังไม่รู้ความยาวตอน"
+        : `รวม ${fmtMMSS(sum)} เทียบกับตอนยาว ${fmtMMSS(target)} (ต่างกัน ${Math.round(off * 100)}%)`,
+      where: [],
+    });
+  })();
+
+  const fails = out.filter((c) => c.state === "fail").length;
+  const warns = out.filter((c) => c.state === "warn").length;
+  return { checks: out, fails, warns, passes: out.length - fails - warns };
+}
+
 function renderVisualMap() {
   const body = $("#vmapbody");
   const rows = storyboardRows();
@@ -3086,6 +3530,17 @@ function renderVisualMap() {
   const counts = {};
   VTYPES.forEach((t) => { counts[t] = rows.filter((r) => vtypeOf(r) === t).length; });
   const rh = visualRhythm(rows);
+  const vq = visualQC(rows, parsed);
+  const VQICON = { ok: "✓", warn: "!", fail: "✕" };
+  const vqHtml = `<details class="card" style="margin-bottom:10px" ${vq.fails ? "open" : ""}>
+    <summary style="cursor:pointer;font-weight:600">🔍 Visual QC — ผ่าน ${vq.passes} · ควรดู ${vq.warns} · ต้องแก้ ${vq.fails}</summary>
+    <p class="hint">ทุกข้อตรวจได้ก่อนเจนภาพ กระดานที่ตกตรงนี้ตกแบบไม่เสียเงิน</p>
+    ${vq.checks.map((c) => `<div class="vqrow vq-${c.state}">
+      <span class="vqdot">${VQICON[c.state]}</span>
+      <span class="vqname">${esc(c.name)}</span>
+      <span class="vqdet">${esc(c.detail)}${c.where.length ? ` · ${esc(c.where.slice(0, 6).join(", "))}${c.where.length > 6 ? " …" : ""}` : ""}</span>
+    </div>`).join("")}
+  </details>`;
   const style = parsed?.meta?.episode_visual_style;
   const chars = parsed?.meta?.continuity?.characters?.length || 0;
   const locs = parsed?.meta?.continuity?.locations?.length || 0;
@@ -3101,6 +3556,7 @@ function renderVisualMap() {
     ${rh.notes.length ? `<div class="card" style="margin-bottom:10px"><div class="eyebrow">จังหวะภาพ</div>${rh.notes.map((n) => `<div style="font-size:.83rem;margin-top:4px">• ${esc(n)}</div>`).join("")}
       <p class="hint" style="margin-top:8px">ข้อสังเกต ไม่ใช่ข้อผิดพลาด — ถ้าเรื่องได้ประโยชน์จากความต่อเนื่อง ปล่อยไว้ได้</p></div>`
       : `<div class="card" style="margin-bottom:10px"><div class="eyebrow">จังหวะภาพ</div><div style="font-size:.83rem">ไม่พบจุดที่น่ากังวล</div></div>`}
+    ${vqHtml}
     ${rows.map((r) => {
       const t = vtypeOf(r) || "NA";
       const sh = r.shot || {};
@@ -3148,7 +3604,14 @@ function renderBroll() {
   const hasModes = rows.some((r) => r.mode);
 
   const genCount = rows.filter((_, i) => current.brollImgs[i]).length;
+  const reuse = reusePlan(rows);
+  const plan = costPlan(rows, reuse, true);
+  const planLine = `คิว ${rows.length} · ต้องเจนจริง <strong>${plan.gen}</strong> ภาพ` +
+    (plan.reused ? ` · ใช้ภาพซ้ำ ${plan.reused}` : "") +
+    (plan.have ? ` · มีแล้ว ${plan.have}` : "") +
+    ` · ประมาณ ${plan.costText}`;
   body.innerHTML = `
+  <div class="hint" style="margin:0 0 8px">💰 ${planLine}</div>
   ${hasGemini() ? `<div class="card" style="margin-bottom:10px">
     <div class="btnrow" style="margin-top:0">
       <button class="btn primary" id="batchrun">▶️ เจนทั้งหมดตามลำดับ (${rows.length} คิว)</button>
@@ -3163,7 +3626,7 @@ function renderBroll() {
     <div class="hint" id="batchstat" style="margin-top:4px">มีภาพแล้ว ${genCount}/${rows.length} คิว · ล้มเหลวจะลองใหม่อัตโนมัติ 3 ครั้ง แล้วข้ามไปคิวถัดไป</div>
   </div>` : ""}
   ${(() => {
-    const b = cgptBatches(rows, seq, pos, 8);
+    const b = cgptBatches(rows, seq, pos, 8, reuse);
     return `<details class="card" style="margin-bottom:10px">
       <summary style="cursor:pointer;font-weight:600">🤖 ChatGPT แบบชุด — ${b.length} ชุด (สูงสุด 8 ภาพ/ชุด)</summary>
       <p class="hint">ก๊อปทีละชุดไปวางในแชท ChatGPT เดียวกัน ชุดหนึ่งสั่งได้ถึง 8 ภาพในข้อความเดียว ถ้ามันสร้างไม่ครบในทีเดียว พิมพ์ว่า "ทำต่อ" ได้ — prompt สั่งไว้แล้วว่าห้ามข้ามหมายเลข<br />
