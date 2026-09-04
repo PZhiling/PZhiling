@@ -23,7 +23,7 @@ const app = await appSource();
 
 const NEEDED = ["AI_PHRASES", "GREETING", "TS_LINE", "SCRIPT_END", "tsRe",
   "narrationOnly", "rhythmStats", "parseTs", "isTableLine", "splitRow", "isSepRow",
-  "storyboardRows", "computeQC"];
+  "storyboardShots", "storyboardRows", "computeQC"];
 const lifted = NEEDED.map((n) => lift(app, n)).join("\n");
 
 /* produce.mjs prints the context it scores; ask it for that rather than

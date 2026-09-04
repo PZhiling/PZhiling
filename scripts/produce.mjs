@@ -168,7 +168,43 @@ const isTableLine = (l) => /\|/.test(l) && l.trim().length > 2;
 const splitRow = (l) => l.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((c) => c.trim());
 const isSepRow = (cells) => cells.every((c) => /^:?-{2,}:?$/.test(c));
 
+/* The storyboard arrives as JSON now — twenty-odd fields per shot is more than
+   a markdown table can carry without the model dropping columns. Boards written
+   before that still parse through the table reader below, and both shapes come
+   back as the same row object so the rest of this script is unchanged.
+   ANCHOR is derived, not authored: a shot continuing the previous shot's
+   continuity_id is the one that must be generated in sequence off a reference
+   frame, which is what ANCHOR always meant. */
+function storyboardShots(doc) {
+  const m = doc.match(/```storyboard\s*([\s\S]*?)```/);
+  if (!m) return null;
+  try {
+    const parsed = JSON.parse(m[1]);
+    return Array.isArray(parsed?.shots) && parsed.shots.length ? parsed : null;
+  } catch { return null; }
+}
+
 function storyboardRows(doc) {
+  const board = storyboardShots(doc);
+  if (board) {
+    return board.shots.map((sh, i) => {
+      const prev = board.shots[i - 1], next = board.shots[i + 1];
+      const declared = String(sh.mode || "").toUpperCase();
+      // a run's opening frame belongs to the run, or nothing chains off it
+      const continues = !!sh.continuity_id && (
+        (prev && prev.continuity_id === sh.continuity_id) ||
+        (next && next.continuity_id === sh.continuity_id));
+      return {
+        ts: String(sh.timecode || ""),
+        visual: String(sh.shot_description || ""),
+        prompt: String(sh.image_prompt || ""),
+        motion: String(sh.video_prompt || sh.motion_prompt || ""),
+        mode: /ANCHOR/.test(declared) ? "ANCHOR" : /SUPPORT/.test(declared) ? "SUPPORT"
+          : continues ? "ANCHOR" : "SUPPORT",
+        shot: sh,
+      };
+    });
+  }
   const rows = [];
   let header = null;
   for (const line of doc.split("\n")) {
@@ -191,6 +227,7 @@ function storyboardRows(doc) {
       prompt: (c[pi >= 0 ? pi : Math.min(3, c.length - 1)] || "").replace(/^"|"$/g, ""),
       motion: mi >= 0 ? (c[mi] || "").replace(/^"|"$/g, "") : "",
       mode: /ANCHOR/.test(mode) ? "ANCHOR" : /SUPPORT/.test(mode) ? "SUPPORT" : "",
+      shot: null,
     };
   });
 }
