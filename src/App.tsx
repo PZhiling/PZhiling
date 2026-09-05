@@ -229,8 +229,12 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem("podcast_history", JSON.stringify(history));
-    updateLastSynced();
+    try {
+      localStorage.setItem("podcast_history", JSON.stringify(history));
+      updateLastSynced();
+    } catch (error) {
+      console.warn('History could not be saved: browser storage is unavailable or full.');
+    }
   }, [history]);
 
   const [watchlist, setWatchlist] = useState<CompetitorItem[]>(() => {

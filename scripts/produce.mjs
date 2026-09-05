@@ -26,26 +26,38 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { splitText, fingerprint } from './production-utils.mjs';
 
 /* ── arguments ───────────────────────────────────────────────────────────── */
 const argv = process.argv.slice(2);
 const VALUE_FLAGS = new Set(["provider", "voice", "out", "limit", "delay"]);
+const BOOL_FLAGS = new Set(['only-anchors', 'skip-audio', 'skip-images', 'force', 'dry-run', 'help']);
 const flags = {};
 const positional = [];
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (!a.startsWith("--")) { positional.push(a); continue; }
   const name = a.slice(2);
-  if (VALUE_FLAGS.has(name)) flags[name] = argv[++i];
-  else flags[name] = true;
+  if (VALUE_FLAGS.has(name)) {
+    if (!argv[i + 1] || argv[i + 1].startsWith('--')) throw new Error(`Missing value for --${name}`);
+    flags[name] = argv[++i];
+  } else if (BOOL_FLAGS.has(name)) flags[name] = true;
+  else throw new Error(`Unknown option --${name}`);
 }
 const flag = (name, fallback) => (flags[name] === undefined ? fallback : flags[name]);
 const has = (name) => flags[name] === true;
 const scriptPath = positional[0];
 
-if (!scriptPath) {
+if (!scriptPath || has('help')) {
   console.error("ใช้: node scripts/produce.mjs <script.md> [--provider gemini|openai] [--only-anchors] [--limit n]");
-  process.exit(1);
+  console.log('Options: --provider gemini|openai --voice NAME --out DIR --limit N --delay MS --only-anchors --skip-audio --skip-images --force --dry-run');
+  process.exit(has('help') ? 0 : 1);
+}
+if (positional.length !== 1) throw new Error('Expected exactly one script file');
+for (const name of ['limit', 'delay']) {
+  if (flags[name] !== undefined && (!/^\d+$/.test(flags[name]) || !Number.isSafeInteger(Number(flags[name])))) {
+    throw new Error(`--${name} must be a non-negative integer`);
+  }
 }
 
 const opts = {
@@ -173,6 +185,7 @@ function mp3Seconds(buf) {
     const samples = verBits === 3 ? 1152 : 576;
     const frameLen = Math.floor((samples / 8) * bitrate / sampleRate) + padding;
     if (frameLen < 4) { i++; continue; }
+    if (i + frameLen > buf.length) throw new Error('Truncated MP3 frame');
     seconds += samples / sampleRate;
     frames++;
     i += frameLen;
@@ -183,7 +196,14 @@ function mp3Seconds(buf) {
 
 /* ── text to speech, one file per beat ───────────────────────────────────── */
 async function synthBeat(text, voice, key) {
+  const chunks = splitText(text);
+  if (chunks.length > 1) {
+    const audio = [];
+    for (const chunk of chunks) audio.push(await synthBeat(chunk, voice, key));
+    return Buffer.concat(audio);
+  }
   const res = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
+    signal: AbortSignal.timeout(120000),
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
@@ -194,6 +214,7 @@ async function synthBeat(text, voice, key) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+  if (typeof data.audioContent !== 'string' || !data.audioContent) throw new Error('No audio content returned');
   return Buffer.from(data.audioContent, "base64");
 }
 
@@ -219,12 +240,16 @@ async function runAudio(doc, beats, dir) {
   const measured = [];
   for (let i = 0; i < beats.length; i++) {
     const file = path.join(dir, "audio", `beat-${pad(i)}.mp3`);
+    const cacheKey = fingerprint({ text: beats[i].text, voice: opts.voice, version: 2 });
+    const metaFile = file + '.sha256';
     let buf;
-    if (!opts.force && existsSync(file)) { buf = await readFile(file); cached++; }
+    if (!opts.force && existsSync(file) && await readFile(metaFile, 'utf8').catch(() => '') === cacheKey) { buf = await readFile(file); cached++; }
     else {
       process.stdout.write(`\r  พากย์ ${i + 1}/${beats.length} ...`);
       buf = await synthBeat(beats[i].text, opts.voice, key);
+      mp3Seconds(buf);
       await writeFile(file, buf);
+      await writeFile(metaFile, cacheKey);
       made++;
     }
     const dur = mp3Seconds(buf);
@@ -258,6 +283,7 @@ async function imageGemini(prompt, ref) {
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent",
     {
       method: "POST",
+      signal: AbortSignal.timeout(120000),
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         contents: [{ role: "user", parts }],
@@ -288,10 +314,12 @@ async function imageOpenAI(prompt, ref) {
     form.append("size", OPENAI_SIZE);
     form.append("image", new Blob([ref], { type: "image/png" }), "reference.png");
     res = await fetch("https://api.openai.com/v1/images/edits", {
+      signal: AbortSignal.timeout(120000),
       method: "POST", headers: { Authorization: `Bearer ${key}` }, body: form,
     });
   } else {
     res = await fetch("https://api.openai.com/v1/images/generations", {
+      signal: AbortSignal.timeout(120000),
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({ model: "gpt-image-2", prompt: prompt + SAFETY, size: OPENAI_SIZE }),
@@ -301,7 +329,11 @@ async function imageOpenAI(prompt, ref) {
   if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
   const first = data?.data?.[0];
   if (first?.b64_json) return Buffer.from(first.b64_json, "base64");
-  if (first?.url) return Buffer.from(await (await fetch(first.url)).arrayBuffer());
+  if (first?.url) {
+    const download = await fetch(first.url, { signal: AbortSignal.timeout(120000) });
+    if (!download.ok) throw new Error(`Image download HTTP ${download.status}`);
+    return Buffer.from(await download.arrayBuffer());
+  }
   throw new Error("ไม่ได้ภาพกลับมาจาก OpenAI");
 }
 
@@ -325,8 +357,10 @@ async function runImages(rows, dir) {
 
   for (const i of todo) {
     const file = path.join(outDir, `row-${pad(i)}.png`);
-    if (!opts.force && existsSync(file)) { prev = await readFile(file); cached++; continue; }
     const prompt = rows[i].prompt || rows[i].visual;
+    const cacheKey = fingerprint({ prompt, provider: opts.provider, reference: chainFrom[i] && prev ? fingerprint(prev.toString('base64')) : null, version: 2 });
+    const metaFile = file + '.sha256';
+    if (!opts.force && existsSync(file) && await readFile(metaFile, 'utf8').catch(() => '') === cacheKey) { prev = await readFile(file); cached++; continue; }
     if (!prompt) { failed.push(`${rows[i].ts} — ไม่มี prompt`); prev = null; continue; }
     let ok = false;
     for (let attempt = 1; attempt <= 3 && !ok; attempt++) {
@@ -334,6 +368,7 @@ async function runImages(rows, dir) {
       try {
         const buf = await gen(prompt, chainFrom[i] ? prev : null);
         await writeFile(file, buf);
+        await writeFile(metaFile, cacheKey);
         prev = buf; ok = true; made++;
       } catch (err) {
         if (attempt === 3) { failed.push(`${rows[i].ts} — ${String(err.message).slice(0, 80)}`); prev = null; }
@@ -352,6 +387,15 @@ async function runImages(rows, dir) {
 const doc = await readFile(scriptPath, "utf8");
 const beats = narrationBeats(doc);
 const rows = storyboardRows(doc);
+if (!opts.skipAudio && !beats.length) throw new Error('No narration beats found; use --skip-audio for image-only work');
+if (!opts.skipImages && !rows.length) throw new Error('No storyboard found; use --skip-images for audio-only work');
+if (has('dry-run')) {
+  log(JSON.stringify({ beats: beats.length, storyboardRows: rows.length, provider: opts.provider, outDir: opts.outDir, skipAudio: opts.skipAudio, skipImages: opts.skipImages }, null, 2));
+  process.exit(0);
+}
+for (const key of [!opts.skipAudio && 'GOOGLE_TTS_API_KEY', !opts.skipImages && (opts.provider === 'gemini' ? 'GEMINI_API_KEY' : 'OPENAI_API_KEY')].filter(Boolean)) {
+  if (!process.env[key] || process.env[key] === '...') throw new Error(`Missing ${key}`);
+}
 await mkdir(opts.outDir, { recursive: true });
 
 log(`\n${path.basename(scriptPath)}`);
@@ -392,4 +436,7 @@ if (!opts.skipImages && rows.length) {
 }
 
 await writeFile(path.join(opts.outDir, "manifest.json"), JSON.stringify(manifest, null, 2));
-log(`\nเสร็จแล้ว → ${opts.outDir}/manifest.json\n`);
+if (manifest.images?.failed.length) {
+  process.exitCode = 1;
+  log(`\nงานยังไม่ครบ → ${opts.outDir}/manifest.json\n`);
+} else log(`\nเสร็จแล้ว → ${opts.outDir}/manifest.json\n`);

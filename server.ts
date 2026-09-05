@@ -4,6 +4,7 @@ import os from 'os';
 import path from 'path';
 import textToSpeech from '@google-cloud/text-to-speech';
 import { GoogleGenAI } from '@google/genai';
+import { splitText } from './scripts/production-utils.mjs';
 
 // Load local environment variables for development. `.env.local` takes
 // precedence over `.env`; on AI Studio these are already injected into
@@ -73,10 +74,14 @@ async function startServer() {
   // TTS Endpoint
   app.post('/api/tts', async (req, res) => {
     try {
-      const { text, voiceName, languageCode } = req.body;
+      const { text, voiceName, languageCode } = req.body ?? {};
       
-      if (!text) {
+      if (typeof text !== 'string' || !text.trim()) {
         return res.status(400).json({ error: 'Missing text parameter' });
+      }
+      if (Buffer.byteLength(text, 'utf8') > 200000) return res.status(413).json({ error: 'Text exceeds 200000 bytes' });
+      if ([voiceName, languageCode].some(value => value !== undefined && (typeof value !== 'string' || !value.trim()))) {
+        return res.status(400).json({ error: 'Voice and language must be non-empty strings' });
       }
 
       const apiKey = process.env.GOOGLE_TTS_API_KEY;
@@ -89,7 +94,7 @@ async function startServer() {
 
       // Build request
       const request = {
-        input: { text: text.substring(0, 4900) }, // Truncate just in case to avoid limit
+        input: { text: '' },
         voice: {
           languageCode: languageCode || 'en-US',
           name: voiceName || 'en-US-Journey-D', // Default to Journey premium
@@ -100,12 +105,18 @@ async function startServer() {
       };
 
       // Perform the TTS request
-      const [response] = await client.synthesizeSpeech(request);
-      
-      const audioContent = response.audioContent;
-      if (!audioContent) {
-        throw new Error('No audio content returned from Google TTS');
+      const audioParts: Buffer[] = [];
+      try {
+        for (const chunk of splitText(text)) {
+          const [response] = await client.synthesizeSpeech({ ...request, input: { text: chunk } });
+          const content = response.audioContent;
+          if (!content) throw new Error('No audio content returned from Google TTS');
+          audioParts.push(typeof content === 'string' ? Buffer.from(content, 'base64') : Buffer.from(content));
+        }
+      } finally {
+        await client.close();
       }
+      const audioContent = Buffer.concat(audioParts);
 
       // Calculate metadata
       const wordCount = text.trim().split(/\s+/).length;

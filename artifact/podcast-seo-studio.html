@@ -2073,14 +2073,13 @@ function narrationBeats() {
 const cueOf = (sec) => { const t = Math.max(0, Math.round(sec)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
 function chunkText(t, max = 4200) {
   const out = [];
-  let cur = "";
-  for (const para of t.split(/\n+/)) {
-    if ((cur + "\n" + para).length > max) {
-      if (cur) out.push(cur);
-      cur = para.length > max ? para.slice(0, max) : para;
-    } else {
-      cur = cur ? cur + "\n" + para : para;
-    }
+  const encoder = new TextEncoder();
+  let cur = "", bytes = 0;
+  for (const char of t) {
+    const size = encoder.encode(char).length;
+    if (bytes + size > max) { out.push(cur); cur = ""; bytes = 0; }
+    cur += char;
+    bytes += size;
   }
   if (cur) out.push(cur);
   return out;

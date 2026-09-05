@@ -35,9 +35,9 @@ git status --short          # expect: clean
 
 ## After deploying
 
-The site registers a service worker (`manifest.webmanifest`), so a normal
-reload can serve the cached old page. Hard-refresh (Ctrl/Cmd + Shift + R), or
-open it in a private window, before concluding a deploy did not work.
+The manifest defines installation metadata; this snapshot does not register a
+service worker. Hard-refresh (Ctrl/Cmd + Shift + R) if browser or CDN caching
+still shows the old page. Run `npm run build:pages` after changing the artifact.
 
 ## Branches not merged into main
 
