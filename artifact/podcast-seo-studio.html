@@ -420,6 +420,11 @@
       <div style="margin-top:12px">
         <label for="b_dna" style="display:block; font-size:.72rem; font-weight:700; color:var(--muted); margin-bottom:4px">Brand DNA ฉบับเต็ม — กฎกำกับเสียงของรายการ (ฉีดเข้า Prompt ทุกจุด: สคริปต์ / Packaging / Shorts)</label>
         <textarea id="b_dna" style="min-height:200px; font-family:var(--mono); font-size:.74rem; line-height:1.6"></textarea>
+      </div>
+      <div style="margin-top:12px">
+        <label for="b_visual" style="display:block; font-size:.72rem; font-weight:700; color:var(--muted); margin-bottom:4px">Visual DNA — กฎกำกับ<em>ภาพ</em>ของรายการ (ฉีดเข้าทุก Prompt ที่สร้างภาพ: Storyboard / B-Roll / Thumbnail)</label>
+        <textarea id="b_visual" style="min-height:200px; font-family:var(--mono); font-size:.74rem; line-height:1.6"></textarea>
+        <div class="btnrow" style="margin-top:6px"><button class="btn small" id="visualreset">↺ ใส่ค่าเริ่มต้น</button></div>
         <div class="btnrow" style="margin-top:8px"><button class="btn small" id="dnareset">↺ โหลดเทมเพลต DNA เริ่มต้น</button></div>
         <p class="hint" style="margin-top:6px">แก้ข้อความใน [วงเล็บ] ให้เป็นของรายการคุณ — บรรทัด "Banned words:" จะถูก QC Gate ใช้สแกนสคริปต์อัตโนมัติ</p>
       </div>
@@ -518,8 +523,10 @@
         <button role="tab" aria-selected="false" data-view="p3">Phase 3 · สคริปต์</button>
         <button role="tab" aria-selected="false" data-view="qa">✓ QC Gate</button>
         <button role="tab" aria-selected="false" data-view="pack">🎯 Packaging</button>
+        <button role="tab" aria-selected="false" data-view="vmap">🎞 Visual Map</button>
         <button role="tab" aria-selected="false" data-view="broll">🖼 B-Roll</button>
         <button role="tab" aria-selected="false" data-view="shorts">✂️ Shorts</button>
+        <button role="tab" aria-selected="false" data-view="vsim">👀 Phase 4 · ผู้ชมจำลอง</button>
         <button role="tab" aria-selected="false" data-view="retention">📈 Retention</button>
         <button role="tab" aria-selected="false" data-view="sponsor">💰 Sponsor / RPM</button>
       </div>
@@ -554,6 +561,13 @@
         <div id="packbody"></div>
       </div>
 
+      <div class="card" id="vmapview" hidden>
+        <div class="eyebrow">Visual Map</div>
+        <h2>ดูทั้งตอนก่อนเจนภาพสักใบ</h2>
+        <p class="hint">ไทม์ไลน์ของช็อตทั้งตอน พร้อมสัดส่วนประเภทภาพและจุดที่จังหวะภาพอาจซ้ำ — ตรวจตรงนี้ก่อน แล้วค่อยไปเจนที่ B-Roll</p>
+        <div id="vmapbody"></div>
+      </div>
+
       <div class="card" id="brollview" hidden>
         <div class="eyebrow">B-Roll Studio</div>
         <h2>เจนภาพประกอบจาก Storyboard</h2>
@@ -573,6 +587,13 @@
         <h2>ตัดตอนเต็มเป็น Shorts 3 คลิป</h2>
         <p class="hint">Shorts คือท่อส่งคนเข้าตอนเต็ม — สร้างสคริปต์สั้น ~45-60 วิ 3 คลิปจากจุดพีคของตอน พร้อม Hook, CTA และ Hashtags</p>
         <div id="shortsbody"></div>
+      </div>
+
+      <div class="card" id="vsimview" hidden>
+        <div class="eyebrow">Phase 4 · Viewer Simulation</div>
+        <h2>ให้ผู้ชมสามคนดูตอนนี้ก่อนคนจริงจะได้ดู</h2>
+        <p class="hint">จำลองผู้ชมสามคนที่คลิกเข้ามาด้วยเหตุผลต่างกัน แล้วรายงานว่าแต่ละคนออกตรงบรรทัดไหนและเพราะอะไร — พร้อมประโยคที่เขียนมาให้แทนแล้ว ใช้สคริปต์ Phase 3 กับคิวภาพ Phase 2 เป็นวัตถุดิบ</p>
+        <div id="vsimbody"></div>
       </div>
 
       <div class="card" id="retentionview" hidden>
@@ -635,29 +656,126 @@
 ## Phase 2: เลือกหัวข้อ คุณค่า และ Visual Storyboard
 - เลือก 1-3 หัวข้อที่ศักยภาพสูงสุด อธิบายเหตุผลและประโยชน์ SEO (ภาษาไทย)
 - วิเคราะห์ว่าหัวข้อนี้ "แก้ปัญหา" อะไรให้ผู้ฟัง และผู้ฟังได้ "ประโยชน์" อะไร สรุปเป็นข้อๆ
-- สร้างตาราง Visual Storyboard โดยประเมินความยาวคลิปจากสคริปต์ (พูด 150 คำ/นาที) เปลี่ยนภาพทุก 10-15 วินาที คอลัมน์:
-  | Timestamp | Visual Suggestion / แนะนำภาพประกอบ | Reasoning & Viewer Benefit / เหตุผลและประโยชน์ | Google Flow Prompt | Motion Direction | Visual Mode |
-  (Timestamp ต้องอยู่ในรูปแบบ [M:SS] และตรงกับ Timestamp ในสคริปต์ Phase 3 ทุกตัว)
-- คอลัมน์ Motion Direction = คำสั่งสั้นๆ ภาษาอังกฤษสำหรับขั้น image-to-video เช่น "slow push-in, smoke drifts left"
-- กติกา "Google Flow Prompt" ทุกแถว (สำคัญมาก เพราะภาพจะถูกนำไปทำ image-to-video ต่อ):
-  1. ระบุ MOTION CUE ใน prompt เสมอ — สิ่งที่ควรเคลื่อนไหวตามธรรมชาติ 1-2 อย่าง (เช่น drifting smoke, dust particles in light beam, curtain swaying, rain on glass, flickering candle) และมุมกล้อง 1 แบบ: slow push-in / slow pan / subtle parallax
-  2. จัดองค์ประกอบ: subject อยู่กึ่งกลางเฟรม เว้นขอบบน-ล่างอย่างน้อย 15% (headroom สำหรับ push-in และเผื่อ crop 9:16 ทำ Shorts ได้โดยไม่ต้องเจนใหม่)
-  3. ห้ามมีใน prompt: close-up hands, close-up faces, readable text or letters, large crowds, fast complex action — สิ่งเหล่านี้พังเมื่อทำ image-to-video
-  4. ภาพต้องสื่อ "เนื้อหาเฉพาะของ beat นั้น" ไม่ใช่ภาพ generic ของหัวข้อ — ถ้าสลับ prompt ไปใช้กับ beat อื่นแล้วยังเข้ากัน แปลว่า prompt นั้นกว้างเกินไป ให้เขียนใหม่
-- คอลัมน์ "Visual Mode" ใส่ได้ 2 ค่าเท่านั้น: ANCHOR หรือ SUPPORT (สำคัญมาก — นี่คือตัวกำหนดว่าภาพ "เล่าเรื่อง" หรือ "ประกอบเสียง"):
-  * SUPPORT = ภาพประกอบเดี่ยว ยืนได้ด้วยตัวเอง ใช้ในช่วงอธิบายเนื้อหา (ควรเป็นส่วนใหญ่ ~75-85% ของคิวทั้งหมด)
-  * ANCHOR = ภาพเล่าเรื่องที่ต่อกันเป็นชุด 2-4 เฟรมติดกัน สลับลำดับไม่ได้ ใช้เฉพาะจุดที่ Retention ตัดสินใจ
-  ตำแหน่งที่ต้องเป็น ANCHOR (บังคับครบทั้ง 3 จุด):
-  (ก) Cold Open — ชุดแรกเริ่มที่ [0:00] ยาว 2-4 เฟรม เปิด "loop ทางภาพ" คู่ไปกับ hook ทางเสียง ห้ามเฉลย
-  (ข) Mid re-hook — ชุดที่ตำแหน่งประมาณ 35-50% ของความยาวคลิป ย้ำคำถามที่ยังไม่เฉลยด้วยภาพชุดใหม่
-  (ค) Resolution — ชุดท้ายใน 2 นาทีสุดท้าย ปิด loop ที่เปิดไว้ แล้วจบด้วย "ภาพค้างใจ" 1 เฟรม
-  (ไม่บังคับ) Pattern interrupt ทุก ~3 นาที ใส่มินิซีเควนซ์ 2 เฟรมได้
-  กติกาความต่อเนื่องของชุด ANCHOR (สำคัญที่สุด — ถ้าทำข้อนี้ไม่ได้ ให้ใช้ SUPPORT แทน):
-  - ทุกเฟรมในชุดเดียวกันต้องมี "โมทีฟร่วม" ที่คนดูจำได้: วัตถุชิ้นเดิม / สถานที่เดิมมุมต่างกัน / เงาดำ silhouette / วัตถุที่เปลี่ยนสถานะไปเรื่อยๆ (เช่น กระดาษเปล่า → เขียนเต็ม → ยับ → ถูกทิ้ง)
-  - ห้ามพึ่งความต่อเนื่องของ "ใบหน้าคนคนเดิม" เด็ดขาด — AI เจนหน้าคนซ้ำไม่ได้ ให้ใช้ silhouette หรือถ่ายเลี่ยงหน้าแทน
-  - ใน Google Flow Prompt ของเฟรมที่ 2 เป็นต้นไปในชุด ต้องบรรยายโมทีฟร่วมนั้นซ้ำด้วยคำเดิมเป๊ะ เพื่อให้ภาพออกมาเข้าชุดกัน
-  - ในคอลัมน์ Visual Suggestion ของเฟรมในชุด ANCHOR ให้ระบุความสัมพันธ์กับเฟรมก่อนหน้าสั้นๆ เช่น "(ต่อจากเฟรมก่อน: แก้วใบเดิม แต่กาแฟหมดแล้ว)"
-  ปรับตามเสาคอนเทนต์: INSIGHT/JOURNEY ใช้ ANCHOR ได้มากขึ้น · FRAMEWORK/PROOF/OFFER ให้ใช้ ANCHOR เฉพาะ 3 จุดบังคับเท่านั้น เพราะภาพเล่าเรื่องจะแย่งสมาธิจากตัวเลขและขั้นตอน
+
+### หลักการที่เปลี่ยนวิธีคิดเรื่องภาพทั้งหมด
+ห้ามคิดแบบ "หนึ่งย่อหน้า = หนึ่งภาพ" และห้ามเปลี่ยนภาพเพราะเวลาผ่านไปครบ 15 วินาที
+ให้คิดตามลำดับนี้แทน:
+สคริปต์ → วิเคราะห์โครงเรื่อง → แบ่ง story beat → หน้าที่ของภาพ → ประเภทภาพ → ออกแบบช็อต → ความต่อเนื่อง → การเคลื่อนกล้อง → prompt ภาพ → prompt วิดีโอ
+**ต้องรู้ก่อนว่าภาพนี้มีไว้ทำไม จึงค่อยตัดสินว่าจะเป็นภาพอะไร**
+เปลี่ยนภาพเมื่อ: หน้าที่ในการเล่าเปลี่ยน · อารมณ์เปลี่ยน · ข้อโต้แย้งเปลี่ยน · สถานที่เปลี่ยน · ตัวละครเปลี่ยน · ระดับความคิดเปลี่ยน (รูปธรรม↔นามธรรม) · มีหลักฐานใหม่เข้ามา · มี pattern interrupt
+ถ้าไม่มีอะไรในรายการนี้เปลี่ยน ให้ถือภาพเดิมไว้ — การถือภาพนานคือการตัดสินใจ ไม่ใช่ความขี้เกียจ
+
+### วิเคราะห์เจตนาของเรื่องก่อน (ทำก่อนแตะภาพ)
+อ่านสคริปต์ทั้งตอนแล้วระบุว่าแต่ละช่วงทำหน้าที่อะไร: HOOK · SETUP · CHARACTER_INTRO · CONFLICT · PARADOX · PATTERN_INTERRUPT · THESIS · MECHANISM · EVIDENCE · COUNTERARGUMENT · CONSEQUENCE · SOLUTION · REFLECTION · CLOSING_QUESTION
+ห้ามให้น้ำหนักทุกย่อหน้าเท่ากัน ประโยคที่แบกความหมายของทั้งตอนต้องได้ภาพที่แรงกว่า
+
+### ประเภทภาพ (visual_type) — เลือกหนึ่งเดียวต่อช็อต
+- **HUMAN** — คน พฤติกรรม อารมณ์ การตัดสินใจ การรอ การสังเกต
+  ต้องเป็นคนนิรนามเสมอ: หันหลัง เงาดำ ด้านข้าง มือ เงาสะท้อน ครึ่งตัว หรือตัวเล็กในเฟรม **ห้ามโคลสอัพใบหน้า**
+- **ENVIRONMENT** — สถานที่ บรรยากาศ ช่วงเปลี่ยนผ่าน ช่วงเงียบ คลังสินค้า ออฟฟิศ ทางเดิน ถนน
+  ถือได้นานกว่าประเภทอื่นเมื่อคำบรรยายได้ประโยชน์จากความนิ่ง
+- **METAPHOR** — ใช้เมื่อคำบรรยายพูดถึงสิ่งนามธรรม เช่น "งานที่ป้องกันไว้ไม่มีขอบ" / "เธอปรับตัวเองจนหลุดออกจากเฟรม"
+  **ห้ามแปลประโยคเป็นภาพตรงตัว** ให้แปลความคิดเป็นวัตถุรูปธรรม
+- **DATA** — สถิติ ตัวเลข ผลวิจัย การเปรียบเทียบ ไทม์ไลน์ ตัวชี้วัด
+  กราฟิกแบบเรียบ ไม่ใช่ infographic ฉูดฉาด: ตัวเลขเดียวต่อเฟรม ตัวใหญ่ พื้นเกือบดำ เส้นบาง ไม่มีไล่สี ไม่มี 3D ไม่มีไอคอน
+  **ห้ามแต่งตัวเลขขึ้นเอง** ใช้เฉพาะตัวเลขที่มีอยู่จริงในสคริปต์
+- **OBJECT** — เอกสาร สมุด สเปรดชีต โทรศัพท์ คีย์บอร์ด รายงาน แบบฟอร์ม นาฬิกา ของใช้ในที่ทำงาน
+  ใช้โคลสอัพ/มาโคร เป็นสะพานที่ดีที่สุดระหว่างคำบรรยายกับ metaphor
+
+### หน้าที่ของภาพ (visual_function) — เลือกหนึ่งเดียว
+ESTABLISH · CHARACTER · CONTEXT · ACTION · EVIDENCE · EXPLANATION · METAPHOR · CONTRAST · PATTERN_INTERRUPT · TRANSITION · REFLECTION · RESOLUTION
+
+### ความสำคัญของภาพ (visual_priority 1-5)
+5 = จุดที่ภาพต้องแบกทั้งตอน · 4 = ภาพสนับสนุนสำคัญ · 3 = ปกติ · 2 = ช่วงเปลี่ยนผ่าน · 1 = ใช้ภาพเดิมต่อได้
+คิดจาก: ความสำคัญต่อเรื่อง อารมณ์ ความคิด หลักฐาน ความแรงของ hook และโอกาสทางภาพ
+ค่านี้คือสิ่งที่ตัดสินว่าจะสร้างช็อตใหม่หรือถือภาพเดิมไว้
+
+### ความยาวที่ถือภาพ (hold_seconds + hold_reason)
+1-5 วิ = pattern interrupt / เผยตัวเลขสำคัญ / ตัดแข็ง
+5-10 วิ = จังหวะปกติ
+10-18 วิ = B-roll แบบภาพยนตร์มาตรฐาน
+18-30 วิ = ตั้งใจถือยาว
+30+ วิ = เฉพาะเมื่อมีเหตุผลชัด เช่น คำบรรยายแบกเอง ฉากบรรยากาศ กล้องเคลื่อนช้า ภาพเชิงเปรียบเทียบ หรือช่วงใคร่ครวญ
+**ต้องเขียน hold_reason ทุกช็อต** เช่น "ถือ 25 วิ เพราะคำบรรยายกำลังอธิบายการไม่มีอยู่ของงานที่มองไม่เห็น และความนิ่งของภาพคือสารเดียวกัน"
+
+### การเคลื่อนกล้อง (camera)
+STATIC · SLOW_PUSH_IN · SLOW_PULL_OUT · DOLLY_FORWARD · DOLLY_BACK · LATERAL_TRACK · ORBIT · TILT · PAN · RACK_FOCUS · HANDHELD_SUBTLE
+ห้ามสุ่ม การเคลื่อนต้องเสริมคำบรรยาย: ใคร่ครวญ→SLOW_PUSH_IN · โดดเดี่ยวขึ้นเรื่อยๆ→SLOW_PULL_OUT · ค้นพบ→SLOW_PUSH_IN · เปลี่ยนฉาก→LATERAL_TRACK · ไม่มั่นคง→HANDHELD_SUBTLE
+
+### ความต่อเนื่อง (continuity)
+สร้างวัตถุ continuity ระดับตอน แล้วอ้างด้วย continuity_id ในทุกช็อตที่ใช้ตัวละครหรือสถานที่เดิม
+- characters: id · ช่วงอายุ · เพศ · เสื้อผ้า · ทรงผม · ลักษณะทางกาย · บทบาท · อารมณ์พื้นฐาน
+- locations: id · สถาปัตยกรรม · เวลาของวัน · สภาพอากาศ · แสง · วัตถุในฉาก · สีของสภาพแวดล้อม
+- camera / lighting / color: ภาษากล้อง แสง และสีของทั้งตอน
+ตัวละครและสถานที่เดียวกันต้องหน้าตาเหมือนกันตลอดตอน
+
+### เครื่องมือสร้าง metaphor
+เมื่อเจอคำบรรยายนามธรรม ให้คิด metaphor 3 แบบก่อน แล้วเลือกอันที่ดีที่สุดจาก: ความชัดของความคิด · ศักยภาพเชิงภาพยนตร์ · ความสดใหม่ · แรงกระทบทางอารมณ์ · ความง่ายในการเจน · ความเข้ากับแบรนด์
+ใส่ตัวที่เลือกลง image_prompt และใส่อีกสองตัวที่ไม่ได้เลือกไว้ใน metaphor_alternatives
+
+### สถาปัตยกรรมของ prompt
+ห้ามเขียน prompt กลางๆ แบบ "cinematic office worker at night"
+image_prompt ทุกอันต้องประกอบจาก: SUBJECT + ACTION + ENVIRONMENT + COMPOSITION + CAMERA + LIGHTING + MOOD + VISUAL LANGUAGE + CONTINUITY + NEGATIVE
+เขียนเป็นภาษาอังกฤษ ร้อยเป็นย่อหน้าเดียวที่อ่านรู้เรื่อง ไม่ใช่รายการคั่นด้วยจุลภาค
+
+### prompt วิดีโอ (video_prompt)
+บรรยาย **การเคลื่อนไหว** ไม่ใช่บรรยายภาพซ้ำ ห้ามให้ตัวละครพูด ขยับปาก เดินโดยไม่จำเป็น หรือกล้องเคลื่อนแบบสุ่ม
+ตัวอย่าง: "Slow cinematic push-in toward the woman while distant warehouse lights remain steady. Dust drifts through the overhead beam. She stays almost completely still. Documentary realism."
+
+### โหมดการเจนภาพ (mode)
+A = CINEMATIC_REALISM (คน สถานที่ ฉากสารคดี) · B = EDITORIAL_METAPHOR (ความคิดนามธรรม) · C = INFORMATIONAL (ตัวเลข กราฟ การเปรียบเทียบ)
+
+### การใช้ภาพซ้ำ (reuse_of)
+ภาพที่แข็งแรงใช้ซ้ำได้ แต่ต้องเปลี่ยนอย่างน้อยหนึ่งอย่าง: การครอป ระยะซูม การเคลื่อนกล้อง การไล่สี บริบท หรือความสัมพันธ์กับคำบรรยาย
+ใส่ id ของช็อตต้นทางใน reuse_of แล้วอธิบายสิ่งที่เปลี่ยนใน shot_description
+
+### สัดส่วนประเภทภาพที่ตั้งเป็นค่าเริ่มต้น (ปรับตามสคริปต์ได้ ไม่ใช่กฎตายตัว)
+HUMAN 25% · ENVIRONMENT 25% · METAPHOR 20% · DATA 15% · OBJECT 15%
+
+### รูปแบบผลลัพธ์ของ Storyboard — ต้องเป็น JSON ในบล็อก ```storyboard
+ห้ามใช้ตาราง markdown สำหรับ storyboard เพราะฟิลด์เยอะเกินกว่าตารางจะรับไหว
+```storyboard
+{
+  "episode_visual_style": "หนึ่งใน: Cinematic Corporate Noir | Psychological Documentary | Editorial Social Systems | Minimalist Intellectual Documentary | Atmospheric Workplace Realism | Philosophical Visual Essay",
+  "continuity": {
+    "characters": [{ "id": "maren", "age_range": "30s", "gender": "female", "clothing": "dark work jacket", "hair": "tied back, dark", "physique": "average build", "role": "operations coordinator", "emotional_baseline": "quiet, contained" }],
+    "locations": [{ "id": "warehouse_night", "architecture": "large industrial warehouse", "time_of_day": "night", "weather": "dry", "lighting": "cool sodium practicals, warm monitor glow", "objects": "loading bays, roster board, forklifts", "color": "cool grey-blue with amber practicals" }],
+    "camera": { "aspect_ratio": "16:9", "lenses": "28/35/50mm", "height": "eye level", "distance": "medium to wide", "framing": "asymmetric, negative space", "movement": "slow or static" },
+    "lighting": { "key": "practical motivated", "fill": "minimal", "rim": "occasional from practicals", "practicals": "overhead sodium, monitors", "contrast": "moderate-high", "atmosphere": "dust in beams" },
+    "color": { "palette": "muted cool with amber accents", "saturation": "low", "temperature": "cool base, warm practical" }
+  },
+  "shots": [
+    {
+      "id": "s01",
+      "timecode": "[0:00]",
+      "narration": "ประโยคจากสคริปต์ที่ช็อตนี้คลุม",
+      "narrative_function": "HOOK",
+      "visual_type": "HUMAN",
+      "visual_function": "ESTABLISH",
+      "visual_priority": 5,
+      "mode": "A",
+      "shot_description": "อธิบายช็อตเป็นภาษาไทยสั้นๆ ให้คนอ่านเข้าใจ",
+      "composition": "wide cinematic frame, subject lower-left third, large negative space",
+      "camera": "SLOW_PUSH_IN",
+      "lens": "35mm",
+      "lighting": "cool industrial practicals, warm monitor glow",
+      "mood": "quiet competence, invisible responsibility",
+      "continuity_id": "maren@warehouse_night",
+      "image_prompt": "prompt ภาษาอังกฤษ ประกอบครบตามสถาปัตยกรรม SUBJECT+ACTION+ENVIRONMENT+COMPOSITION+CAMERA+LIGHTING+MOOD+VISUAL LANGUAGE+CONTINUITY+NEGATIVE",
+      "video_prompt": "บรรยายเฉพาะการเคลื่อนไหว ภาษาอังกฤษ",
+      "hold_seconds": 14,
+      "hold_reason": "เหตุผลที่ถือภาพนานเท่านี้",
+      "transition": "CUT",
+      "text_overlay": "",
+      "reuse_of": null,
+      "metaphor_alternatives": []
+    }
+  ]
+}
+```
+- timecode ทุกช็อตต้องอยู่ในรูปแบบ [M:SS] และตรงกับ Timestamp ในสคริปต์ Phase 3
+- ไม่จำเป็นต้องมีช็อตต่อทุก Timestamp — ถ้าถือภาพเดิมข้ามหลาย Timestamp ได้ ให้ทำ แล้วอธิบายใน hold_reason
+- หลังบล็อก JSON ให้สรุปเป็นตาราง markdown สั้นๆ 4 คอลัมน์เพื่อให้คนกวาดตาดูได้: | Timestamp | Visual Type | Visual Function | Shot |
 
 ## Phase 3: สร้างเนื้อหา (ภาษาอังกฤษทั้งหมด)
 - YouTube Video Title ที่ SEO Friendly
@@ -672,6 +790,319 @@
 - ปิดท้ายด้วย YouTube Description ที่ Timestamps ตรงกับสคริปต์ทุกตัว พร้อม Backlink ไปเว็บไซต์ Hashtags และ CTA
 </script>
 
+<style>
+.vrow{display:grid;grid-template-columns:58px 92px 1fr auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.vrow:last-child{border-bottom:0}
+.vrow .vts{font-family:var(--mono);font-size:.76rem;color:var(--muted)}
+.vrow .vdesc{font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vrow .vhold{font-family:var(--mono);font-size:.72rem;color:var(--muted);white-space:nowrap}
+.vtype{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.66rem;font-weight:700;letter-spacing:.03em;text-align:center;min-width:88px}
+.vt-HUMAN{background:#2b3a52;color:#cfe0ff}.vt-ENVIRONMENT{background:#25402f;color:#c8ecd4}
+.vt-METAPHOR{background:#3d2b4a;color:#e2cdf2}.vt-DATA{background:#4a3520;color:#f0d6ae}
+.vt-OBJECT{background:#3d3730;color:#e6dccd}.vt-NA{background:var(--panel2);color:var(--muted)}
+.vbar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:6px 0 2px}
+.vbar>span{display:block}
+.vqrow{display:grid;grid-template-columns:20px minmax(140px,220px) 1fr;gap:9px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line)}
+.vqrow:last-child{border-bottom:0}
+.vqrow .vqdot{font-weight:700;text-align:center;line-height:1.2}
+.vqrow .vqname{font-size:.8rem;font-weight:600}
+.vqrow .vqdet{font-size:.78rem;color:var(--muted)}
+.vq-ok .vqdot{color:var(--good)}
+.vq-warn .vqdot{color:var(--warn)}
+.vq-fail .vqdot{color:var(--crit)}
+.vq-fail .vqname{color:var(--crit)}
+.vprio{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+</style>
+<script type="text/plain" id="viewersimskill">
+---
+name: youtube-viewer-sim
+description: Stress-test a YouTube script, voiceover draft, visual/B-roll plan, title or thumbnail by simulating real viewers watching it — second by second, with drop-off points, AI-slop detection, scores, and rewritten replacement lines. Use this whenever the user shares a video script, hook, narration draft, shot list, image-prompt set, title or thumbnail and asks whether it "works", whether it's boring, whether people will watch, whether it looks AI-generated, or asks for feedback/review/critique on video content — even if they don't say the words "viewer" or "simulate". Also use for retention diagnosis on faceless channels, podcast episodes, Shorts, and ambient/lofi music videos.
+---
+
+# YouTube Viewer Simulator
+
+Creators read their own scripts with all the context in their head. Viewers don't
+have that. They arrive mid-scroll, half-distracted, with a thumb ready to leave.
+This skill closes that gap: instead of giving editorial advice, you *become* three
+different viewers, watch the thing in real time, and report what actually happened
+in their heads — including the moment they left.
+
+The value here is honesty, not encouragement. A script that gets praised and then
+flops wastes weeks of production. Be the harsh test screening the creator can't
+run themselves.
+
+## Step 1 — Collect the inputs
+
+You need at minimum the script or narration text. Also useful, if available:
+
+- Channel or show name, and its niche
+- Visual plan: shot list, image prompts, B-roll descriptions, or actual images
+- Format and length (long-form, Shorts, podcast, marathon ambient video)
+- Title and thumbnail concept
+- Where the viewer came from: Browse/Suggested, Search, Shorts feed, or a playlist
+
+If something is missing, **do not stop to ask a long list of questions.** Pick the
+most likely defaults, state them in one line at the top of the report, and run. The
+creator can correct you afterwards. One clarifying question is acceptable only if
+the whole review would be meaningless without it (e.g. no script provided at all).
+
+## Step 2 — Cast three viewers
+
+Retention dies for different reasons in different heads. One persona hides that.
+Always run **three**, and make them genuinely different in *why* they clicked and
+*what would make them leave*.
+
+If the channel matches one of the presets in `references/personas.md`, use those.
+Otherwise build three from the niche using this spread:
+
+1. **The intended viewer** — exactly who the video is for, best-case attention.
+2. **The distracted/multitasking viewer** — listening while doing something else,
+   phone in hand, low tolerance for setup.
+3. **The skeptical or impatient viewer** — came from Search or a bold title, wants
+   the payoff fast, primed to smell filler or AI slop.
+
+Name each one and give them one line of life context. A viewer with a bedtime and a
+commute behaves differently from an abstraction.
+
+## Step 3 — Watch it, in character
+
+For each persona, produce the report below. Write reactions in **first person,
+present tense**, as raw inner monologue — not as analysis of the script.
+
+Wrong: "The introduction may feel slow to some viewers."
+Right: "Okay, get to it. He's still explaining what the video is about. I've heard
+this opening on four other channels this week."
+
+Chunk the script into: 0–15s, 15–60s, then roughly every 60 seconds after. For
+Shorts, use 0–3s, 3–10s, 10–30s, 30s+.
+
+## Output format
+
+Use this structure exactly, once per persona, then the synthesis at the end.
+Respond in the language the user wrote in.
+
+```
+ASSUMPTIONS: [one line, only if you had to fill gaps]
+
+════════ VIEWER 1: [name], [one line of context] ════════
+Came from: [Browse / Search "query" / Shorts feed]
+
+⏱ 0–15s
+[inner monologue]
+STATUS: watching / thumb twitching / gone
+
+⏱ 15–60s
+[inner monologue]
+STATUS: ...
+
+[continue through the script]
+
+🚪 EXIT POINT: [exact line where they leave, or "watched to the end"]
+WHY: [bored / confused / felt tricked / already knew this / felt like AI]
+
+📺 VISUALS
+[where image and narration disconnect, where it goes static too long,
+where it reads as AI-generated, where it repeats]
+
+📊 SCORES
+Hook 0–10 · Finish it 0–10 · Subscribe 0–10 · Trust 0–10
+[one sentence justifying the lowest score]
+```
+
+Then, after all three:
+
+```
+════════ CONSENSUS ════════
+Everyone left / stalled at: [the shared failure points]
+Only [name] cared about: [persona-specific issue — lower priority]
+
+🔧 FIX THESE THREE
+1. [problem] → REPLACE WITH: "[fully written replacement line, ready to paste]"
+2. ...
+3. ...
+
+⚠️ RISK FLAGS
+[copyright exposure in music/footage/quotes, unverifiable claims presented as
+fact, reused stock or model-default imagery, anything that reads as low-effort
+AI mass production — omit this block only if there is genuinely nothing]
+```
+
+## Scoring anchors
+
+Scores drift upward without anchors. Hold these:
+
+- **0–3** — I leave, and I'd avoid this channel next time it appears.
+- **4–6** — Fine. Nothing wrong, nothing that makes me stay. This is the danger
+  zone, because it feels like success to the creator and looks like failure in the
+  analytics.
+- **7–8** — I stayed on purpose. Something specific held me.
+- **9–10** — I'd send this to someone. Rare; don't hand it out to be nice.
+
+If all three personas score 7+, say so plainly — but check first that you aren't
+just being polite. A default-good review is worthless.
+
+## Judging the visuals
+
+Faceless channels live or die here. Watch for:
+
+- **Narration/image drift** — the voice says one thing, the frame shows a generic
+  mood shot that fits any sentence in the script.
+- **Static hold** — the same image sitting past ~8 seconds with no motion, zoom, or
+  parallax. Note the exact spot.
+- **AI-slop tells** — plastic skin and dead eyes, warped hands, melted text,
+  over-saturated "AI teal-and-orange", the same subject in the same three-quarter
+  pose every shot, backgrounds that dissolve into mush.
+- **Sameness** — if you could shuffle the shot order and nobody would notice, the
+  visuals aren't carrying information.
+
+Say which specific shot to replace and with what.
+
+## Extra passes
+
+If the user supplies these, add short blocks:
+
+- **Title** — would each persona click it in a feed next to five other titles?
+  What does it promise, and does the script deliver that exact promise?
+- **Thumbnail** — read at phone size, one second, in a crowded feed. What's the
+  single readable element?
+- **Ambient/music videos** — retention there is about looping tolerance and audio
+  onset, not narrative. Ask: does the first loop seam call attention to itself?
+  Does anything spike and break sleep/focus use? Is the visual calm enough to leave
+  running for hours?
+
+## Things that break this skill
+
+- Softening the exit point because the creator worked hard on it.
+- Writing analysis in viewer voice ("this section could be tightened") — that's the
+  consultant leaking back in.
+- Giving vague fixes. Every fix ships a written replacement line.
+- Praising a hook merely because it's grammatical and on-topic. Most flat hooks are.
+- Only three fixes, ranked. A list of fifteen notes gets ignored.
+
+---
+
+# references/personas.md
+
+# Persona presets
+
+Use these when the content clearly belongs to one of these shows. Otherwise build
+personas from the niche using the three-way spread in SKILL.md. Adjust freely —
+these are starting points, not fixed casting.
+
+## The Quiet Sage — Jungian psychology / shadow work, English, US/UK
+
+**Dana, 34, Manchester.** Two years into therapy, reads about attachment styles at
+night. She's the intended viewer and she's generous — but she's also heard the same
+five Jung quotes on every channel in this niche. Leaves the moment it sounds
+recycled or self-help-generic. Wants to feel *seen*, not lectured.
+
+**Marcus, 41, Denver.** Playing it while cooking, screen face-down half the time.
+Never sees the visuals for long stretches, so a script that leans on the images to
+carry meaning loses him. Leaves if the audio has a stretch of ambient filler with
+no idea in it.
+
+**Priya, 27, Toronto.** Came from a search like "why do I sabotage relationships".
+Wants the actual answer, not a definition of the shadow. Highly allergic to
+"but first, let's understand what the unconscious really is". Bounces at the first
+sign of padding before the payoff.
+
+## Velvet Anchor — why competence doesn't turn into money
+
+**Ken, 38, Seattle.** Senior engineer, repeatedly passed over. Nodding hard if the
+mechanics are specific and real. The instant a case study sounds invented or a
+statistic sounds too neat, he checks the description for sources — and if the claim
+can't be verified, he distrusts the rest of the episode.
+
+**Sofia, 45, Chicago.** Middle manager, listening on a commute. She's on the other
+side of the same dynamic. If the episode reads as pure resentment against
+management with no mechanism, she leaves — she wanted to understand a system, not
+hear a complaint.
+
+**Tomas, 29, Berlin.** Came from a strong title promising a single case. Twenty
+minutes is a big ask. He is counting the seconds to the first concrete detail of
+the actual case and will not sit through four minutes of framing.
+
+## Dreamscape Soul — utility / healing ambient (@kasoul-t8n)
+
+Judge by use, not by story. Retention here comes from being left running.
+
+**Nan, 31, Bangkok.** Insomnia, 2am, screen brightness low. Anything with a sudden
+transient, a bright visual flash, or a loop seam that snaps her back to alert is
+fatal. She needs the first 30 seconds to signal "safe to fall asleep to".
+
+**Alex, 24, remote worker.** Uses it as a focus bed for four-hour blocks. Notices
+repetition at the 20-minute mark and any melodic element that pulls attention.
+Wants a track that disappears.
+
+**Mei, 48, casual browser.** Found it on Browse, clicked for the thumbnail, will
+give it 40 seconds to decide whether this is a channel she returns to. Judges
+quality by the visual loop and the first chord, not the title.
+
+## Thai-language content
+
+When the script is Thai, do not translate a Western persona and rename it. Cast
+Thai viewers with real context — commute on the BTS, listening between shifts,
+watching on a phone with data limits — and let the tone expectations differ.
+Formality that reads as authoritative in English can read as stiff or preachy in
+Thai, and a hook that works in English often needs to be blunter in Thai.
+</script>
+<script type="text/plain" id="visualdnadefault">
+# VISUAL DNA — [SHOW NAME]
+
+## Visual identity
+Cinematic psychological documentary. The camera behaves like an observer who
+arrived before the subject did and will still be there after they leave.
+
+## Lighting
+Low-key, practical-motivated. Light comes from things that exist in the room —
+monitors, overhead sodium lamps, a desk lamp, a window. Never a studio key.
+
+## Contrast
+Moderate-high. Shadows keep detail; highlights are allowed to clip on practicals.
+
+## Lens language
+28mm for environments · 35mm for subjects in space · 50mm for objects and hands.
+No wider than 24mm, no longer than 85mm.
+
+## Camera movement
+Slow and deliberate, or none. A move must have a reason in the narration.
+Never handheld unless the beat is about instability.
+
+## Composition
+Negative space is the house style. Asymmetric framing, subject off-centre,
+generous headroom. The empty part of the frame carries as much meaning as the
+subject.
+
+## Character visibility
+Anonymous. Back view, silhouette, side profile, hands, reflection, partial body,
+or distant. No recognisable faces, no eye contact with camera.
+
+## Texture
+Fine film grain. Air with something in it — dust, steam, rain on glass.
+
+## Atmosphere
+Quiet interiors after hours. Rain, dust in light beams, reflections on desks,
+corridors with the lights half off.
+
+## Visual metaphor style
+Concrete objects standing for abstract ideas. A ledger, an empty column, a chair,
+a door left open. Never floating symbols, never glowing brains, never gears.
+
+## Graphic style (DATA shots)
+Editorial, not infographic. One number at a time, set large in the show's
+typeface on a near-black field. Thin rules, no gradients, no 3D, no icons,
+no pie charts. Colour used once per frame, never decoratively.
+
+## Colour
+Muted and slightly desaturated. Cool base, one warm practical per frame.
+
+## Forbidden
+Generic motivational stock footage · overly inspirational imagery · corporate
+handshakes · smiling business people in offices · luxury lifestyle imagery ·
+neon cyberpunk · futuristic UI overlays · cheesy self-help visuals · glowing
+brains · floating holograms · lens flares as decoration · text baked into the
+image
+</script>
 <script type="text/plain" id="dnadefault">
 # BRAND DNA — [SHOW NAME]
 
@@ -1113,11 +1544,11 @@ $("#trendlive").addEventListener("click", async () => {
 });
 
 /* ── brand profile (Brand DNA, injected into every prompt) ── */
-const BRAND_FIELDS = ["b_name", "b_tagline", "b_aud", "b_proof", "b_offer", "b_url", "b_market", "b_dna"];
+const BRAND_FIELDS = ["b_name", "b_tagline", "b_aud", "b_proof", "b_offer", "b_url", "b_market", "b_dna", "b_visual"];
 const brandData = store.get("brand", {});
 function brandStatus() {
   const n = BRAND_FIELDS.filter((id) => (brandData[id] || "").trim()).length;
-  $("#brandstatus").textContent = n ? `กรอกแล้ว ${n}/8 ช่อง ✓` : "ยังไม่ตั้งค่า";
+  $("#brandstatus").textContent = n ? `กรอกแล้ว ${n}/${BRAND_FIELDS.length} ช่อง ✓` : "ยังไม่ตั้งค่า";
 }
 BRAND_FIELDS.forEach((id) => {
   const el = $("#" + id);
@@ -1130,13 +1561,27 @@ if (brandData.b_dna === undefined) {
   $("#b_dna").value = brandData.b_dna;
   store.set("brand", brandData);
 }
-$("#dnareset").addEventListener("click", () => {
-  brandData.b_dna = $("#dnadefault").textContent.trim();
-  $("#b_dna").value = brandData.b_dna;
+if (brandData.b_visual === undefined) {
+  brandData.b_visual = $("#visualdnadefault").textContent.trim();
+  $("#b_visual").value = brandData.b_visual;
+  store.set("brand", brandData);
+}
+const resetFromTemplate = (field, tplId, label) => {
+  brandData[field] = $("#" + tplId).textContent.trim();
+  $("#" + field).value = brandData[field];
   store.set("brand", brandData); brandStatus();
-  toast("โหลดเทมเพลต DNA เริ่มต้นแล้ว ✓");
-});
+  toast(`โหลดเทมเพลต ${label} เริ่มต้นแล้ว ✓`);
+};
+$("#dnareset").addEventListener("click", () => resetFromTemplate("b_dna", "dnadefault", "Brand DNA"));
+$("#visualreset").addEventListener("click", () => resetFromTemplate("b_visual", "visualdnadefault", "Visual DNA"));
 const dnaText = () => (brandData.b_dna || "").trim();
+/* Visual DNA governs every prompt that produces a picture, the way Brand DNA
+   governs every prompt that produces words. Kept separate so a change to how
+   the show looks never has to touch how it sounds. */
+const visualText = () => (brandData.b_visual || "").trim();
+const visualSuffix = () => visualText()
+  ? "\n\n===== VISUAL DNA (กฎกำกับภาพของรายการ — ยึดเหนือกฎภาพทั่วไปเมื่อขัดกัน) =====\n" + visualText()
+  : "";
 const dnaSuffix = () => dnaText()
   ? "\n\n===== BRAND DNA (กฎกำกับเสียงของรายการ — สำคัญสูงสุด ยึดเหนือกฎทั่วไปเมื่อขัดกัน) =====\n" + dnaText()
   : "";
@@ -1550,6 +1995,18 @@ function parseTs(text) {
   return [...out.entries()].map(([sec, label]) => ({ sec, label })).sort((a, b) => a.sec - b.sec);
 }
 function storyboardTs(p2text) {
+  /* Read the cues out of whatever text was handed in, never out of `current` —
+     analyzeResult calls this while `current` still holds the previous document,
+     so reading global state here silently scored the wrong episode. */
+  const parsed = p2text ? storyboardShots(p2text) : null;
+  if (parsed) {
+    const found = new Set();
+    parsed.shots.forEach((sh) => {
+      const m = String(sh.timecode || "").match(/(\d{1,3}):(\d{2})/);
+      if (m) found.add((+m[1]) * 60 + (+m[2]));
+    });
+    return found.size ? found : null;
+  }
   if (!p2text) return null;
   const rows = p2text.split("\n").filter(isTableLine);
   if (!rows.length) return null;
@@ -1791,7 +2248,7 @@ function analyzeResult(md, save, opts) {
   // Packaging / Shorts / Sponsor blocks cost an API call each — an inline
   // storyboard edit must not silently discard them either.
   const keptGen = opts && opts.keepImgs && current
-    ? { pack: current.pack, shorts: current.shorts, sponsor: current.sponsor, retention: current.retention }
+    ? { pack: current.pack, shorts: current.shorts, sponsor: current.sponsor, retention: current.retention, vsim: current.vsim }
     : null;
   const phases = extractPhases(md);
   const scriptSrc = narrationOnly(phases.p3 || md);
@@ -1821,6 +2278,10 @@ function analyzeResult(md, save, opts) {
   const missing = sb ? ts.filter((t) => !sb.has(t.sec)) : [];
   const coverage = sb && ts.length ? Math.round(((ts.length - missing.length) / ts.length) * 100) : null;
   current = { md, phases, words, estSec, voReal, ts, total, segs, sb, missing, coverage, brollImgs: keptImgs || {}, ...(keptGen || {}) };
+  /* A viewer report belongs to one exact draft. Restore it only when the
+     script it judged is still the script on screen — otherwise it would read
+     as a verdict on text nobody simulated. */
+  if (!current.vsim) current.vsim = loadViewerSim(phases.p3 || md);
   // The working document and its images survive a reload (restoreWorkdoc)
   store.set("workdoc", md);
   if (keptImgs) saveBrollImgs(); else idb.del("brollImgs");
@@ -1853,15 +2314,19 @@ function showView(v) {
   $$("#subtabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.view === v));
   $("#qaview").hidden = v !== "qa";
   $("#packview").hidden = v !== "pack";
+  $("#vmapview").hidden = v !== "vmap";
   $("#brollview").hidden = v !== "broll";
   $("#shortsview").hidden = v !== "shorts";
+  $("#vsimview").hidden = v !== "vsim";
   $("#retentionview").hidden = v !== "retention";
   $("#sponsorview").hidden = v !== "sponsor";
   const isMd = ["all", "p1", "p2", "p3"].includes(v);
   $("#mdview").hidden = !isMd;
   if (v === "pack") renderPack();
+  if (v === "vmap") renderVisualMap();
   if (v === "broll") renderBroll();
   if (v === "shorts") renderShorts();
+  if (v === "vsim") renderViewerSim();
   if (v === "retention") renderRetention();
   if (v === "sponsor") renderSponsor();
   if (!isMd) return;
@@ -2356,7 +2821,56 @@ async function genPack() {
 }
 
 /* ── B-Roll Studio: generate images from storyboard prompts ── */
+/* The storyboard arrives as JSON now: a shot carries twenty-odd fields, and a
+   markdown table with twenty-odd columns is one the model drops columns from
+   and no human can read. Documents produced before that still parse — the
+   legacy table reader below is unchanged — and both shapes come back as the
+   same row object, so every caller stays as it was.
+
+   ANCHOR/SUPPORT is derived rather than authored: a shot that continues the
+   previous shot's continuity_id is the thing that must be generated in
+   sequence with a reference frame, which is exactly what ANCHOR meant. */
+function storyboardShots(text) {
+  const src = text !== undefined ? text : (current.phases.p2 || current.md);
+  const m = src.match(/```storyboard\s*([\s\S]*?)```/);
+  if (!m) return null;
+  let doc;
+  try { doc = JSON.parse(m[1]); } catch { return null; }
+  const shots = Array.isArray(doc?.shots) ? doc.shots : null;
+  if (!shots || !shots.length) return null;
+  return { meta: doc, shots };
+}
+
 function storyboardRows() {
+  const parsed = storyboardShots();
+  if (parsed) {
+    const { shots } = parsed;
+    return shots.map((sh, i) => {
+      const prev = shots[i - 1], next = shots[i + 1];
+      /* A run's opening frame is part of the run: mark a shot ANCHOR when it
+         continues the previous shot or the next one continues it. Marking only
+         continuations left the run starting one frame late, so its first frame
+         never became the reference the rest chain off. */
+      const continues = !!sh.continuity_id && (
+        (prev && prev.continuity_id === sh.continuity_id) ||
+        (next && next.continuity_id === sh.continuity_id));
+      /* The planner writes mode A/B/C (§21); ANCHOR/SUPPORT is derived from
+         continuity. A person who overrides it in the editor writes a separate
+         field, so their choice wins without erasing what the planner decided. */
+      const declared = String(sh.mode_override || sh.mode || "").toUpperCase();
+      return {
+        ts: String(sh.timecode || ""),
+        visual: String(sh.shot_description || ""),
+        prompt: String(sh.image_prompt || ""),
+        motion: String(sh.video_prompt || sh.motion_prompt || ""),
+        // legacy consumers read .mode; keep its meaning, derive its value
+        mode: /ANCHOR/.test(declared) ? "ANCHOR" : /SUPPORT/.test(declared) ? "SUPPORT"
+          : continues ? "ANCHOR" : "SUPPORT",
+        shot: sh,
+        raw: "", sep: "|", cells: [], col: {}, width: 0,
+      };
+    });
+  }
   const src = current.phases.p2 || current.md;
   const rows = [];
   let header = null;
@@ -2370,7 +2884,6 @@ function storyboardRows() {
   if (!header || !rows.length) return null;
   const pi = header.findIndex((h) => /prompt/i.test(h));
   const mi = header.findIndex((h) => /motion/i.test(h));
-  // "Visual Mode" also matches /visual/i — resolve the mode column first and exclude it
   const di = header.findIndex((h) => /\bmode\b|โหมด/i.test(h));
   const vi = header.findIndex((h, i) => i !== di && /visual/i.test(h));
   return rows.map((r) => {
@@ -2387,6 +2900,7 @@ function storyboardRows() {
       prompt: (c[col.prompt] || "").replace(/^"|"$/g, ""),
       motion: mi >= 0 ? (c[mi] || "").replace(/^"|"$/g, "") : "",
       mode: /ANCHOR/.test(md) ? "ANCHOR" : /SUPPORT/.test(md) ? "SUPPORT" : "",
+      shot: null,
       raw: r.raw, sep: r.sep, cells: c, col, width: header.length,
     };
   });
@@ -2427,6 +2941,202 @@ function sbNextTs(ts) {
   const s = (+m[1]) * 60 + (+m[2]) + 15;
   return `[${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}]`;
 }
+/* ── Editing a JSON board (§24) ──
+   The table editor rewrites one markdown line; a JSON board has no line to
+   rewrite, so it needs its own commit path. Everything the planner decided is
+   editable here — type, function, priority, camera, lens, hold and its reason,
+   continuity, reuse, both prompts — plus three locks that say "this was
+   decided, leave it alone" when the board is regenerated. Serialising with two
+   spaces keeps the fence readable if it is ever edited by hand. */
+function sbJsonDoc() {
+  const src = current.phases.p2 || current.md;
+  const m = src.match(/```storyboard\s*([\s\S]*?)```/);
+  if (!m) return null;
+  try { return { doc: JSON.parse(m[1]), body: m[1], full: m[0] }; } catch { return null; }
+}
+function sbCommitJson(mutate) {
+  const j = sbJsonDoc();
+  if (!j) { toast("อ่าน Storyboard JSON ไม่ได้ — กดวิเคราะห์ใหม่แล้วลองอีกครั้ง"); return false; }
+  if (mutate(j.doc) === false) return false;
+  const fence = "```storyboard\n" + JSON.stringify(j.doc, null, 2) + "\n```";
+  if (!current.md.includes(j.full)) { toast("หากระดานเดิมในเอกสารไม่เจอ — กดวิเคราะห์ใหม่"); return false; }
+  const md = current.md.replace(j.full, () => fence);
+  const btn = $("#subtabs button[aria-selected='true']");
+  const view = btn ? btn.dataset.view : "broll";
+  $("#pastebox").value = md;
+  analyzeResult(md, false, { keepImgs: true });
+  showView(view);
+  return true;
+}
+const SB_LOCKS = [
+  ["lock_continuity", "ล็อกความต่อเนื่อง"],
+  ["lock_character", "ล็อกตัวละคร"],
+  ["lock_location", "ล็อกสถานที่"],
+];
+const SB_FLAGS = [
+  ["reusable", "ใช้ซ้ำได้"],
+  ["mandatory", "ต้องมี"],
+  ["optional", "ตัดได้ถ้าเวลาไม่พอ"],
+];
+function sbEditJsonForm(i, sh, mode) {
+  const t = (id, label, val, rows) => `<label class="f" for="sbj-${id}-${i}">${label}</label>` +
+    (rows ? `<textarea id="sbj-${id}-${i}" rows="${rows}">${esc(String(val ?? ""))}</textarea>`
+          : `<input type="text" id="sbj-${id}-${i}" value="${esc(String(val ?? ""))}" />`);
+  /* An unset field keeps a blank option so opening the editor cannot silently
+     assign the first value in the list to a shot nobody typed one for. */
+  const sel = (id, label, val, opts) => {
+    const cur = String(val || "").toUpperCase();
+    const known = opts.includes(cur);
+    return `<label class="f" for="sbj-${id}-${i}">${label}</label>
+    <select id="sbj-${id}-${i}">${known ? "" : `<option value="" selected>— ไม่ระบุ —</option>`}${
+      opts.map((o) => `<option${cur === o ? " selected" : ""}>${o}</option>`).join("")}</select>`;
+  };
+  const box = (list, obj) => `<div class="hint" style="display:flex;gap:12px;flex-wrap:wrap;margin:6px 0">` +
+    list.map(([k, lbl]) => `<label><input type="checkbox" id="sbj-${k}-${i}"${obj[k] ? " checked" : ""} /> ${lbl}</label>`).join("") + `</div>`;
+  return `
+    ${t("timecode", "Timecode", sh.timecode)}
+    ${sel("visual_type", "ประเภทภาพ", sh.visual_type || "", VTYPES)}
+    ${t("visual_function", "หน้าที่ของภาพ", sh.visual_function)}
+    ${t("visual_priority", "ลำดับความสำคัญ (1–5)", sh.visual_priority)}
+    ${t("shot_description", "คำอธิบายช็อต", sh.shot_description, 2)}
+    ${t("camera", "การเคลื่อนกล้อง", sh.camera)}
+    ${t("lens", "เลนส์", sh.lens)}
+    ${t("hold_seconds", "ถือภาพ (วินาที)", sh.hold_seconds)}
+    ${t("hold_reason", "ทำไมถือเท่านี้", sh.hold_reason, 2)}
+    ${t("continuity_id", "Continuity ID", sh.continuity_id)}
+    ${t("location", "สถานที่", sh.location)}
+    ${t("characters", "ตัวละคร (คั่นด้วยจุลภาค)", [].concat(sh.characters || []).join(", "))}
+    ${t("reuse_of", "ใช้ภาพซ้ำจากช็อต id", sh.reuse_of)}
+    ${t("image_prompt", "Image Prompt", sh.image_prompt, 5)}
+    ${t("video_prompt", "Video Prompt", sh.video_prompt || sh.motion_prompt, 3)}
+    ${sel("mode_override", "Visual Mode (บังคับทับค่าที่ระบบคิดให้)", sh.mode_override || "", ["ANCHOR", "SUPPORT"])}
+    <div class="hint" style="margin:8px 0 0">ล็อกไว้ไม่ให้ถูกเขียนทับเมื่อสร้างกระดานใหม่</div>
+    ${box(SB_LOCKS, sh)}
+    <div class="hint" style="margin:0">สถานะของช็อต</div>
+    ${box(SB_FLAGS, sh)}
+    <div class="btnrow">
+      <button class="btn small" data-sbsave="${i}">💾 บันทึก</button>
+      <button class="btn small" data-sbdup="${i}">⧉ ทำสำเนา</button>
+      <button class="btn small" data-sbsplit="${i}">✂️ แยกเป็นสองช็อต</button>
+      <button class="btn small" data-sbmerge="${i}">⇥ รวมกับช็อตถัดไป</button>
+      <button class="btn small" data-sbadd="${i}">➕ แทรกช็อตถัดไป</button>
+      <button class="btn small" data-sbdel="${i}">🗑 ลบช็อตนี้</button>
+    </div>`;
+}
+const sbv = (id, i) => ($("#sbj-" + id + "-" + i)?.value ?? "").trim();
+const sbc = (id, i) => !!$("#sbj-" + id + "-" + i)?.checked;
+function sbSaveJson(i) {
+  const ok = sbCommitJson((doc) => {
+    const sh = doc.shots[i];
+    if (!sh) { toast("หาช็อตเดิมไม่เจอ"); return false; }
+    sh.timecode = sbv("timecode", i);
+    sh.visual_type = sbv("visual_type", i);
+    sh.visual_function = sbv("visual_function", i);
+    const p = Number(sbv("visual_priority", i));
+    if (p) sh.visual_priority = p; else delete sh.visual_priority;
+    sh.shot_description = sbv("shot_description", i);
+    sh.camera = sbv("camera", i);
+    sh.lens = sbv("lens", i);
+    const h = Number(sbv("hold_seconds", i));
+    if (h) sh.hold_seconds = h; else delete sh.hold_seconds;
+    sh.hold_reason = sbv("hold_reason", i);
+    sh.continuity_id = sbv("continuity_id", i);
+    sh.location = sbv("location", i);
+    const chars = sbv("characters", i).split(/\s*,\s*/).filter(Boolean);
+    if (chars.length) sh.characters = chars; else delete sh.characters;
+    const reuse = sbv("reuse_of", i);
+    if (reuse) sh.reuse_of = reuse; else delete sh.reuse_of;
+    sh.image_prompt = sbv("image_prompt", i);
+    sh.video_prompt = sbv("video_prompt", i);
+    const mo = sbv("mode_override", i);
+    if (mo) sh.mode_override = mo; else delete sh.mode_override;
+    [...SB_LOCKS, ...SB_FLAGS].forEach(([k]) => { if (sbc(k, i)) sh[k] = true; else delete sh[k]; });
+  });
+  if (ok) toast("บันทึกช็อตแล้ว ✓");
+}
+/* A new shot inherits the look of the one it follows — same continuity, camera
+   and lens — because a shot inserted into a run almost always belongs to it.
+   The prompt starts empty on purpose: an inherited prompt would generate a
+   near-duplicate and read as finished when it is not. */
+function sbInsertJson(i, over) {
+  const ts = window.prompt("Timecode ของช็อตใหม่", sbNextTs((storyboardRows() || [])[i]?.ts) || "[0:00]");
+  if (!ts) return;
+  const ok = sbCommitJson((doc) => {
+    const src = doc.shots[i] || {};
+    doc.shots.splice(i + 1, 0, Object.assign({
+      id: "s" + Date.now().toString(36),
+      timecode: ts.trim(),
+      visual_type: src.visual_type || "",
+      visual_function: "",
+      shot_description: "",
+      camera: src.camera || "",
+      lens: src.lens || "",
+      continuity_id: src.continuity_id || "",
+      location: src.location || "",
+      image_prompt: "",
+      video_prompt: "",
+      mode: src.mode || "SUPPORT",
+    }, over || {}));
+  });
+  if (ok) { shiftBrollImgs(i + 1, +1); toast("แทรกช็อต " + ts.trim() + " แล้ว"); }
+}
+function sbAddJson(i) { sbInsertJson(i); }
+function sbDupJson(i) {
+  const ok = sbCommitJson((doc) => {
+    const src = doc.shots[i];
+    if (!src) return false;
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = "s" + Date.now().toString(36);
+    copy.timecode = sbNextTs(src.timecode) || src.timecode;
+    // a duplicate is a reuse by definition — say so, so it is never billed twice
+    copy.reuse_of = src.id || copy.reuse_of || "";
+    doc.shots.splice(i + 1, 0, copy);
+  });
+  if (ok) { shiftBrollImgs(i + 1, +1); toast("ทำสำเนาช็อตแล้ว — ตั้งไว้เป็นใช้ภาพซ้ำ ✓"); }
+}
+/* Splitting means the beat needs two images, so the second half starts blank
+   and inherits nothing but the scene it lives in. Merging is the reverse: the
+   later shot's time disappears and its description is folded in. */
+function sbSplitJson(i) {
+  const r = (storyboardRows() || [])[i];
+  if (!r) return;
+  const half = Math.max(1, Math.round((Number(r.shot?.hold_seconds) || 8) / 2));
+  const ok = sbCommitJson((doc) => {
+    const src = doc.shots[i];
+    if (!src) return false;
+    if (src.hold_seconds) src.hold_seconds = half;
+    const b = JSON.parse(JSON.stringify(src));
+    b.id = "s" + Date.now().toString(36);
+    b.timecode = sbNextTs(src.timecode) || src.timecode;
+    b.shot_description = "";
+    b.image_prompt = "";
+    b.video_prompt = "";
+    delete b.reuse_of;
+    doc.shots.splice(i + 1, 0, b);
+  });
+  if (ok) { shiftBrollImgs(i + 1, +1); toast("แยกเป็นสองช็อตแล้ว — เติมรายละเอียดครึ่งหลัง"); }
+}
+function sbMergeJson(i) {
+  const rows = storyboardRows() || [];
+  if (!rows[i + 1]) { toast("ไม่มีช็อตถัดไปให้รวม"); return; }
+  if (!confirm("รวมช็อต " + rows[i + 1].ts + " เข้ากับ " + rows[i].ts + " ? ช็อตถัดไปจะถูกลบ")) return;
+  const ok = sbCommitJson((doc) => {
+    const a = doc.shots[i], b = doc.shots[i + 1];
+    if (!a || !b) return false;
+    a.hold_seconds = (Number(a.hold_seconds) || 0) + (Number(b.hold_seconds) || 0) || a.hold_seconds;
+    if (b.shot_description && b.shot_description !== a.shot_description) {
+      a.shot_description = [a.shot_description, b.shot_description].filter(Boolean).join(" → ");
+    }
+    doc.shots.splice(i + 1, 1);
+  });
+  if (ok) { shiftBrollImgs(i + 2, -1, i + 1); toast("รวมช็อตแล้ว ✓"); }
+}
+function sbDelJson(i) {
+  const r = (storyboardRows() || [])[i];
+  if (!r || !confirm("ลบช็อต " + r.ts + " ออกจาก Storyboard?")) return;
+  const ok = sbCommitJson((doc) => { doc.shots.splice(i, 1); });
+  if (ok) { shiftBrollImgs(i + 1, -1, i); toast("ลบช็อตแล้ว ✓"); }
+}
 function sbToggleEdit(i) {
   const box = $("#sbedit-" + i);
   if (!box) return;
@@ -2440,6 +3150,9 @@ function sbToggleEdit(i) {
   if (!r) return;
   box.dataset.open = "1";
   if (card) card.classList.add("editing");
+  // a JSON board carries fields the six-column table never had, so it gets the
+  // fuller form; the table editor stays exactly as it was for legacy documents
+  if (r.shot) { box.innerHTML = sbEditJsonForm(i, r.shot, r.mode); wireSbEdit(); return; }
   box.innerHTML = `
     <label class="f" for="sbe-v-${i}">Visual Suggestion</label>
     <textarea id="sbe-v-${i}" rows="2">${esc(r.visual)}</textarea>
@@ -2501,10 +3214,14 @@ function sbDel(i) {
   if (ok) { shiftBrollImgs(i + 1, -1, i); toast("ลบแถวแล้ว ✓"); }
 }
 function wireSbEdit() {
+  const json = !!storyboardShots();
   $$("#brollbody [data-sbedit]").forEach((b) => b.onclick = () => sbToggleEdit(+b.dataset.sbedit));
-  $$("#brollbody [data-sbsave]").forEach((b) => b.onclick = () => sbSave(+b.dataset.sbsave));
-  $$("#brollbody [data-sbadd]").forEach((b) => b.onclick = () => sbAdd(+b.dataset.sbadd));
-  $$("#brollbody [data-sbdel]").forEach((b) => b.onclick = () => sbDel(+b.dataset.sbdel));
+  $$("#brollbody [data-sbsave]").forEach((b) => b.onclick = () => (json ? sbSaveJson : sbSave)(+b.dataset.sbsave));
+  $$("#brollbody [data-sbadd]").forEach((b) => b.onclick = () => (json ? sbAddJson : sbAdd)(+b.dataset.sbadd));
+  $$("#brollbody [data-sbdel]").forEach((b) => b.onclick = () => (json ? sbDelJson : sbDel)(+b.dataset.sbdel));
+  $$("#brollbody [data-sbdup]").forEach((b) => b.onclick = () => sbDupJson(+b.dataset.sbdup));
+  $$("#brollbody [data-sbsplit]").forEach((b) => b.onclick = () => sbSplitJson(+b.dataset.sbsplit));
+  $$("#brollbody [data-sbmerge]").forEach((b) => b.onclick = () => sbMergeJson(+b.dataset.sbmerge));
 }
 /* ───────── ChatGPT image prompts ─────────
    GPT Image reads instructions, not comma-separated tags, and it silently adds
@@ -2605,6 +3322,45 @@ function brollName(r, i, seqNo, posNo) {
   const tail = r.mode === "ANCHOR" && seqNo ? "-s" + seqNo + "f" + posNo : "";
   return String(i + 1).padStart(2, "0") + "_" + ts + "_" + (r.mode || "CUE") + tail + ".png";
 }
+/* ── Reuse (§17): an image asked for twice should be paid for once ──
+   A shot may carry reuse_of naming an earlier shot's id. That is a plan
+   decision, not a shortcut: an establishing shot returning at the close means
+   something precisely because it is the same frame. We resolve those
+   references to row indices, generate only the sources, and copy the pixels
+   across afterwards. A reference that points forward, at itself, or at nothing
+   is ignored rather than guessed at. */
+function reusePlan(rows) {
+  const byId = new Map();
+  rows.forEach((r, i) => { const id = r.shot?.id; if (id && !byId.has(String(id))) byId.set(String(id), i); });
+  const from = {};
+  rows.forEach((r, i) => {
+    const ref = String(r.shot?.reuse_of || "").trim();
+    if (!ref) return;
+    const src = byId.get(ref);
+    if (src === undefined || src >= i) return;   // must resolve, and must come first
+    from[i] = from[src] !== undefined ? from[src] : src;  // collapse chains to the original
+  });
+  return from;
+}
+
+/* Cost is an estimate and says so. The rate moves and differs by provider and
+   resolution; what matters here is the order of magnitude and, more than that,
+   the count — reuse and already-generated rows are the two numbers that
+   actually change the bill. */
+const IMG_RATE_USD = 0.04;   // Gemini/Imagen and GPT Image both sit near this at standard size
+const USD_THB = 36;
+function costPlan(rows, reuse, skipExisting) {
+  let gen = 0, reused = 0, have = 0;
+  rows.forEach((_, i) => {
+    if (reuse[i] !== undefined) { reused++; return; }
+    if (skipExisting && current.brollImgs?.[i]) { have++; return; }
+    gen++;
+  });
+  const usd = gen * IMG_RATE_USD;
+  return { gen, reused, have,
+    usd, costText: `~$${usd.toFixed(2)} (≈ ${Math.round(usd * USD_THB)} บาท ที่ $${IMG_RATE_USD}/ภาพ)` };
+}
+
 let brollBatch = null;
 window.addEventListener("beforeunload", (e) => {
   if (brollBatch) { e.preventDefault(); e.returnValue = ""; }
@@ -2614,6 +3370,19 @@ async function runBrollBatch(rows, pos) {
   const stat = $("#batchstat");
   const skip = $("#batchskip").checked, chain = $("#batchchain").checked;
   const delay = Math.max(0, Number($("#batchdelay").value) || 0) * 1000;
+  const reuse = reusePlan(rows);
+  /* Approval gate (§23): the last moment this costs nothing. Say plainly how
+     many images will actually be billed and what that comes to, then wait to
+     be told to go ahead. */
+  const plan = costPlan(rows, reuse, skip);
+  if (!confirm(`กำลังจะเจนภาพจริง\n\n` +
+    `คิวทั้งหมด ${rows.length}\n` +
+    `เจนจริง ${plan.gen} ภาพ\n` +
+    (plan.reused ? `ใช้ภาพซ้ำ ${plan.reused} คิว (ไม่เสียเงิน)\n` : "") +
+    (plan.have ? `มีภาพแล้ว ${plan.have} คิว (ข้าม)\n` : "") +
+    `\nประมาณการค่าใช้จ่าย ${plan.costText}\n` +
+    `เวลาโดยประมาณ ${fmtMMSS(plan.gen * (6 + (Math.max(0, Number($("#batchdelay").value) || 0))))}\n\n` +
+    `ตรวจ Visual QC แล้วใช่ไหม? กด OK เพื่อเริ่ม`)) return;
   brollBatch = { stop: false };
   $("#batchrun").disabled = true;
   $("#batchstop").hidden = false;
@@ -2622,6 +3391,16 @@ async function runBrollBatch(rows, pos) {
   for (let i = 0; i < rows.length; i++) {
     if (brollBatch.stop) break;
     if (skip && current.brollImgs[i]) { skipped++; continue; }
+    // a reuse row is a copy, not a generation — no API call, no cost
+    if (reuse[i] !== undefined) {
+      if (current.brollImgs[reuse[i]]) {
+        current.brollImgs[i] = current.brollImgs[reuse[i]];
+        const rslot = $("[data-imgslot='" + i + "']");
+        if (rslot) rslot.innerHTML = `<img src="${current.brollImgs[i]}" alt="b-roll" />`;
+        saveBrollImgs();
+      }
+      skipped++; continue;
+    }
     // chain within an ANCHOR run only — a SUPPORT frame stands on its own
     const ref = chain && pos[i] > 1 ? current.brollImgs[i - 1] : null;
     let ok = false;
@@ -2673,9 +3452,12 @@ function downloadBrollZip(rows, seq, pos) {
    Group first (each ANCHOR run is one indivisible group, each SUPPORT row its
    own), then pack groups up to the batch size — inside a batch the references
    become "same scene as image N", which resolves within the single message. */
-function cgptBatches(rows, seq, pos, size) {
+function cgptBatches(rows, seq, pos, size, skip) {
   const groups = [];
   rows.forEach((r, i) => {
+    // a reuse row is an existing image under a second timecode; asking for it
+    // again would produce a near-match, which is worse than the copy
+    if (skip && skip[i] !== undefined) return;
     if (r.mode === "ANCHOR" && seq[i] && pos[i] > 1 && groups.length) groups[groups.length - 1].push(i);
     else groups.push([i]);
   });
@@ -2767,6 +3549,273 @@ function applyStoryboard(table) {
   analyzeResult(md, true, { keepImgs: true });
   showView("broll");
 }
+/* ── Visual Map: the whole episode before a single image is generated ──
+   The point is to catch a plan that reads badly — eight human shots in a row,
+   a concept-heavy stretch with no metaphor, data stacked into one minute —
+   while changing it still costs nothing. It reports; it never rewrites. A run
+   of one visual type is sometimes exactly right, so nothing here is an error. */
+const VTYPES = ["HUMAN", "ENVIRONMENT", "METAPHOR", "DATA", "OBJECT"];
+const VMIX_TARGET = { HUMAN: 25, ENVIRONMENT: 25, METAPHOR: 20, DATA: 15, OBJECT: 15 };
+const VCOLOR = { HUMAN: "#3f5c86", ENVIRONMENT: "#357a54", METAPHOR: "#6b4a86", DATA: "#8a6234", OBJECT: "#6b6152" };
+const vtypeOf = (r) => {
+  const t = String(r.shot?.visual_type || "").toUpperCase();
+  return VTYPES.includes(t) ? t : null;
+};
+
+function visualRhythm(rows) {
+  const notes = [];
+  const types = rows.map(vtypeOf);
+  const known = types.filter(Boolean);
+  // longest run of one type
+  let run = 1, runType = types[0], worstRun = 0, worstType = null;
+  for (let i = 1; i < types.length; i++) {
+    if (types[i] && types[i] === types[i - 1]) run++;
+    else { if (run > worstRun) { worstRun = run; worstType = runType; } run = 1; runType = types[i]; }
+  }
+  if (run > worstRun) { worstRun = run; worstType = runType; }
+  if (worstRun >= 5 && worstType) notes.push(`ช็อตประเภท ${worstType} ติดกัน ${worstRun} ช็อต — ถ้าไม่ได้ตั้งใจ ภาพจะเริ่มซ้ำ`);
+
+  // camera repetition
+  const cams = rows.map((r) => String(r.shot?.camera || "")).filter(Boolean);
+  let cRun = 1, cWorst = 0, cWhich = "";
+  for (let i = 1; i < cams.length; i++) {
+    if (cams[i] === cams[i - 1]) cRun++; else { if (cRun > cWorst) { cWorst = cRun; cWhich = cams[i - 1]; } cRun = 1; }
+  }
+  if (cRun > cWorst) { cWorst = cRun; cWhich = cams[cams.length - 1]; }
+  if (cWorst >= 4 && cWhich) notes.push(`กล้อง ${cWhich} ติดกัน ${cWorst} ช็อต — การเคลื่อนกล้องกำลังกลายเป็นค่าเริ่มต้น ไม่ใช่การตัดสินใจ`);
+
+  // data density inside any 60-second window
+  const secs = rows.map((r) => { const m = String(r.ts).match(/(\d{1,3}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; });
+  for (let i = 0; i < rows.length; i++) {
+    if (secs[i] === null) continue;
+    const near = rows.filter((r, j) => secs[j] !== null && secs[j] >= secs[i] && secs[j] < secs[i] + 60 && vtypeOf(r) === "DATA");
+    if (near.length >= 4) { notes.push(`ช่วง ${fmtMMSS(secs[i])} มีภาพข้อมูล ${near.length} ช็อตใน 60 วินาที — หนักเกินกว่าคนจะรับทัน`); break; }
+  }
+  if (known.length && !known.includes("METAPHOR")) notes.push("ทั้งตอนไม่มีภาพเชิงเปรียบเทียบเลย — ถ้าเนื้อหามีความคิดนามธรรม ภาพกำลังตามคำบรรยายตรงตัวเกินไป");
+
+  const holds = rows.map((r) => Number(r.shot?.hold_seconds) || 0).filter(Boolean);
+  const avg = holds.length ? holds.reduce((a, b) => a + b, 0) / holds.length : 0;
+  return { notes, avgHold: avg, typed: known.length };
+}
+
+/* ── Visual QC (§19): fourteen checks on the plan, not on the pictures ──
+   Every one of these is answerable before a single image is generated, which
+   is the point: a board that fails here fails cheaply. Each check reports
+   ok / warn / fail plus the shots responsible, so a fix is one click away in
+   the B-Roll tab. Nothing here rewrites the board. */
+function visualQC(rows, parsed) {
+  const shots = rows.map((r) => r.shot || {});
+  const n = rows.length;
+  const meta = parsed?.meta || {};
+  const label = (i) => String(rows[i].ts).replace(/[\[\]]/g, "") || "#" + (i + 1);
+  const out = [];
+  const add = (name, bad, msg, okMsg, hard) => out.push({
+    name,
+    state: !bad.length ? "ok" : hard ? "fail" : "warn",
+    detail: bad.length ? msg(bad) : okMsg,
+    where: bad.map(label),
+  });
+  const idx = (fn) => rows.map((_, i) => i).filter(fn);
+
+  // 1 — every shot is anchored to a moment in the script
+  add("ทุกช็อตมี Timecode",
+    idx((i) => !/\d{1,3}:\d{2}/.test(String(rows[i].ts))),
+    (b) => `${b.length} ช็อตไม่มีเวลากำกับ — วางลงไทม์ไลน์ไม่ได้`,
+    `ครบทั้ง ${n} ช็อต`, true);
+
+  // 2 — the shot knows what kind of image it is
+  add("ระบุประเภทภาพ (visual_type)",
+    idx((i) => !vtypeOf(rows[i])),
+    (b) => `${b.length} ช็อตไม่ได้ระบุประเภท หรือระบุนอกชุดที่รู้จัก`,
+    "ระบุครบ", true);
+
+  // 3 — and why it exists
+  add("ระบุหน้าที่ของภาพ (visual_function)",
+    idx((i) => !String(shots[i].visual_function || "").trim()),
+    (b) => `${b.length} ช็อตไม่บอกว่าภาพนี้ทำหน้าที่อะไรกับเรื่อง`,
+    "ระบุครบ");
+
+  // 4 — how long it holds, and on what grounds
+  add("ระยะถือภาพมีเหตุผลกำกับ",
+    idx((i) => !(Number(shots[i].hold_seconds) > 0) || !String(shots[i].hold_reason || "").trim()),
+    (b) => `${b.length} ช็อตขาด hold_seconds หรือ hold_reason — ระยะถือภาพกลายเป็นค่าเริ่มต้น`,
+    "ทุกช็อตบอกได้ว่าทำไมถือเท่านี้");
+
+  // 5 — a prompt short enough to be generic will generate something generic
+  add("Prompt ละเอียดพอจะเจนได้",
+    idx((i) => String(shots[i].image_prompt || rows[i].prompt || "").trim().length < 120),
+    (b) => `${b.length} ช็อตมี prompt สั้นกว่า 120 ตัวอักษร — จะได้ภาพกลาง ๆ ที่ใช้แทนกันได้หมด`,
+    "ยาวพอทุกช็อต");
+
+  // 6 — two identical prompts mean one of them was never planned
+  (() => {
+    const seen = new Map(), dup = [];
+    rows.forEach((r, i) => {
+      const k = String(shots[i].image_prompt || r.prompt || "").trim().toLowerCase();
+      if (!k) return;
+      if (seen.has(k)) dup.push(i); else seen.set(k, i);
+    });
+    add("ไม่มี Prompt ซ้ำคำต่อคำ", dup,
+      (b) => `${b.length} ช็อตใช้ prompt เดียวกับช็อตก่อนหน้า — ถ้าตั้งใจใช้ซ้ำ ให้ใส่ reuse_of แทน`,
+      "ไม่พบ prompt ซ้ำ");
+  })();
+
+  // 7 — a continuity run has to actually chain
+  (() => {
+    const bad = idx((i) => {
+      if (rows[i].mode !== "ANCHOR") return false;
+      const id = shots[i].continuity_id;
+      if (!id) return true;
+      const prevSame = i > 0 && shots[i - 1].continuity_id === id;
+      return prevSame && !String(shots[i].reuse_of || shots[i].continuity_id || "").trim();
+    });
+    add("ชุด ANCHOR ต่อเนื่องกันจริง", bad,
+      (b) => `${b.length} ช็อตในชุดต่อเนื่องไม่มี continuity_id — เฟรมถัดไปจะไม่รู้ว่าต้องอ้างภาพไหน`,
+      "ทุกชุดมีสายต่อเนื่องครบ", true);
+  })();
+
+  // 8 — people who appear must be described once, centrally
+  (() => {
+    const chars = (meta.continuity?.characters || []).map((c) => String(c.id || c.name || c).toLowerCase());
+    const bad = idx((i) => {
+      // explicit list if present, otherwise the "character@location" convention
+      // the Phase 2 schema uses for continuity_id
+      // an id without "@" names a scene, not a person — infer nothing from it
+      const cid = String(shots[i].continuity_id || "");
+      const ids = shots[i].characters ? [].concat(shots[i].characters)
+        : cid.includes("@") ? [cid.split("@")[0]] : [];
+      return ids.map((c) => String(c).trim().toLowerCase()).filter(Boolean)
+        .some((c) => !chars.includes(c));
+    });
+    add("ตัวละครถูกประกาศไว้ส่วนกลาง", bad,
+      (b) => `${b.length} ช็อตอ้างตัวละครที่ไม่ได้อยู่ใน continuity.characters — หน้าตาจะเพี้ยนข้ามช็อต`,
+      chars.length ? `ประกาศไว้ ${chars.length} ตัว` : "ตอนนี้ไม่มีตัวละครซ้ำข้ามช็อต");
+  })();
+
+  // 9 — same for places
+  (() => {
+    const locs = (meta.continuity?.locations || []).map((l) => String(l.id || l.name || l).toLowerCase());
+    const bad = idx((i) => {
+      const parts = String(shots[i].continuity_id || "").split("@");
+      const id = String(shots[i].location || parts[1] || "").trim().toLowerCase();
+      return id && locs.length && !locs.includes(id);
+    });
+    add("สถานที่ถูกประกาศไว้ส่วนกลาง", bad,
+      (b) => `${b.length} ช็อตอ้างสถานที่ที่ไม่ได้ประกาศไว้`,
+      locs.length ? `ประกาศไว้ ${locs.length} แห่ง` : "ตอนนี้ไม่มีสถานที่ซ้ำข้ามช็อต");
+  })();
+
+  // 10 — camera language is a decision, so it has to be stated
+  add("ระบุภาษากล้อง",
+    idx((i) => !String(shots[i].camera || "").trim()),
+    (b) => `${b.length} ช็อตไม่ระบุการเคลื่อนกล้อง`,
+    "ระบุครบ");
+
+  // 11 — anchors carry the motion, so they need a video prompt
+  (() => {
+    const anchors = idx((i) => rows[i].mode === "ANCHOR");
+    const bad = anchors.filter((i) => !String(shots[i].video_prompt || shots[i].motion_prompt || "").trim());
+    add("ช็อต ANCHOR มี Video Prompt", bad,
+      (b) => `${b.length}/${anchors.length} ช็อต ANCHOR ยังไม่มี prompt สำหรับวิดีโอ`,
+      anchors.length ? `ครบทั้ง ${anchors.length} ช็อต` : "ตอนนี้ไม่มีช็อต ANCHOR");
+  })();
+
+  // 12 — the board has to cover the script it illustrates
+  out.push({
+    name: "คิวภาพครอบคลุมสคริปต์",
+    state: current.coverage === null ? "warn" : current.coverage >= 90 ? "ok" : current.coverage >= 70 ? "warn" : "fail",
+    detail: current.coverage === null ? "เทียบกับ Timestamp ในสคริปต์ไม่ได้"
+      : `ครอบคลุม ${current.coverage}% ของ Timestamp ในสคริปต์`,
+    where: (current.missing || []).slice(0, 8).map((t) => String(t).replace(/[\[\]]/g, "")),
+  });
+
+  // 13 — a long stretch with no new image is a stretch the viewer leaves
+  (() => {
+    const secs = rows.map((r) => { const m = String(r.ts).match(/(\d{1,3}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; })
+      .filter((s) => s !== null).sort((a, b) => a - b);
+    const gaps = [];
+    for (let i = 1; i < secs.length; i++) if (secs[i] - secs[i - 1] > 45) gaps.push(fmtMMSS(secs[i - 1]));
+    out.push({
+      name: "ไม่มีช่วงภาพนิ่งยาวเกิน 45 วิ",
+      state: !gaps.length ? "ok" : gaps.length > 3 ? "fail" : "warn",
+      detail: gaps.length ? `พบ ${gaps.length} ช่วงที่ภาพค้างนานเกินไป` : "ไม่พบช่วงที่ภาพค้างนาน",
+      where: gaps.slice(0, 8),
+    });
+  })();
+
+  // 14 — the holds should add up to roughly the episode
+  (() => {
+    const sum = shots.reduce((a, s) => a + (Number(s.hold_seconds) || 0), 0);
+    const target = current.voReal || current.total || current.estSec || 0;
+    const off = target ? Math.abs(sum - target) / target : 0;
+    out.push({
+      name: "ระยะถือภาพรวมเท่ากับความยาวตอน",
+      state: !sum || !target ? "warn" : off <= 0.2 ? "ok" : off <= 0.35 ? "warn" : "fail",
+      detail: !sum ? "ยังไม่มี hold_seconds ให้รวม" : !target ? "ยังไม่รู้ความยาวตอน"
+        : `รวม ${fmtMMSS(sum)} เทียบกับตอนยาว ${fmtMMSS(target)} (ต่างกัน ${Math.round(off * 100)}%)`,
+      where: [],
+    });
+  })();
+
+  const fails = out.filter((c) => c.state === "fail").length;
+  const warns = out.filter((c) => c.state === "warn").length;
+  return { checks: out, fails, warns, passes: out.length - fails - warns };
+}
+
+function renderVisualMap() {
+  const body = $("#vmapbody");
+  const rows = storyboardRows();
+  if (!rows) { body.innerHTML = `<div class="empty">ยังไม่มี Storyboard — สร้างก่อนที่แท็บ B-Roll</div>`; return; }
+  const parsed = storyboardShots();
+  const typed = rows.filter(vtypeOf).length;
+  if (!typed) {
+    body.innerHTML = `<div class="empty">Storyboard นี้เป็นรูปแบบเดิมที่ยังไม่มีข้อมูลประเภทภาพ<br />
+      สร้าง Prompt ใหม่แล้วเจน Storyboard อีกครั้งเพื่อเปิดใช้ Visual Map</div>`;
+    return;
+  }
+  const counts = {};
+  VTYPES.forEach((t) => { counts[t] = rows.filter((r) => vtypeOf(r) === t).length; });
+  const rh = visualRhythm(rows);
+  const vq = visualQC(rows, parsed);
+  const VQICON = { ok: "✓", warn: "!", fail: "✕" };
+  const vqHtml = `<details class="card" style="margin-bottom:10px" ${vq.fails ? "open" : ""}>
+    <summary style="cursor:pointer;font-weight:600">🔍 Visual QC — ผ่าน ${vq.passes} · ควรดู ${vq.warns} · ต้องแก้ ${vq.fails}</summary>
+    <p class="hint">ทุกข้อตรวจได้ก่อนเจนภาพ กระดานที่ตกตรงนี้ตกแบบไม่เสียเงิน</p>
+    ${vq.checks.map((c) => `<div class="vqrow vq-${c.state}">
+      <span class="vqdot">${VQICON[c.state]}</span>
+      <span class="vqname">${esc(c.name)}</span>
+      <span class="vqdet">${esc(c.detail)}${c.where.length ? ` · ${esc(c.where.slice(0, 6).join(", "))}${c.where.length > 6 ? " …" : ""}` : ""}</span>
+    </div>`).join("")}
+  </details>`;
+  const style = parsed?.meta?.episode_visual_style;
+  const chars = parsed?.meta?.continuity?.characters?.length || 0;
+  const locs = parsed?.meta?.continuity?.locations?.length || 0;
+
+  body.innerHTML = `
+    ${style ? `<p class="hint" style="margin-top:0">สไตล์ภาพของตอนนี้: <strong>${esc(style)}</strong> · ตัวละครที่ล็อกไว้ ${chars} · สถานที่ ${locs} · ถือภาพเฉลี่ย ${rh.avgHold ? rh.avgHold.toFixed(1) + " วิ" : "–"}</p>` : ""}
+    <div class="vbar">${VTYPES.map((t) => counts[t] ? `<span style="width:${(counts[t] / rows.length) * 100}%;background:${VCOLOR[t]}" title="${t} ${counts[t]}"></span>` : "").join("")}</div>
+    <div class="hint" style="margin-bottom:10px">${VTYPES.map((t) => {
+      const pct = Math.round((counts[t] / rows.length) * 100);
+      const off = pct - VMIX_TARGET[t];
+      return `${t} ${pct}%<span style="color:${Math.abs(off) > 12 ? "var(--warn)" : "var(--muted)"}"> (เป้า ${VMIX_TARGET[t]}%)</span>`;
+    }).join(" · ")}</div>
+    ${rh.notes.length ? `<div class="card" style="margin-bottom:10px"><div class="eyebrow">จังหวะภาพ</div>${rh.notes.map((n) => `<div style="font-size:.83rem;margin-top:4px">• ${esc(n)}</div>`).join("")}
+      <p class="hint" style="margin-top:8px">ข้อสังเกต ไม่ใช่ข้อผิดพลาด — ถ้าเรื่องได้ประโยชน์จากความต่อเนื่อง ปล่อยไว้ได้</p></div>`
+      : `<div class="card" style="margin-bottom:10px"><div class="eyebrow">จังหวะภาพ</div><div style="font-size:.83rem">ไม่พบจุดที่น่ากังวล</div></div>`}
+    ${vqHtml}
+    ${rows.map((r) => {
+      const t = vtypeOf(r) || "NA";
+      const sh = r.shot || {};
+      return `<div class="vrow">
+        <span class="vts">${esc(String(r.ts).replace(/[\[\]]/g, ""))}</span>
+        <span class="vtype vt-${t}">${t === "NA" ? "—" : t}</span>
+        <span class="vdesc" title="${esc(sh.narrative_function || "")}">${esc(r.visual || sh.image_prompt || "").slice(0, 120)}</span>
+        <span class="vhold">${sh.visual_function ? esc(sh.visual_function) + " · " : ""}${sh.visual_priority ? "P" + sh.visual_priority + " · " : ""}${sh.hold_seconds ? sh.hold_seconds + " วิ" : ""}</span>
+      </div>`;
+    }).join("")}
+  `;
+}
+
 function renderBroll() {
   const body = $("#brollbody");
   const rows = storyboardRows();
@@ -2801,7 +3850,14 @@ function renderBroll() {
   const hasModes = rows.some((r) => r.mode);
 
   const genCount = rows.filter((_, i) => current.brollImgs[i]).length;
+  const reuse = reusePlan(rows);
+  const plan = costPlan(rows, reuse, true);
+  const planLine = `คิว ${rows.length} · ต้องเจนจริง <strong>${plan.gen}</strong> ภาพ` +
+    (plan.reused ? ` · ใช้ภาพซ้ำ ${plan.reused}` : "") +
+    (plan.have ? ` · มีแล้ว ${plan.have}` : "") +
+    ` · ประมาณ ${plan.costText}`;
   body.innerHTML = `
+  <div class="hint" style="margin:0 0 8px">💰 ${planLine}</div>
   ${hasGemini() ? `<div class="card" style="margin-bottom:10px">
     <div class="btnrow" style="margin-top:0">
       <button class="btn primary" id="batchrun">▶️ เจนทั้งหมดตามลำดับ (${rows.length} คิว)</button>
@@ -2816,7 +3872,7 @@ function renderBroll() {
     <div class="hint" id="batchstat" style="margin-top:4px">มีภาพแล้ว ${genCount}/${rows.length} คิว · ล้มเหลวจะลองใหม่อัตโนมัติ 3 ครั้ง แล้วข้ามไปคิวถัดไป</div>
   </div>` : ""}
   ${(() => {
-    const b = cgptBatches(rows, seq, pos, 8);
+    const b = cgptBatches(rows, seq, pos, 8, reuse);
     return `<details class="card" style="margin-bottom:10px">
       <summary style="cursor:pointer;font-weight:600">🤖 ChatGPT แบบชุด — ${b.length} ชุด (สูงสุด 8 ภาพ/ชุด)</summary>
       <p class="hint">ก๊อปทีละชุดไปวางในแชท ChatGPT เดียวกัน ชุดหนึ่งสั่งได้ถึง 8 ภาพในข้อความเดียว ถ้ามันสร้างไม่ครบในทีเดียว พิมพ์ว่า "ทำต่อ" ได้ — prompt สั่งไว้แล้วว่าห้ามข้ามหมายเลข<br />
@@ -2837,7 +3893,17 @@ function renderBroll() {
       <div class="imgcard${r.mode === "ANCHOR" ? " anchor" : ""}">
         <div data-imgslot="${i}">${current.brollImgs[i] ? `<img src="${current.brollImgs[i]}" alt="b-roll" />` : `<div class="ph">ยังไม่ได้เจนภาพ</div>`}</div>
         ${r.mode ? `<div><span class="chip ${r.mode === "ANCHOR" ? "crit" : ""}"${r.mode === "ANCHOR" ? "" : ' style="background:var(--panel2);color:var(--muted)"'}>${r.mode === "ANCHOR" ? `🎬 ANCHOR · ชุด ${seq[i]} · เฟรม ${pos[i]}/${runLen[seq[i]]}` : "🖼 SUPPORT"}</span></div>` : ""}
+        ${r.shot ? `<div class="vprio" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <span class="vtype vt-${VTYPES.includes(String(r.shot.visual_type || "").toUpperCase()) ? String(r.shot.visual_type).toUpperCase() : "NA"}" style="min-width:0;padding:1px 6px">${esc(String(r.shot.visual_type || "—").toUpperCase())}</span>
+          ${r.shot.visual_function ? `<span>${esc(r.shot.visual_function)}</span>` : ""}
+          ${r.shot.visual_priority ? `<span>P${esc(String(r.shot.visual_priority))}</span>` : ""}
+          ${r.shot.camera ? `<span>${esc(r.shot.camera)}</span>` : ""}
+          ${r.shot.lens ? `<span>${esc(r.shot.lens)}</span>` : ""}
+          ${r.shot.hold_seconds ? `<span>${esc(String(r.shot.hold_seconds))} วิ</span>` : ""}
+          ${r.shot.reuse_of ? `<span title="ใช้ภาพซ้ำจาก ${esc(String(r.shot.reuse_of))}">↺ ${esc(String(r.shot.reuse_of))}</span>` : ""}
+        </div>` : ""}
         <div style="font-size:.8rem"><span class="ts">${esc(r.ts.replace(/[\[\]]/g, ""))}</span> ${esc(r.visual.slice(0, 90))}</div>
+        ${r.shot?.hold_reason ? `<div class="hint" style="margin:0">${esc(String(r.shot.hold_reason).slice(0, 120))}</div>` : ""}
         <div class="pr">${esc(r.prompt.slice(0, 200))}</div>
         ${r.motion ? `<div style="font-size:.75rem">🎬 <span class="ts">${esc(r.motion.slice(0, 80))}</span></div>` : ""}
         <div class="btnrow" style="margin-top:0">
@@ -2845,6 +3911,7 @@ function renderBroll() {
           <button class="btn small" data-copyprompt="${esc(r.prompt)}">📋 Prompt</button>
           <button class="btn small" data-copyprompt="${esc(cgptPrompt(r, pos[i] > 1))}">🤖 ChatGPT</button>
           ${r.motion ? `<button class="btn small" data-copyprompt="${esc(r.motion)}">🎬 Motion</button>` : ""}
+          ${r.shot?.video_prompt && r.shot.video_prompt !== r.motion ? `<button class="btn small" data-copyprompt="${esc(r.shot.video_prompt)}">🎥 Video</button>` : ""}
           <button class="btn small" data-sbedit="${i}">✏️ แก้ไข</button>
           ${current.brollImgs[i] ? `<a class="btn small" href="${current.brollImgs[i]}" download="broll-${String(i + 1).padStart(2, "0")}.png">⬇ PNG</a>` : ""}
         </div>
@@ -2976,6 +4043,226 @@ async function genShorts() {
     renderShorts();
     toast("สคริปต์ Shorts พร้อมแล้ว ✓");
   } catch (err) { alert(aiErrorThai(err)); current.shorts = null; renderShorts(); }
+}
+
+/* ── Phase 4 · Viewer Simulation ───────────────────────────────────────────
+   Everything before this phase judges the episode by its own rules: does the
+   script cover the timestamps, does the board hold long enough, is the mix
+   right. None of that tells you whether a person stays. This phase hands the
+   finished script and the shot plan to three simulated viewers who arrive
+   mid-scroll with a thumb ready to leave, and asks where each of them left.
+
+   The prompt body is the youtube-viewer-sim skill, synced in from
+   .claude/skills/ by scripts/sync-skill.mjs — it is not restated here, so
+   editing the skill changes this phase and nothing can drift apart. */
+const viewerSimSkill = () => ($("#viewersimskill")?.textContent || "").trim();
+
+/* The board goes in condensed. A viewer cannot see image_prompt, only what the
+   frame ends up looking like, so the shot description, the hold and the camera
+   are what matter; sending 70 full English prompts would bury the script. */
+function viewerSimBoard(limit) {
+  const rows = storyboardRows();
+  if (!rows || !rows.length) return "";
+  const lines = rows.slice(0, limit ?? 80).map((r) => {
+    const sh = r.shot || {};
+    const bits = [
+      String(r.ts).replace(/[\[\]]/g, ""),
+      sh.visual_type || r.mode || "",
+      (r.visual || sh.image_prompt || "").slice(0, 110),
+    ].filter(Boolean);
+    const tail = [
+      sh.camera || "",
+      sh.hold_seconds ? sh.hold_seconds + "s" : "",
+      sh.reuse_of ? "ใช้ภาพซ้ำ" : "",
+    ].filter(Boolean).join(" · ");
+    return "- " + bits.join(" | ") + (tail ? "  (" + tail + ")" : "");
+  });
+  return lines.join("\n") + (rows.length > (limit ?? 80) ? `\n- … อีก ${rows.length - (limit ?? 80)} ช็อต` : "");
+}
+
+function viewerSimPrompt() {
+  const c = current;
+  const script = (c.phases.p3 || c.md || "").trim();
+  const board = viewerSimBoard();
+  const brand = (brandData.b_dna || "").trim();
+  const visual = visualText();
+  const show = (brandData.b_name || "").trim();
+  const niche = (brandData.b_niche || "").trim();
+  const packText = typeof c.pack === "string" ? c.pack : "";
+  const title = packText.match(/^.*?(?:title|ชื่อคลิป).*$/im)?.[0] || "";
+
+  const ctx = [
+    show ? `- ช่อง: ${show}` : "",
+    niche ? `- นิช: ${niche}` : "",
+    `- รูปแบบ: YouTube Faceless Podcast (long-form)`,
+    c.voReal || c.total ? `- ความยาวโดยประมาณ: ${fmtMMSS(c.voReal || c.total)}` : "",
+    board ? `- มีแผนภาพ ${storyboardRows().length} ช็อต (อยู่ด้านล่าง)` : "- ยังไม่มีแผนภาพ ให้ประเมินเฉพาะสคริปต์และบอกไว้ใน ASSUMPTIONS",
+    title ? `- ${title.trim().slice(0, 160)}` : "",
+  ].filter(Boolean).join("\n");
+
+  return [
+    viewerSimSkill(),
+    "",
+    "=====================================================================",
+    "",
+    "ทำตามสกิลด้านบนกับตอนนี้ ตอบเป็นภาษาไทย และคงรูปแบบผลลัพธ์ตามที่สกิลกำหนดไว้ทุกบล็อก",
+    "",
+    "## บริบทของตอน",
+    ctx,
+    brand ? "\n## Brand DNA ของช่อง\n" + brand : "",
+    visual ? "\n## Visual DNA ของช่อง\n" + visual : "",
+    board ? "\n## แผนภาพ (Phase 2)\n" + board : "",
+    "\n## สคริปต์ (Phase 3)\n" + script,
+  ].filter(Boolean).join("\n");
+}
+
+/* Pull the numbers back out of the report so the tab can show a verdict
+   without the creator reading three monologues first. Everything here is
+   best-effort: the summary degrades to "ดูรายงานเต็ม" rather than lying when
+   the model formats a block differently. */
+function viewerSimSummary(text) {
+  if (!text) return null;
+  const personas = [];
+  const re = /═+\s*VIEWER\s*(\d+)\s*:\s*([^═\n]+?)\s*═+/gi;
+  const heads = [...text.matchAll(re)];
+  heads.forEach((m, i) => {
+    const body = text.slice(m.index, i + 1 < heads.length ? heads[i + 1].index : text.length);
+    const nums = (body.match(/(?:Hook|Finish it|Subscribe|Trust)[^\n]*?(\d{1,2})(?:\s*\/\s*10)?/gi) || [])
+      .map((x) => Number(x.match(/(\d{1,2})(?:\s*\/\s*10)?\s*$/)?.[1]))
+      .filter((n) => Number.isFinite(n) && n <= 10);
+    /* the scores line is often "Hook 6 · Finish it 4 · Subscribe 3 · Trust 7";
+       fall back to reading four bare numbers off whichever line names Hook */
+    const line = body.match(/^.*Hook.*$/im)?.[0] || "";
+    const bare = (line.match(/\b(\d{1,2})\b/g) || []).map(Number).filter((n) => n <= 10);
+    const scores = nums.length >= 3 ? nums.slice(0, 4) : bare.slice(0, 4);
+    personas.push({
+      no: m[1],
+      name: (m[2] || "").split(",")[0].trim(),
+      exit: body.match(/EXIT POINT\s*:?\s*([^\n]+)/i)?.[1]?.trim() || "",
+      why: body.match(/WHY\s*:?\s*([^\n]+)/i)?.[1]?.trim() || "",
+      scores,
+      min: scores.length ? Math.min(...scores) : null,
+    });
+  });
+  const fixBlock = text.match(/FIX THESE THREE([\s\S]*?)(?:═|⚠️|$)/i)?.[1] || "";
+  const fixes = (fixBlock.match(/^\s*\d+\.\s*[^\n]+/gm) || []).map((f) => f.replace(/^\s*\d+\.\s*/, "").trim());
+  const risks = text.match(/RISK FLAGS([\s\S]*?)(?:═|$)/i)?.[1]?.trim() || "";
+  const consensus = text.match(/Everyone left \/ stalled at\s*:?\s*([^\n]+)/i)?.[1]?.trim() || "";
+  const all = personas.flatMap((p) => p.scores);
+  return {
+    personas, fixes, risks, consensus,
+    avg: all.length ? all.reduce((a, b) => a + b, 0) / all.length : null,
+    worst: all.length ? Math.min(...all) : null,
+  };
+}
+
+async function genViewerSim() {
+  const body = $("#vsimbody");
+  body.innerHTML = `<p class="hint">⏳ ผู้ชมสามคนกำลังดูตอนนี้...</p>`;
+  try {
+    const text = await callGemini(viewerSimPrompt(), { temp: 0.9 });
+    if (!text.trim()) throw new Error("ผลลัพธ์ว่างเปล่า ลองใหม่");
+    current.vsim = text;
+    saveViewerSim();
+    renderViewerSim();
+    toast("รายงานผู้ชมจำลองพร้อมแล้ว ✓");
+  } catch (err) { alert(aiErrorThai(err)); current.vsim = null; renderViewerSim(); }
+}
+
+/* Kept out of the analysis payload deliberately: the report is about one exact
+   draft, so re-analysing an edited script should not carry the old verdict
+   forward as if it still applied. It is stored beside the document instead and
+   restored only while the text is unchanged. */
+const VSIM_KEY = "vsimReport";
+function saveViewerSim() {
+  try {
+    localStorage.setItem(VSIM_KEY, JSON.stringify({
+      hash: docHash(current.phases.p3 || current.md), text: current.vsim || "",
+    }));
+  } catch { /* private mode, quota — the report is still on screen */ }
+}
+function loadViewerSim(md) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(VSIM_KEY) || "null");
+    return saved && saved.hash === docHash(md) ? saved.text : null;
+  } catch { return null; }
+}
+const docHash = (s) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+  return String(h) + ":" + s.length;
+};
+
+const VS_LABEL = ["Hook", "ดูจนจบ", "กดติดตาม", "ความน่าเชื่อถือ"];
+function renderViewerSim() {
+  const body = $("#vsimbody");
+  const script = (current.phases.p3 || "").trim();
+  if (!script) {
+    body.innerHTML = `<div class="empty">ยังไม่มีสคริปต์ Phase 3 — วางผลลัพธ์หรือนำเข้าสคริปต์ก่อน<br />
+      เฟสนี้ต้องมีสคริปต์ก่อน ส่วนแผนภาพ Phase 2 ใส่เพิ่มได้ถ้ามี จะได้ความเห็นเรื่องภาพด้วย</div>`;
+    return;
+  }
+  const hasBoard = !!storyboardRows();
+  if (!current.vsim) {
+    body.innerHTML = `
+      <div class="hint" style="margin-bottom:8px">พร้อมส่งให้ผู้ชมจำลอง: สคริปต์ ${current.words} คำ${hasBoard ? ` · แผนภาพ ${storyboardRows().length} ช็อต` : " · <strong>ยังไม่มีแผนภาพ</strong> — จะได้ความเห็นเฉพาะสคริปต์"}</div>
+      <div class="btnrow" style="margin-top:0">
+        ${hasGemini() ? `<button class="btn primary" id="vsimrun">👀 รันผู้ชมจำลอง</button>` : ""}
+        <button class="btn" id="vsimcopy">📋 คัดลอก Prompt (ไปวางใน Claude / ChatGPT)</button>
+        <button class="btn small" id="vsimpaste">📥 วางรายงานที่ได้มา</button>
+      </div>
+      <p class="hint" style="margin-top:6px">สกิลตัวนี้ตั้งใจให้ตรงไปตรงมา ไม่ใช่ให้กำลังใจ — สคริปต์ที่ได้คำชมแล้วไปตกตอนปล่อยจริง เสียเวลาทั้งสัปดาห์</p>`;
+  } else {
+    const sum = viewerSimSummary(current.vsim);
+    const tile = (v, l, cls) => `<div class="tile ${cls}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+    const cls = (n) => n === null ? "" : n >= 7 ? "good" : n >= 4 ? "warn" : "crit";
+    body.innerHTML = `
+      ${sum && sum.avg !== null ? `<div class="tiles">
+        ${tile(sum.avg.toFixed(1), "คะแนนเฉลี่ย /10", cls(sum.avg))}
+        ${tile(sum.worst, "คะแนนต่ำสุด", cls(sum.worst))}
+        ${tile(sum.personas.length, "ผู้ชมที่จำลอง", "")}
+        ${tile(sum.personas.filter((p) => p.exit && !/watched to the end|ดูจนจบ|จนจบ/i.test(p.exit)).length, "คนที่ออกกลางคัน", "")}
+      </div>` : ""}
+      ${sum?.personas.length ? `<div class="card" style="margin-bottom:10px">
+        <div class="eyebrow">ใครออกตรงไหน</div>
+        ${sum.personas.map((p) => `<div class="vrow" style="grid-template-columns:120px 1fr auto">
+          <span class="vqname">${esc(p.name || "ผู้ชม " + p.no)}</span>
+          <span class="vdesc" title="${esc(p.exit)}">${esc(p.exit || "—")}${p.why ? ` <span style="color:var(--muted)">· ${esc(p.why)}</span>` : ""}</span>
+          <span class="vhold">${p.scores.length ? p.scores.map((n, i) => `<span title="${VS_LABEL[i] || ""}" style="color:var(--${cls(n)})">${n}</span>`).join("/") : "—"}</span>
+        </div>`).join("")}
+        ${sum.consensus ? `<p class="hint" style="margin-top:8px">ทุกคนสะดุดตรงเดียวกันที่: <strong>${esc(sum.consensus)}</strong></p>` : ""}
+      </div>` : ""}
+      ${sum?.fixes.length ? `<div class="card" style="margin-bottom:10px">
+        <div class="eyebrow">แก้สามอย่างนี้</div>
+        ${sum.fixes.slice(0, 3).map((f, i) => `<div style="font-size:.83rem;margin-top:6px">${i + 1}. ${esc(f)}</div>`).join("")}
+      </div>` : ""}
+      ${sum?.risks ? `<div class="card" style="margin-bottom:10px;border-color:var(--warn)">
+        <div class="eyebrow">⚠️ ความเสี่ยง</div><div style="font-size:.83rem;white-space:pre-wrap">${esc(sum.risks.slice(0, 700))}</div>
+      </div>` : ""}
+      <details class="card" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:600">อ่านรายงานเต็ม</summary>
+        <div class="md">${mdToHtml(current.vsim)}</div></details>
+      <div class="btnrow" style="margin-top:0">
+        ${hasGemini() ? `<button class="btn small" id="vsimregen">🔄 รันใหม่</button>` : ""}
+        <button class="btn small" id="vsimdl">⬇ ดาวน์โหลดรายงาน .md</button>
+        <button class="btn small" id="vsimcopy">📋 คัดลอก Prompt</button>
+        <button class="btn small" id="vsimpaste">📥 วางรายงานใหม่</button>
+        <button class="btn small" id="vsimclear">🗑 ล้างรายงาน</button>
+      </div>`;
+  }
+  $("#vsimrun")?.addEventListener("click", genViewerSim);
+  $("#vsimregen")?.addEventListener("click", () => { current.vsim = null; genViewerSim(); });
+  $("#vsimcopy")?.addEventListener("click", () => copyText(viewerSimPrompt(),
+    "คัดลอก Prompt แล้ว — วางในแชท AI แล้วเอารายงานที่ได้กลับมาวางด้วยปุ่ม 📥"));
+  $("#vsimdl")?.addEventListener("click", () => download("viewer-sim.md", current.vsim, "text/markdown;charset=utf-8"));
+  $("#vsimclear")?.addEventListener("click", () => { current.vsim = null; saveViewerSim(); renderViewerSim(); });
+  $("#vsimpaste")?.addEventListener("click", () => {
+    const t = window.prompt("วางรายงานผู้ชมจำลองที่ได้จากแชท AI");
+    if (!t || !t.trim()) return;
+    current.vsim = t.trim();
+    saveViewerSim();
+    renderViewerSim();
+    toast("รับรายงานแล้ว ✓");
+  });
 }
 
 /* ── Retention Analyzer (copy-paste workflow only, no API calls) ── */

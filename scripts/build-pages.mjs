@@ -1,3 +1,6 @@
+/* The shell version runs sync-skill first; this has to as well, or the page
+   is built from an artifact whose Phase 4 prompt has drifted from the skill. */
+import './sync-skill.mjs';
 import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises';
 
 // Preserve the published document's head, replacing only its generated body.

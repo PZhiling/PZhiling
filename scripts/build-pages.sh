@@ -5,6 +5,11 @@
 set -e
 cd "$(dirname "$0")/.."
 
+# The Studio carries the youtube-viewer-sim skill inline for Phase 4. The skill
+# files under .claude/skills/ are the source; this copies them in before the
+# page is built so the two can never disagree.
+node scripts/sync-skill.mjs
+
 mkdir -p docs/icons
 cp public/icons/icon-192.png public/icons/icon-512.png \
    public/icons/icon-maskable-512.png public/icons/apple-touch-icon.png docs/icons/

@@ -47,20 +47,42 @@ node scripts/produce.mjs plans/scripts/ep01-the-competence-trap.md
 ```
 
 It splits the script on its cues, synthesises one audio file per beat, measures
-each one, rewrites the script, storyboard and description timestamps onto the
-real audio, and generates the storyboard frames — chaining a reference frame
-through each ANCHOR run so consecutive frames read as one place.
+each one, and rewrites the script, storyboard and description timestamps onto
+the real audio.
+
+Images stop short of the API by default. An episode is 74 frames, and a ChatGPT
+subscription generates them at no per-image cost while the API bills each one,
+so `--provider manual` writes a prompt pack instead: batches of up to eight
+images per message, never cutting through an ANCHOR run, with each continuation
+frame phrased as "the same scene as image N" so the motif holds inside one chat.
+`images/manual/README.md` says which file to save each result as, and a later
+run reports what is still missing. `--provider gemini` or `openai` generates
+through the API instead, chaining a reference frame through each ANCHOR run.
 
 | Flag | |
 | --- | --- |
-| `--provider gemini\|openai` | image model, `gemini-2.5-flash-image` or `gpt-image-2` |
+| `--qc-min <n>` | stop before spending anything if the QC score is below `<n>` |
+| `--qc-only`, `--dna <file>` | score and exit; supply the Brand DNA whose banned words count |
+| `--make-storyboard` | build the Phase 2 table from the script's own cues |
+| `--provider manual` | **default** — write a ChatGPT prompt pack instead of calling an image API |
+| `--provider gemini\|openai` | generate through the API: `gemini-2.5-flash-image` or `gpt-image-2` |
 | `--only-anchors`, `--limit n` | narrow a run — useful for comparing providers on one ANCHOR run |
 | `--voice`, `--delay`, `--out` | TTS voice, pause between image calls, output directory |
 | `--skip-audio`, `--skip-images`, `--force` | run one half, or regenerate what is cached |
 
+The QC Gate runs first, before a single call is made — an episode that is not
+ready costs 74 TTS calls and 74 image calls to discover any later. It scores the
+same eight checks as the Studio's QC panel; `scripts/test-qc-parity.mjs` lifts
+the app's own scoring functions out of the HTML and asserts the two agree, so
+the CLI gate cannot quietly drift from the panel it is named after. Packaging
+and Shorts run last, against the retimed document, and the prompts for all three
+are read out of `artifact/podcast-seo-studio.html` at run time rather than
+copied.
+
 Output lands in `out/<script>/`: per-beat audio, a concatenated `voiceover.mp3`,
-`images/<provider>/`, the retimed script, and `manifest.json` with the measured
-timeline. MP3 durations are read from frame headers, so ffmpeg is not required.
+`images/<provider>/`, the retimed script, `packaging.json`, `shorts.md`, and
+`manifest.json` with the measured timeline and the QC score before and after.
+MP3 durations are read from frame headers, so ffmpeg is not required.
 
 ## Architecture
 
