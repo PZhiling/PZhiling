@@ -814,6 +814,11 @@ HUMAN 25% · ENVIRONMENT 25% · METAPHOR 20% · DATA 15% · OBJECT 15%
 .vprio{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
 </style>
 <script type="text/plain" id="viewersimskill">
+---
+name: youtube-viewer-sim
+description: Stress-test a YouTube script, voiceover draft, visual/B-roll plan, title or thumbnail by simulating real viewers watching it — second by second, with drop-off points, AI-slop detection, scores, and rewritten replacement lines. Use this whenever the user shares a video script, hook, narration draft, shot list, image-prompt set, title or thumbnail and asks whether it "works", whether it's boring, whether people will watch, whether it looks AI-generated, or asks for feedback/review/critique on video content — even if they don't say the words "viewer" or "simulate". Also use for retention diagnosis on faceless channels, podcast episodes, Shorts, and ambient/lofi music videos.
+---
+
 # YouTube Viewer Simulator
 
 Creators read their own scripts with all the context in their head. Viewers don't
@@ -2533,14 +2538,13 @@ function narrationBeats() {
 const cueOf = (sec) => { const t = Math.max(0, Math.round(sec)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
 function chunkText(t, max = 4200) {
   const out = [];
-  let cur = "";
-  for (const para of t.split(/\n+/)) {
-    if ((cur + "\n" + para).length > max) {
-      if (cur) out.push(cur);
-      cur = para.length > max ? para.slice(0, max) : para;
-    } else {
-      cur = cur ? cur + "\n" + para : para;
-    }
+  const encoder = new TextEncoder();
+  let cur = "", bytes = 0;
+  for (const char of t) {
+    const size = encoder.encode(char).length;
+    if (bytes + size > max) { out.push(cur); cur = ""; bytes = 0; }
+    cur += char;
+    bytes += size;
   }
   if (cur) out.push(cur);
   return out;
