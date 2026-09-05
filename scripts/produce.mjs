@@ -28,7 +28,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { REPO, appSource, extractTemplate, phase2Spec, liftAll } from "./lib/app-source.mjs";
+import { REPO, appSource, extractTemplate, phase2Spec, liftAll, viewerSimSkill } from "./lib/app-source.mjs";
 
 /* ── arguments ───────────────────────────────────────────────────────────── */
 const argv = process.argv.slice(2);
@@ -62,6 +62,7 @@ const opts = {
   skipImages: has("skip-images"),
   skipPack: has("skip-pack"),
   skipShorts: has("skip-shorts"),
+  skipViewerSim: has("skip-viewer-sim"),
   makeStoryboard: has("make-storyboard"),
   qcOnly: has("qc-only"),
   qcMin: flags["qc-min"] ?? 0,
@@ -306,7 +307,7 @@ function analyze(doc) {
   const rows = storyboardRows(doc);
   const sb = rows.length ? new Set(rows.map((r) => { const m = String(r.ts).match(/(\d{1,3}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : -1; })) : null;
   const coverage = sb && ts.length ? Math.round(((ts.length - ts.filter((t) => !sb.has(t.sec)).length) / ts.length) * 100) : null;
-  return { md: doc, phases: { p2, p3 }, words, ts, segs, sb, coverage, rows };
+  return { md: doc, phases: { p2, p3 }, words, ts, segs, sb, coverage, rows, total };
 }
 
 function computeQC(c, dnaText) {
@@ -720,6 +721,43 @@ async function gemini(prompt, temp = 0.7) {
 }
 const dnaSuffix = (dna) => (dna ? "\n\n---\nBrand DNA ที่ต้องยึด:\n" + dna : "");
 
+/* A viewer cannot see image_prompt, only the frame it produces, so the board
+   goes in as description, camera and hold — sending seventy full English
+   prompts would bury the script they are supposed to be judging. */
+function viewerSimBoard(rows, limit = 80) {
+  if (!rows || !rows.length) return "";
+  const lines = rows.slice(0, limit).map((r) => {
+    const sh = r.shot || {};
+    const head = [String(r.ts).replace(/[\[\]]/g, ""), sh.visual_type || r.mode || "",
+      (r.visual || r.prompt || "").slice(0, 110)].filter(Boolean).join(" | ");
+    const tail = [sh.camera || "", sh.hold_seconds ? sh.hold_seconds + "s" : "",
+      sh.reuse_of ? "ใช้ภาพซ้ำ" : ""].filter(Boolean).join(" · ");
+    return "- " + head + (tail ? "  (" + tail + ")" : "");
+  });
+  return lines.join("\n") + (rows.length > limit ? `\n- … อีก ${rows.length - limit} ช็อต` : "");
+}
+
+async function viewerSimPrompt(doc, ctx, dna) {
+  const board = viewerSimBoard(ctx.rows);
+  const script = (narrationSource(doc) || doc).trim();
+  return [
+    await viewerSimSkill(),
+    "",
+    "=====================================================================",
+    "",
+    "ทำตามสกิลด้านบนกับตอนนี้ ตอบเป็นภาษาไทย และคงรูปแบบผลลัพธ์ตามที่สกิลกำหนดไว้ทุกบล็อก",
+    "",
+    "## บริบทของตอน",
+    "- รูปแบบ: YouTube Faceless Podcast (long-form)",
+    ctx.total ? `- ความยาวโดยประมาณ: ${cue(ctx.total)}` : "",
+    board ? `- มีแผนภาพ ${ctx.rows.length} ช็อต (อยู่ด้านล่าง)`
+      : "- ยังไม่มีแผนภาพ ให้ประเมินเฉพาะสคริปต์และบอกไว้ใน ASSUMPTIONS",
+    dna ? "\n## Brand DNA ของช่อง\n" + dna : "",
+    board ? "\n## แผนภาพ (Phase 2)\n" + board : "",
+    "\n## สคริปต์ (Phase 3)\n" + script,
+  ].filter(Boolean).join("\n");
+}
+
 /* Build the Phase 2 table from the cues the script already carries, so a
    hand-written script does not have to be taken back into the app to get one. */
 async function makeStoryboard(doc, ctx, dna) {
@@ -845,6 +883,29 @@ if (!opts.skipShorts) {
     manifest.shorts = { clips: (out.match(/^##\s*Short\s*\d/gim) || []).length, file: "shorts.md" };
     log(`    ${manifest.shorts.clips} คลิป → shorts.md`);
   } catch (err) { log(`    ✗ ${err.message}`); manifest.shorts = { error: String(err.message) }; }
+}
+
+/* Phase 4 · viewer simulation. Every check up to here judges the episode by
+   its own rules — coverage, holds, mix. None of them says whether a person
+   stays. The prompt is written out whatever happens, because this is the one
+   step worth running by hand in a chat where you can argue back. */
+if (!opts.skipViewerSim) {
+  try {
+    log("  จำลองผู้ชมสามคน (Phase 4)...");
+    const prompt = await viewerSimPrompt(doc, ctx, dna);
+    await writeFile(path.join(opts.outDir, "viewer-sim-prompt.txt"), prompt);
+    if (process.env.GEMINI_API_KEY) {
+      const out = await gemini(prompt, 0.9);
+      await writeFile(path.join(opts.outDir, "viewer-sim.md"), out);
+      const exits = (out.match(/EXIT POINT\s*:?\s*([^\n]+)/gi) || [])
+        .filter((l) => !/watched to the end|ดูจนจบ|จนจบ/i.test(l)).length;
+      manifest.viewerSim = { file: "viewer-sim.md", leftEarly: exits };
+      log(`    ออกกลางคัน ${exits} คน → viewer-sim.md`);
+    } else {
+      manifest.viewerSim = { file: "viewer-sim-prompt.txt", leftEarly: null };
+      log("    เขียน prompt ไว้แล้ว → viewer-sim-prompt.txt (เอาไปวางใน Claude/ChatGPT)");
+    }
+  } catch (err) { log(`    ✗ ${err.message}`); manifest.viewerSim = { error: String(err.message) }; }
 }
 
 manifest.qcFinal = { total: computeQC(ctx, dna).total };

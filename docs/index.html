@@ -540,6 +540,7 @@
         <button role="tab" aria-selected="false" data-view="vmap">🎞 Visual Map</button>
         <button role="tab" aria-selected="false" data-view="broll">🖼 B-Roll</button>
         <button role="tab" aria-selected="false" data-view="shorts">✂️ Shorts</button>
+        <button role="tab" aria-selected="false" data-view="vsim">👀 Phase 4 · ผู้ชมจำลอง</button>
         <button role="tab" aria-selected="false" data-view="retention">📈 Retention</button>
         <button role="tab" aria-selected="false" data-view="sponsor">💰 Sponsor / RPM</button>
       </div>
@@ -600,6 +601,13 @@
         <h2>ตัดตอนเต็มเป็น Shorts 3 คลิป</h2>
         <p class="hint">Shorts คือท่อส่งคนเข้าตอนเต็ม — สร้างสคริปต์สั้น ~45-60 วิ 3 คลิปจากจุดพีคของตอน พร้อม Hook, CTA และ Hashtags</p>
         <div id="shortsbody"></div>
+      </div>
+
+      <div class="card" id="vsimview" hidden>
+        <div class="eyebrow">Phase 4 · Viewer Simulation</div>
+        <h2>ให้ผู้ชมสามคนดูตอนนี้ก่อนคนจริงจะได้ดู</h2>
+        <p class="hint">จำลองผู้ชมสามคนที่คลิกเข้ามาด้วยเหตุผลต่างกัน แล้วรายงานว่าแต่ละคนออกตรงบรรทัดไหนและเพราะอะไร — พร้อมประโยคที่เขียนมาให้แทนแล้ว ใช้สคริปต์ Phase 3 กับคิวภาพ Phase 2 เป็นวัตถุดิบ</p>
+        <div id="vsimbody"></div>
       </div>
 
       <div class="card" id="retentionview" hidden>
@@ -819,6 +827,234 @@ HUMAN 25% · ENVIRONMENT 25% · METAPHOR 20% · DATA 15% · OBJECT 15%
 .vq-fail .vqname{color:var(--crit)}
 .vprio{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
 </style>
+<script type="text/plain" id="viewersimskill">
+# YouTube Viewer Simulator
+
+Creators read their own scripts with all the context in their head. Viewers don't
+have that. They arrive mid-scroll, half-distracted, with a thumb ready to leave.
+This skill closes that gap: instead of giving editorial advice, you *become* three
+different viewers, watch the thing in real time, and report what actually happened
+in their heads — including the moment they left.
+
+The value here is honesty, not encouragement. A script that gets praised and then
+flops wastes weeks of production. Be the harsh test screening the creator can't
+run themselves.
+
+## Step 1 — Collect the inputs
+
+You need at minimum the script or narration text. Also useful, if available:
+
+- Channel or show name, and its niche
+- Visual plan: shot list, image prompts, B-roll descriptions, or actual images
+- Format and length (long-form, Shorts, podcast, marathon ambient video)
+- Title and thumbnail concept
+- Where the viewer came from: Browse/Suggested, Search, Shorts feed, or a playlist
+
+If something is missing, **do not stop to ask a long list of questions.** Pick the
+most likely defaults, state them in one line at the top of the report, and run. The
+creator can correct you afterwards. One clarifying question is acceptable only if
+the whole review would be meaningless without it (e.g. no script provided at all).
+
+## Step 2 — Cast three viewers
+
+Retention dies for different reasons in different heads. One persona hides that.
+Always run **three**, and make them genuinely different in *why* they clicked and
+*what would make them leave*.
+
+If the channel matches one of the presets in `references/personas.md`, use those.
+Otherwise build three from the niche using this spread:
+
+1. **The intended viewer** — exactly who the video is for, best-case attention.
+2. **The distracted/multitasking viewer** — listening while doing something else,
+   phone in hand, low tolerance for setup.
+3. **The skeptical or impatient viewer** — came from Search or a bold title, wants
+   the payoff fast, primed to smell filler or AI slop.
+
+Name each one and give them one line of life context. A viewer with a bedtime and a
+commute behaves differently from an abstraction.
+
+## Step 3 — Watch it, in character
+
+For each persona, produce the report below. Write reactions in **first person,
+present tense**, as raw inner monologue — not as analysis of the script.
+
+Wrong: "The introduction may feel slow to some viewers."
+Right: "Okay, get to it. He's still explaining what the video is about. I've heard
+this opening on four other channels this week."
+
+Chunk the script into: 0–15s, 15–60s, then roughly every 60 seconds after. For
+Shorts, use 0–3s, 3–10s, 10–30s, 30s+.
+
+## Output format
+
+Use this structure exactly, once per persona, then the synthesis at the end.
+Respond in the language the user wrote in.
+
+```
+ASSUMPTIONS: [one line, only if you had to fill gaps]
+
+════════ VIEWER 1: [name], [one line of context] ════════
+Came from: [Browse / Search "query" / Shorts feed]
+
+⏱ 0–15s
+[inner monologue]
+STATUS: watching / thumb twitching / gone
+
+⏱ 15–60s
+[inner monologue]
+STATUS: ...
+
+[continue through the script]
+
+🚪 EXIT POINT: [exact line where they leave, or "watched to the end"]
+WHY: [bored / confused / felt tricked / already knew this / felt like AI]
+
+📺 VISUALS
+[where image and narration disconnect, where it goes static too long,
+where it reads as AI-generated, where it repeats]
+
+📊 SCORES
+Hook 0–10 · Finish it 0–10 · Subscribe 0–10 · Trust 0–10
+[one sentence justifying the lowest score]
+```
+
+Then, after all three:
+
+```
+════════ CONSENSUS ════════
+Everyone left / stalled at: [the shared failure points]
+Only [name] cared about: [persona-specific issue — lower priority]
+
+🔧 FIX THESE THREE
+1. [problem] → REPLACE WITH: "[fully written replacement line, ready to paste]"
+2. ...
+3. ...
+
+⚠️ RISK FLAGS
+[copyright exposure in music/footage/quotes, unverifiable claims presented as
+fact, reused stock or model-default imagery, anything that reads as low-effort
+AI mass production — omit this block only if there is genuinely nothing]
+```
+
+## Scoring anchors
+
+Scores drift upward without anchors. Hold these:
+
+- **0–3** — I leave, and I'd avoid this channel next time it appears.
+- **4–6** — Fine. Nothing wrong, nothing that makes me stay. This is the danger
+  zone, because it feels like success to the creator and looks like failure in the
+  analytics.
+- **7–8** — I stayed on purpose. Something specific held me.
+- **9–10** — I'd send this to someone. Rare; don't hand it out to be nice.
+
+If all three personas score 7+, say so plainly — but check first that you aren't
+just being polite. A default-good review is worthless.
+
+## Judging the visuals
+
+Faceless channels live or die here. Watch for:
+
+- **Narration/image drift** — the voice says one thing, the frame shows a generic
+  mood shot that fits any sentence in the script.
+- **Static hold** — the same image sitting past ~8 seconds with no motion, zoom, or
+  parallax. Note the exact spot.
+- **AI-slop tells** — plastic skin and dead eyes, warped hands, melted text,
+  over-saturated "AI teal-and-orange", the same subject in the same three-quarter
+  pose every shot, backgrounds that dissolve into mush.
+- **Sameness** — if you could shuffle the shot order and nobody would notice, the
+  visuals aren't carrying information.
+
+Say which specific shot to replace and with what.
+
+## Extra passes
+
+If the user supplies these, add short blocks:
+
+- **Title** — would each persona click it in a feed next to five other titles?
+  What does it promise, and does the script deliver that exact promise?
+- **Thumbnail** — read at phone size, one second, in a crowded feed. What's the
+  single readable element?
+- **Ambient/music videos** — retention there is about looping tolerance and audio
+  onset, not narrative. Ask: does the first loop seam call attention to itself?
+  Does anything spike and break sleep/focus use? Is the visual calm enough to leave
+  running for hours?
+
+## Things that break this skill
+
+- Softening the exit point because the creator worked hard on it.
+- Writing analysis in viewer voice ("this section could be tightened") — that's the
+  consultant leaking back in.
+- Giving vague fixes. Every fix ships a written replacement line.
+- Praising a hook merely because it's grammatical and on-topic. Most flat hooks are.
+- Only three fixes, ranked. A list of fifteen notes gets ignored.
+
+---
+
+# references/personas.md
+
+# Persona presets
+
+Use these when the content clearly belongs to one of these shows. Otherwise build
+personas from the niche using the three-way spread in SKILL.md. Adjust freely —
+these are starting points, not fixed casting.
+
+## The Quiet Sage — Jungian psychology / shadow work, English, US/UK
+
+**Dana, 34, Manchester.** Two years into therapy, reads about attachment styles at
+night. She's the intended viewer and she's generous — but she's also heard the same
+five Jung quotes on every channel in this niche. Leaves the moment it sounds
+recycled or self-help-generic. Wants to feel *seen*, not lectured.
+
+**Marcus, 41, Denver.** Playing it while cooking, screen face-down half the time.
+Never sees the visuals for long stretches, so a script that leans on the images to
+carry meaning loses him. Leaves if the audio has a stretch of ambient filler with
+no idea in it.
+
+**Priya, 27, Toronto.** Came from a search like "why do I sabotage relationships".
+Wants the actual answer, not a definition of the shadow. Highly allergic to
+"but first, let's understand what the unconscious really is". Bounces at the first
+sign of padding before the payoff.
+
+## Velvet Anchor — why competence doesn't turn into money
+
+**Ken, 38, Seattle.** Senior engineer, repeatedly passed over. Nodding hard if the
+mechanics are specific and real. The instant a case study sounds invented or a
+statistic sounds too neat, he checks the description for sources — and if the claim
+can't be verified, he distrusts the rest of the episode.
+
+**Sofia, 45, Chicago.** Middle manager, listening on a commute. She's on the other
+side of the same dynamic. If the episode reads as pure resentment against
+management with no mechanism, she leaves — she wanted to understand a system, not
+hear a complaint.
+
+**Tomas, 29, Berlin.** Came from a strong title promising a single case. Twenty
+minutes is a big ask. He is counting the seconds to the first concrete detail of
+the actual case and will not sit through four minutes of framing.
+
+## Dreamscape Soul — utility / healing ambient (@kasoul-t8n)
+
+Judge by use, not by story. Retention here comes from being left running.
+
+**Nan, 31, Bangkok.** Insomnia, 2am, screen brightness low. Anything with a sudden
+transient, a bright visual flash, or a loop seam that snaps her back to alert is
+fatal. She needs the first 30 seconds to signal "safe to fall asleep to".
+
+**Alex, 24, remote worker.** Uses it as a focus bed for four-hour blocks. Notices
+repetition at the 20-minute mark and any melodic element that pulls attention.
+Wants a track that disappears.
+
+**Mei, 48, casual browser.** Found it on Browse, clicked for the thumbnail, will
+give it 40 seconds to decide whether this is a channel she returns to. Judges
+quality by the visual loop and the first chord, not the title.
+
+## Thai-language content
+
+When the script is Thai, do not translate a Western persona and rename it. Cast
+Thai viewers with real context — commute on the BTS, listening between shifts,
+watching on a phone with data limits — and let the tone expectations differ.
+Formality that reads as authoritative in English can read as stiff or preachy in
+Thai, and a hook that works in English often needs to be blunter in Thai.
+</script>
 <script type="text/plain" id="visualdnadefault">
 # VISUAL DNA — [SHOW NAME]
 
@@ -2021,7 +2257,7 @@ function analyzeResult(md, save, opts) {
   // Packaging / Shorts / Sponsor blocks cost an API call each — an inline
   // storyboard edit must not silently discard them either.
   const keptGen = opts && opts.keepImgs && current
-    ? { pack: current.pack, shorts: current.shorts, sponsor: current.sponsor, retention: current.retention }
+    ? { pack: current.pack, shorts: current.shorts, sponsor: current.sponsor, retention: current.retention, vsim: current.vsim }
     : null;
   const phases = extractPhases(md);
   const scriptSrc = narrationOnly(phases.p3 || md);
@@ -2051,6 +2287,10 @@ function analyzeResult(md, save, opts) {
   const missing = sb ? ts.filter((t) => !sb.has(t.sec)) : [];
   const coverage = sb && ts.length ? Math.round(((ts.length - missing.length) / ts.length) * 100) : null;
   current = { md, phases, words, estSec, voReal, ts, total, segs, sb, missing, coverage, brollImgs: keptImgs || {}, ...(keptGen || {}) };
+  /* A viewer report belongs to one exact draft. Restore it only when the
+     script it judged is still the script on screen — otherwise it would read
+     as a verdict on text nobody simulated. */
+  if (!current.vsim) current.vsim = loadViewerSim(phases.p3 || md);
   // The working document and its images survive a reload (restoreWorkdoc)
   store.set("workdoc", md);
   if (keptImgs) saveBrollImgs(); else idb.del("brollImgs");
@@ -2086,6 +2326,7 @@ function showView(v) {
   $("#vmapview").hidden = v !== "vmap";
   $("#brollview").hidden = v !== "broll";
   $("#shortsview").hidden = v !== "shorts";
+  $("#vsimview").hidden = v !== "vsim";
   $("#retentionview").hidden = v !== "retention";
   $("#sponsorview").hidden = v !== "sponsor";
   const isMd = ["all", "p1", "p2", "p3"].includes(v);
@@ -2094,6 +2335,7 @@ function showView(v) {
   if (v === "vmap") renderVisualMap();
   if (v === "broll") renderBroll();
   if (v === "shorts") renderShorts();
+  if (v === "vsim") renderViewerSim();
   if (v === "retention") renderRetention();
   if (v === "sponsor") renderSponsor();
   if (!isMd) return;
@@ -3811,6 +4053,226 @@ async function genShorts() {
     renderShorts();
     toast("สคริปต์ Shorts พร้อมแล้ว ✓");
   } catch (err) { alert(aiErrorThai(err)); current.shorts = null; renderShorts(); }
+}
+
+/* ── Phase 4 · Viewer Simulation ───────────────────────────────────────────
+   Everything before this phase judges the episode by its own rules: does the
+   script cover the timestamps, does the board hold long enough, is the mix
+   right. None of that tells you whether a person stays. This phase hands the
+   finished script and the shot plan to three simulated viewers who arrive
+   mid-scroll with a thumb ready to leave, and asks where each of them left.
+
+   The prompt body is the youtube-viewer-sim skill, synced in from
+   .claude/skills/ by scripts/sync-skill.mjs — it is not restated here, so
+   editing the skill changes this phase and nothing can drift apart. */
+const viewerSimSkill = () => ($("#viewersimskill")?.textContent || "").trim();
+
+/* The board goes in condensed. A viewer cannot see image_prompt, only what the
+   frame ends up looking like, so the shot description, the hold and the camera
+   are what matter; sending 70 full English prompts would bury the script. */
+function viewerSimBoard(limit) {
+  const rows = storyboardRows();
+  if (!rows || !rows.length) return "";
+  const lines = rows.slice(0, limit ?? 80).map((r) => {
+    const sh = r.shot || {};
+    const bits = [
+      String(r.ts).replace(/[\[\]]/g, ""),
+      sh.visual_type || r.mode || "",
+      (r.visual || sh.image_prompt || "").slice(0, 110),
+    ].filter(Boolean);
+    const tail = [
+      sh.camera || "",
+      sh.hold_seconds ? sh.hold_seconds + "s" : "",
+      sh.reuse_of ? "ใช้ภาพซ้ำ" : "",
+    ].filter(Boolean).join(" · ");
+    return "- " + bits.join(" | ") + (tail ? "  (" + tail + ")" : "");
+  });
+  return lines.join("\n") + (rows.length > (limit ?? 80) ? `\n- … อีก ${rows.length - (limit ?? 80)} ช็อต` : "");
+}
+
+function viewerSimPrompt() {
+  const c = current;
+  const script = (c.phases.p3 || c.md || "").trim();
+  const board = viewerSimBoard();
+  const brand = (brandData.b_dna || "").trim();
+  const visual = visualText();
+  const show = (brandData.b_name || "").trim();
+  const niche = (brandData.b_niche || "").trim();
+  const packText = typeof c.pack === "string" ? c.pack : "";
+  const title = packText.match(/^.*?(?:title|ชื่อคลิป).*$/im)?.[0] || "";
+
+  const ctx = [
+    show ? `- ช่อง: ${show}` : "",
+    niche ? `- นิช: ${niche}` : "",
+    `- รูปแบบ: YouTube Faceless Podcast (long-form)`,
+    c.voReal || c.total ? `- ความยาวโดยประมาณ: ${fmtMMSS(c.voReal || c.total)}` : "",
+    board ? `- มีแผนภาพ ${storyboardRows().length} ช็อต (อยู่ด้านล่าง)` : "- ยังไม่มีแผนภาพ ให้ประเมินเฉพาะสคริปต์และบอกไว้ใน ASSUMPTIONS",
+    title ? `- ${title.trim().slice(0, 160)}` : "",
+  ].filter(Boolean).join("\n");
+
+  return [
+    viewerSimSkill(),
+    "",
+    "=====================================================================",
+    "",
+    "ทำตามสกิลด้านบนกับตอนนี้ ตอบเป็นภาษาไทย และคงรูปแบบผลลัพธ์ตามที่สกิลกำหนดไว้ทุกบล็อก",
+    "",
+    "## บริบทของตอน",
+    ctx,
+    brand ? "\n## Brand DNA ของช่อง\n" + brand : "",
+    visual ? "\n## Visual DNA ของช่อง\n" + visual : "",
+    board ? "\n## แผนภาพ (Phase 2)\n" + board : "",
+    "\n## สคริปต์ (Phase 3)\n" + script,
+  ].filter(Boolean).join("\n");
+}
+
+/* Pull the numbers back out of the report so the tab can show a verdict
+   without the creator reading three monologues first. Everything here is
+   best-effort: the summary degrades to "ดูรายงานเต็ม" rather than lying when
+   the model formats a block differently. */
+function viewerSimSummary(text) {
+  if (!text) return null;
+  const personas = [];
+  const re = /═+\s*VIEWER\s*(\d+)\s*:\s*([^═\n]+?)\s*═+/gi;
+  const heads = [...text.matchAll(re)];
+  heads.forEach((m, i) => {
+    const body = text.slice(m.index, i + 1 < heads.length ? heads[i + 1].index : text.length);
+    const nums = (body.match(/(?:Hook|Finish it|Subscribe|Trust)[^\n]*?(\d{1,2})(?:\s*\/\s*10)?/gi) || [])
+      .map((x) => Number(x.match(/(\d{1,2})(?:\s*\/\s*10)?\s*$/)?.[1]))
+      .filter((n) => Number.isFinite(n) && n <= 10);
+    /* the scores line is often "Hook 6 · Finish it 4 · Subscribe 3 · Trust 7";
+       fall back to reading four bare numbers off whichever line names Hook */
+    const line = body.match(/^.*Hook.*$/im)?.[0] || "";
+    const bare = (line.match(/\b(\d{1,2})\b/g) || []).map(Number).filter((n) => n <= 10);
+    const scores = nums.length >= 3 ? nums.slice(0, 4) : bare.slice(0, 4);
+    personas.push({
+      no: m[1],
+      name: (m[2] || "").split(",")[0].trim(),
+      exit: body.match(/EXIT POINT\s*:?\s*([^\n]+)/i)?.[1]?.trim() || "",
+      why: body.match(/WHY\s*:?\s*([^\n]+)/i)?.[1]?.trim() || "",
+      scores,
+      min: scores.length ? Math.min(...scores) : null,
+    });
+  });
+  const fixBlock = text.match(/FIX THESE THREE([\s\S]*?)(?:═|⚠️|$)/i)?.[1] || "";
+  const fixes = (fixBlock.match(/^\s*\d+\.\s*[^\n]+/gm) || []).map((f) => f.replace(/^\s*\d+\.\s*/, "").trim());
+  const risks = text.match(/RISK FLAGS([\s\S]*?)(?:═|$)/i)?.[1]?.trim() || "";
+  const consensus = text.match(/Everyone left \/ stalled at\s*:?\s*([^\n]+)/i)?.[1]?.trim() || "";
+  const all = personas.flatMap((p) => p.scores);
+  return {
+    personas, fixes, risks, consensus,
+    avg: all.length ? all.reduce((a, b) => a + b, 0) / all.length : null,
+    worst: all.length ? Math.min(...all) : null,
+  };
+}
+
+async function genViewerSim() {
+  const body = $("#vsimbody");
+  body.innerHTML = `<p class="hint">⏳ ผู้ชมสามคนกำลังดูตอนนี้...</p>`;
+  try {
+    const text = await callGemini(viewerSimPrompt(), { temp: 0.9 });
+    if (!text.trim()) throw new Error("ผลลัพธ์ว่างเปล่า ลองใหม่");
+    current.vsim = text;
+    saveViewerSim();
+    renderViewerSim();
+    toast("รายงานผู้ชมจำลองพร้อมแล้ว ✓");
+  } catch (err) { alert(aiErrorThai(err)); current.vsim = null; renderViewerSim(); }
+}
+
+/* Kept out of the analysis payload deliberately: the report is about one exact
+   draft, so re-analysing an edited script should not carry the old verdict
+   forward as if it still applied. It is stored beside the document instead and
+   restored only while the text is unchanged. */
+const VSIM_KEY = "vsimReport";
+function saveViewerSim() {
+  try {
+    localStorage.setItem(VSIM_KEY, JSON.stringify({
+      hash: docHash(current.phases.p3 || current.md), text: current.vsim || "",
+    }));
+  } catch { /* private mode, quota — the report is still on screen */ }
+}
+function loadViewerSim(md) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(VSIM_KEY) || "null");
+    return saved && saved.hash === docHash(md) ? saved.text : null;
+  } catch { return null; }
+}
+const docHash = (s) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+  return String(h) + ":" + s.length;
+};
+
+const VS_LABEL = ["Hook", "ดูจนจบ", "กดติดตาม", "ความน่าเชื่อถือ"];
+function renderViewerSim() {
+  const body = $("#vsimbody");
+  const script = (current.phases.p3 || "").trim();
+  if (!script) {
+    body.innerHTML = `<div class="empty">ยังไม่มีสคริปต์ Phase 3 — วางผลลัพธ์หรือนำเข้าสคริปต์ก่อน<br />
+      เฟสนี้ต้องมีสคริปต์ก่อน ส่วนแผนภาพ Phase 2 ใส่เพิ่มได้ถ้ามี จะได้ความเห็นเรื่องภาพด้วย</div>`;
+    return;
+  }
+  const hasBoard = !!storyboardRows();
+  if (!current.vsim) {
+    body.innerHTML = `
+      <div class="hint" style="margin-bottom:8px">พร้อมส่งให้ผู้ชมจำลอง: สคริปต์ ${current.words} คำ${hasBoard ? ` · แผนภาพ ${storyboardRows().length} ช็อต` : " · <strong>ยังไม่มีแผนภาพ</strong> — จะได้ความเห็นเฉพาะสคริปต์"}</div>
+      <div class="btnrow" style="margin-top:0">
+        ${hasGemini() ? `<button class="btn primary" id="vsimrun">👀 รันผู้ชมจำลอง</button>` : ""}
+        <button class="btn" id="vsimcopy">📋 คัดลอก Prompt (ไปวางใน Claude / ChatGPT)</button>
+        <button class="btn small" id="vsimpaste">📥 วางรายงานที่ได้มา</button>
+      </div>
+      <p class="hint" style="margin-top:6px">สกิลตัวนี้ตั้งใจให้ตรงไปตรงมา ไม่ใช่ให้กำลังใจ — สคริปต์ที่ได้คำชมแล้วไปตกตอนปล่อยจริง เสียเวลาทั้งสัปดาห์</p>`;
+  } else {
+    const sum = viewerSimSummary(current.vsim);
+    const tile = (v, l, cls) => `<div class="tile ${cls}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+    const cls = (n) => n === null ? "" : n >= 7 ? "good" : n >= 4 ? "warn" : "crit";
+    body.innerHTML = `
+      ${sum && sum.avg !== null ? `<div class="tiles">
+        ${tile(sum.avg.toFixed(1), "คะแนนเฉลี่ย /10", cls(sum.avg))}
+        ${tile(sum.worst, "คะแนนต่ำสุด", cls(sum.worst))}
+        ${tile(sum.personas.length, "ผู้ชมที่จำลอง", "")}
+        ${tile(sum.personas.filter((p) => p.exit && !/watched to the end|ดูจนจบ|จนจบ/i.test(p.exit)).length, "คนที่ออกกลางคัน", "")}
+      </div>` : ""}
+      ${sum?.personas.length ? `<div class="card" style="margin-bottom:10px">
+        <div class="eyebrow">ใครออกตรงไหน</div>
+        ${sum.personas.map((p) => `<div class="vrow" style="grid-template-columns:120px 1fr auto">
+          <span class="vqname">${esc(p.name || "ผู้ชม " + p.no)}</span>
+          <span class="vdesc" title="${esc(p.exit)}">${esc(p.exit || "—")}${p.why ? ` <span style="color:var(--muted)">· ${esc(p.why)}</span>` : ""}</span>
+          <span class="vhold">${p.scores.length ? p.scores.map((n, i) => `<span title="${VS_LABEL[i] || ""}" style="color:var(--${cls(n)})">${n}</span>`).join("/") : "—"}</span>
+        </div>`).join("")}
+        ${sum.consensus ? `<p class="hint" style="margin-top:8px">ทุกคนสะดุดตรงเดียวกันที่: <strong>${esc(sum.consensus)}</strong></p>` : ""}
+      </div>` : ""}
+      ${sum?.fixes.length ? `<div class="card" style="margin-bottom:10px">
+        <div class="eyebrow">แก้สามอย่างนี้</div>
+        ${sum.fixes.slice(0, 3).map((f, i) => `<div style="font-size:.83rem;margin-top:6px">${i + 1}. ${esc(f)}</div>`).join("")}
+      </div>` : ""}
+      ${sum?.risks ? `<div class="card" style="margin-bottom:10px;border-color:var(--warn)">
+        <div class="eyebrow">⚠️ ความเสี่ยง</div><div style="font-size:.83rem;white-space:pre-wrap">${esc(sum.risks.slice(0, 700))}</div>
+      </div>` : ""}
+      <details class="card" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:600">อ่านรายงานเต็ม</summary>
+        <div class="md">${mdToHtml(current.vsim)}</div></details>
+      <div class="btnrow" style="margin-top:0">
+        ${hasGemini() ? `<button class="btn small" id="vsimregen">🔄 รันใหม่</button>` : ""}
+        <button class="btn small" id="vsimdl">⬇ ดาวน์โหลดรายงาน .md</button>
+        <button class="btn small" id="vsimcopy">📋 คัดลอก Prompt</button>
+        <button class="btn small" id="vsimpaste">📥 วางรายงานใหม่</button>
+        <button class="btn small" id="vsimclear">🗑 ล้างรายงาน</button>
+      </div>`;
+  }
+  $("#vsimrun")?.addEventListener("click", genViewerSim);
+  $("#vsimregen")?.addEventListener("click", () => { current.vsim = null; genViewerSim(); });
+  $("#vsimcopy")?.addEventListener("click", () => copyText(viewerSimPrompt(),
+    "คัดลอก Prompt แล้ว — วางในแชท AI แล้วเอารายงานที่ได้กลับมาวางด้วยปุ่ม 📥"));
+  $("#vsimdl")?.addEventListener("click", () => download("viewer-sim.md", current.vsim, "text/markdown;charset=utf-8"));
+  $("#vsimclear")?.addEventListener("click", () => { current.vsim = null; saveViewerSim(); renderViewerSim(); });
+  $("#vsimpaste")?.addEventListener("click", () => {
+    const t = window.prompt("วางรายงานผู้ชมจำลองที่ได้จากแชท AI");
+    if (!t || !t.trim()) return;
+    current.vsim = t.trim();
+    saveViewerSim();
+    renderViewerSim();
+    toast("รับรายงานแล้ว ✓");
+  });
 }
 
 /* ── Retention Analyzer (copy-paste workflow only, no API calls) ── */

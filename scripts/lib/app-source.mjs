@@ -28,6 +28,27 @@ export function extractTemplate(src, name) {
   return end < 0 ? null : src.slice(i + open.length, end);
 }
 
+/**
+ * The youtube-viewer-sim skill body, read from .claude/skills/ — the same files
+ * the Studio's Phase 4 prompt is synced from, so both pipelines simulate
+ * viewers by identical rules. The YAML frontmatter routes the skill inside
+ * Claude Code and means nothing to a model handed the body as a prompt.
+ */
+export async function viewerSimSkill() {
+  const dir = path.join(REPO, ".claude/skills/youtube-viewer-sim");
+  const [skill, personas] = await Promise.all([
+    readFile(path.join(dir, "SKILL.md"), "utf8"),
+    readFile(path.join(dir, "references/personas.md"), "utf8"),
+  ]);
+  return [
+    skill.replace(/^---\n[\s\S]*?\n---\n+/, "").trim(),
+    "", "---", "",
+    "# references/personas.md",
+    "",
+    personas.trim(),
+  ].join("\n");
+}
+
 /** The Phase 2 storyboard rules, sliced out of the master prompt template. */
 export function phase2Spec(src) {
   const m = src.match(/(?:^|\n)##[ \t]*Phase[ \t]*2\b[\s\S]*?(?=\n##[ \t]*Phase[ \t]*3\b|$)/);
